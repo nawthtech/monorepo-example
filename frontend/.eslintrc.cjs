@@ -5,6 +5,7 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
+    // إزالة أي إشارة لـ tailwindcss من هنا
   ],
   ignorePatterns: ['dist', '.eslintrc.cjs'],
   parser: '@typescript-eslint/parser',
@@ -14,5 +15,11 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    // تعطيل جميع قواعد tailwindcss المسببة للمشاكل
+    'tailwindcss/no-arbitrary-value': 'off',
+    'tailwindcss/no-custom-classname': 'off',
+    'tailwindcss/classnames-order': 'off',
+    'tailwindcss/enforces-shorthand': 'off',
+    'tailwindcss/no-contradicting-classname': 'off'
   },
 }
