@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nawthtech/backend/internal/logger"
-	"github.com/nawthtech/backend/internal/middleware"
-	"github.com/nawthtech/backend/internal/quote"
+	"backend-app/internal/logger"
+	"backend-app/internal/middleware"
+	"backend-app/internal/quote"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
