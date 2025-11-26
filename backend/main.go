@@ -2,9 +2,12 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/nawthtech/backend/internal/config"
@@ -40,8 +43,9 @@ func main() {
 	handlers.Register(r, services)
 
 	// إعداد الخادم
+	port := cmp.Or(os.Getenv("PORT"), "3000")
 	server := &http.Server{
-		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "3000"),
+		Addr:              ":" + port,
 		Handler:           r,
 		ReadTimeout:       5 * time.Minute,
 		WriteTimeout:      5 * time.Minute,
@@ -50,24 +54,31 @@ func main() {
 		MaxHeaderBytes:    1 << 20, // 1MB
 	}
 
-	// بدء الخادم
-	logger.Stdout.Info("بدء تشغيل الخادم", 
-		slog.String("port", server.Addr),
-		slog.String("environment", cfg.Environment),
-		slog.String("version", cfg.Version),
-	)
+	// بدء الخادم في goroutine منفصلة
+	go func() {
+		logger.Stdout.Info("بدء تشغيل الخادم", 
+			slog.String("port", port),
+			slog.String("environment", cfg.Environment),
+			slog.String("version", cfg.Version),
+		)
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logger.Stdout.Error("فشل في بدء الخادم", logger.ErrAttr(err))
-		os.Exit(1)
-	}
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Stdout.Error("فشل في بدء الخادم", logger.ErrAttr(err))
+			os.Exit(1)
+		}
+	}()
+
+	// انتظار إشارة الإغلاق
+	gracefulShutdown(server)
 }
 
 // initializeSystem تهيئة مكونات النظام
 func initializeSystem(cfg *config.Config) error {
-	// تهيئة قاعدة البيانات
-	if err := utils.InitDatabase(cfg.DatabaseURL); err != nil {
-		return err
+	// تهيئة قاعدة البيانات إذا كان رابط قاعدة البيانات متوفراً
+	if cfg.DatabaseURL != "" {
+		if err := utils.InitDatabase(cfg.DatabaseURL); err != nil {
+			return err
+		}
 	}
 
 	// تهيئة المدقق
@@ -75,9 +86,11 @@ func initializeSystem(cfg *config.Config) error {
 		return err
 	}
 
-	// تهيئة نظام التشفير
-	if err := utils.InitEncryption(cfg.EncryptionKey); err != nil {
-		return err
+	// تهيئة نظام التشفير إذا كان المفتاح متوفراً
+	if cfg.EncryptionKey != "" {
+		if err := utils.InitEncryption(cfg.EncryptionKey); err != nil {
+			return err
+		}
 	}
 
 	// التحقق من المساحات التخزينية
@@ -91,51 +104,21 @@ func initializeSystem(cfg *config.Config) error {
 
 // initializeServices تهيئة جميع الخدمات
 func initializeServices() *handlers.Services {
-	// خدمات الإدارة
-	adminService := services.NewAdminService()
-
-	// خدمات المستخدمين
-	userService := services.NewUserService()
-
-	// خدمات المصادقة
-	authService := services.NewAuthService()
-
-	// خدمات المتجر
-	storeService := services.NewStoreService()
-
-	// خدمات السلة
-	cartService := services.NewCartService()
-
-	// خدمات المدفوعات
-	paymentService := services.NewPaymentService()
-
-	// خدمات الذكاء الاصطناعي
-	aiService := services.NewAIService()
-
-	// خدمات البريد الإلكتروني
-	emailService := services.NewEmailService()
-
-	// خدمات الرفع
-	uploadService := services.NewUploadService()
-
 	return &handlers.Services{
-		Admin:   adminService,
-		User:    userService,
-		Auth:    authService,
-		Store:   storeService,
-		Cart:    cartService,
-		Payment: paymentService,
-		AI:      aiService,
-		Email:   emailService,
-		Upload:  uploadService,
+		Admin:   services.NewAdminService(),
+		User:    services.NewUserService(),
+		Auth:    services.NewAuthService(),
+		Store:   services.NewStoreService(),
+		Cart:    services.NewCartService(),
+		Payment: services.NewPaymentService(),
+		AI:      services.NewAIService(),
+		Email:   services.NewEmailService(),
+		Upload:  services.NewUploadService(),
 	}
 }
 
 // checkStorage التحقق من المساحات التخزينية
 func checkStorage() error {
-	// التحقق من مساحة القرص
-	// (يمكن إضافة منطق فعلي للتحقق من المساحة)
-	
 	// إنشاء المجلدات الضرورية إذا لم تكن موجودة
 	dirs := []string{
 		"./uploads",
@@ -157,7 +140,7 @@ func checkStorage() error {
 func gracefulShutdown(server *http.Server) {
 	// إنشاء قناة للإشارات
 	sigChan := make(chan os.Signal, 1)
-	// signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// انتظار الإشارة
 	<-sigChan
@@ -177,7 +160,4 @@ func gracefulShutdown(server *http.Server) {
 
 	// إغلاق اتصالات قاعدة البيانات
 	utils.CloseDatabase()
-
-	// إغلاق الموارد الأخرى
-	// (يمكن إضافة إغلاق لموارد أخرى مثل اتصالات Redis، إلخ)
 }
