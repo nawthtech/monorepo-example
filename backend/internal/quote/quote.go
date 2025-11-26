@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/nawthtech/backend/internal/logger"
+	"backend-app/internal/logger"
 )
 
 type quotes struct {
