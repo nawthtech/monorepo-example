@@ -17,7 +17,7 @@ import (
 	"github.com/nawthtech/backend/internal/services"
 	"github.com/nawthtech/backend/internal/utils"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5" // استخدام chi بدلاً من gorilla/mux
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// إنشاء الموجه
-	r := mux.NewRouter()
+	r := chi.NewRouter()
 
 	// تسجيل الوسائط
 	middleware.Register(r)
