@@ -3,9 +3,9 @@ package config
 import (
 	"os"
 
-	"github.com/nawthtech/backend/internal/logger"
+	"backend-app/internal/logger"
 
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 )
 
 type cors struct {
