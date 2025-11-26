@@ -1,7 +1,7 @@
 // في ملف routes.go أضف هذه الوظيفة
 import (
 	// ... الاستيرادات الحالية
-	"nawthtech/backend/internal/middleware"
+	"github.com/nawthtech/backend/internal/middleware"
 )
 
 func RegisterAdminRoutes(router *mux.Router, adminHandler *AdminHandler, authMiddleware mux.MiddlewareFunc) {
