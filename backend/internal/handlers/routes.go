@@ -33,6 +33,7 @@ RegisterUserRoutes(router, services.User, services.Admin)
 RegisterStoreRoutes(router, services.Store, services.Cart)
 RegisterCategoryRoutes(router, services.Category)
 RegisterAIRoutes(router, services.AI)
+RegisterAuthRoutes(router, services.Auth)
 
 	// المسارات العامة الأساسية
 	router.Route("/api", func(r chi.Router) {
