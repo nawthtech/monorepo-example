@@ -1,4 +1,4 @@
-module github.com/nawthtech/backend
+module backend-app
 
 go 1.25.4
 
