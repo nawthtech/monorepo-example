@@ -32,6 +32,8 @@ RegisterPaymentRoutes(router, services.Payment)
 RegisterUserRoutes(router, services.User, services.Admin)
 RegisterStoreRoutes(router, services.Store, services.Cart)
 RegisterCategoryRoutes(router, services.Category)
+RegisterAIRoutes(router, services.AI)
+
 	// المسارات العامة الأساسية
 	router.Route("/api", func(r chi.Router) {
 		// الصحة
