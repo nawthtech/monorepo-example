@@ -30,6 +30,7 @@ func Register(router chi.Router, services *Services) {
 	healthHandler := NewHealthHandler()
 RegisterPaymentRoutes(router, services.Payment)
 RegisterUserRoutes(router, services.User, services.Admin)
+RegisterStoreRoutes(router, services.Store, services.Cart)
 	// المسارات العامة الأساسية
 	router.Route("/api", func(r chi.Router) {
 		// الصحة
