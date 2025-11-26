@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"backend-app/internal/models"
-	"backend-app/internal/services"
+	"github.com/nawthtech/nawthtech/backend/internal/models"
+	"github.com/nawthtech/nawthtech/backend/internal/services"
 )
 
 type AdminHandler struct {
