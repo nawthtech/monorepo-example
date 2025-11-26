@@ -28,8 +28,7 @@ func Register(router chi.Router, services *Services) {
 	// إنشاء المعالجات الأساسية فقط
 	adminHandler := NewAdminHandler(services.Admin)
 	healthHandler := NewHealthHandler()
-
-	// داخل دالة Register، بعد تعريف المسارات الأخرى
+RegisterPaymentRoutes(router, services.Payment)
 RegisterUserRoutes(router, services.User, services.Admin)
 	// المسارات العامة الأساسية
 	router.Route("/api", func(r chi.Router) {
