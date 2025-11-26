@@ -4,7 +4,7 @@ import (
 	"github.com/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/backend/internal/services"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 // Services يحتوي على جميع الخدمات
