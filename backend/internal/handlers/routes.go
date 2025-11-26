@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/nawthtech/backend/internal/middleware"
-	"github.com/nawthtech/backend/internal/services"
+	"backend-app/internal/middleware"
+	"backend-app/internal/services"
 
 	"github.com/go-chi/chi/v5"
 )
