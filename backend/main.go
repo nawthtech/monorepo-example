@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nawthtech/backend/internal/config"
-	"github.com/nawthtech/backend/internal/handlers"
-	"github.com/nawthtech/backend/internal/logger"
-	"github.com/nawthtech/backend/internal/middleware"
-	"github.com/nawthtech/backend/internal/services"
-	"github.com/nawthtech/backend/internal/utils"
+	"backend-app/internal/config"
+	"backend-app/internal/handlers"
+	"backend-app/internal/logger"
+	"backend-app/internal/middleware"
+	"backend-app/internal/services"
+	"backend-app/internal/utils"
 
 	"github.com/go-chi/chi/v5"
 )
