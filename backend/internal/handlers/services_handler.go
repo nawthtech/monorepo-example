@@ -15,6 +15,264 @@ type ServicesHandler struct {
 	authService     services.AuthService
 }
 
+
+// الدوال الجديدة التي تحتاج إلى إضافتها في services_handler.go
+
+// GetAllCategories جلب جميع الفئات
+func (h *ServicesHandler) GetAllCategories(c *gin.Context) {
+	categories, err := h.servicesService.GetAllCategories(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الفئات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"categories": categories,
+		"success":    true,
+	})
+}
+
+// GetPopularTags جلب الوسوم الشائعة
+func (h *ServicesHandler) GetPopularTags(c *gin.Context) {
+	limit := 10
+	if limitParam, err := strconv.Atoi(c.DefaultQuery("limit", "10")); err == nil {
+		limit = limitParam
+	}
+
+	tags, err := h.servicesService.GetPopularTags(c.Request.Context(), limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الوسوم",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tags":    tags,
+		"success": true,
+	})
+}
+
+// GetPopularServices جلب الخدمات الشائعة
+func (h *ServicesHandler) GetPopularServices(c *gin.Context) {
+	limit := 10
+	if limitParam, err := strconv.Atoi(c.DefaultQuery("limit", "10")); err == nil {
+		limit = limitParam
+	}
+	category := c.Query("category")
+
+	services, err := h.servicesService.GetPopularServices(c.Request.Context(), limit, category)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات الشائعة",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services": services,
+		"success":  true,
+	})
+}
+
+// GetServicesByCategory جلب الخدمات حسب الفئة
+func (h *ServicesHandler) GetServicesByCategory(c *gin.Context) {
+	category := c.Param("category")
+	limit := 10
+	if limitParam, err := strconv.Atoi(c.DefaultQuery("limit", "10")); err == nil {
+		limit = limitParam
+	}
+
+	services, err := h.servicesService.GetServicesByCategory(c.Request.Context(), category, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services": services,
+		"category": category,
+		"success":  true,
+	})
+}
+
+// GetServicesByTag جلب الخدمات حسب الوسم
+func (h *ServicesHandler) GetServicesByTag(c *gin.Context) {
+	tag := c.Param("tag")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	services, pagination, err := h.servicesService.GetServicesByTag(c.Request.Context(), tag, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services":   services,
+		"tag":        tag,
+		"pagination": pagination,
+		"success":    true,
+	})
+}
+
+// GetSimilarServices جلب خدمات مشابهة
+func (h *ServicesHandler) GetSimilarServices(c *gin.Context) {
+	serviceID := c.Param("serviceId")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
+
+	services, err := h.servicesService.GetSimilarServices(c.Request.Context(), serviceID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات المشابهة",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services": services,
+		"success":  true,
+	})
+}
+
+// GetServiceRatings جلب تقييمات الخدمة
+func (h *ServicesHandler) GetServiceRatings(c *gin.Context) {
+	serviceID := c.Param("serviceId")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	ratings, pagination, err := h.servicesService.GetServiceRatings(c.Request.Context(), serviceID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب التقييمات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ratings":    ratings,
+		"pagination": pagination,
+		"success":    true,
+	})
+}
+
+// GetMyServices جلب خدماتي (للبائع)
+func (h *ServicesHandler) GetMyServices(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	
+	var params services.GetSellerServicesParams
+	params.SellerID = userID.(string)
+	params.Page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
+	params.Limit, _ = strconv.Atoi(c.DefaultQuery("limit", "10"))
+	params.Status = c.Query("status")
+
+	services, pagination, err := h.servicesService.GetSellerServices(c.Request.Context(), params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services":   services,
+		"pagination": pagination,
+		"success":    true,
+	})
+}
+
+// GetServicesStatusCount جلب عدد الخدمات حسب الحالة
+func (h *ServicesHandler) GetServicesStatusCount(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	counts, err := h.servicesService.CountServicesByStatus(c.Request.Context(), userID.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الإحصائيات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"counts":  counts,
+		"success": true,
+	})
+}
+
+// AdvancedSearch بحث متقدم
+func (h *ServicesHandler) AdvancedSearch(c *gin.Context) {
+	var params services.AdvancedSearchParams
+	
+	if err := c.ShouldBindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "بيانات غير صالحة",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// تعيين القيم الافتراضية
+	if params.Page == 0 {
+		params.Page = 1
+	}
+	if params.Limit == 0 {
+		params.Limit = 10
+	}
+
+	services, pagination, err := h.servicesService.AdvancedSearch(c.Request.Context(), params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في البحث",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services":   services,
+		"pagination": pagination,
+		"success":    true,
+	})
+}
+
+// الدوال الإدارية للمسؤولين
+func (h *ServicesHandler) GetAllServices(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
+
+	services, pagination, err := h.servicesService.GetAllServices(c.Request.Context(), page, limit, status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "فشل في جلب الخدمات",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"services":   services,
+		"pagination": pagination,
+		"success":    true,
+	})
+}
+
+// ... (يمكنك إضافة الدوال الإدارية الأخرى حسب الحاجة)
 func NewServicesHandler(servicesService services.ServicesService, authService services.AuthService) *ServicesHandler {
 	return &ServicesHandler{
 		servicesService: servicesService,
