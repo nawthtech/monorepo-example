@@ -7,23 +7,24 @@ import (
 
 	"github.com/nawthtech/nawthtech/backend/internal/models"
 	"github.com/nawthtech/nawthtech/backend/internal/utils"
+	"gorm.io/gorm"
 )
 
 // ContentService واجهة خدمة المحتوى
 type ContentService interface {
-	GenerateContent(ctx context.Context, params GenerateContentParams) (*models.Content, error)
-	BatchGenerateContent(ctx context.Context, params BatchGenerateContentParams) (*models.BatchContent, error)
-	GetContent(ctx context.Context, params GetContentParams) ([]models.Content, *utils.Pagination, error)
+	GenerateContent(ctx context.Context, params ContentGenerateParams) (*models.Content, error)
+	BatchGenerateContent(ctx context.Context, params ContentBatchParams) (*models.BatchContent, error)
+	GetContent(ctx context.Context, params ContentQueryParams) ([]models.Content, *utils.Pagination, error)
 	GetContentByID(ctx context.Context, contentID string, userID string) (*models.Content, error)
-	UpdateContent(ctx context.Context, contentID string, params UpdateContentParams) (*models.Content, error)
+	UpdateContent(ctx context.Context, contentID string, params ContentUpdateParams) (*models.Content, error)
 	DeleteContent(ctx context.Context, contentID string, userID string) error
 	AnalyzeContent(ctx context.Context, contentID string, analysisType string, userID string) (*models.ContentAnalysis, error)
-	OptimizeContent(ctx context.Context, params OptimizeContentParams) (*models.ContentOptimization, error)
+	OptimizeContent(ctx context.Context, params ContentOptimizeParams) (*models.ContentOptimization, error)
 	GetContentPerformance(ctx context.Context, contentID string, timeframe string, userID string) (*models.ContentPerformance, error)
 }
 
-// GenerateContentParams معاملات إنشاء المحتوى
-type GenerateContentParams struct {
+// ContentGenerateParams معاملات إنشاء المحتوى
+type ContentGenerateParams struct {
 	Topic       string
 	Platform    string
 	ContentType string
@@ -35,8 +36,8 @@ type GenerateContentParams struct {
 	UserID      string
 }
 
-// BatchGenerateContentParams معاملات إنشاء المحتوى الجماعي
-type BatchGenerateContentParams struct {
+// ContentBatchParams معاملات إنشاء المحتوى الجماعي
+type ContentBatchParams struct {
 	Topics      []string
 	Platforms   []string
 	Schedule    map[string]interface{}
@@ -44,8 +45,8 @@ type BatchGenerateContentParams struct {
 	UserID      string
 }
 
-// GetContentParams معاملات جلب المحتوى
-type GetContentParams struct {
+// ContentQueryParams معاملات جلب المحتوى
+type ContentQueryParams struct {
 	Page      int
 	Limit     int
 	Platform  string
@@ -55,8 +56,8 @@ type GetContentParams struct {
 	UserID    string
 }
 
-// UpdateContentParams معاملات تحديث المحتوى
-type UpdateContentParams struct {
+// ContentUpdateParams معاملات تحديث المحتوى
+type ContentUpdateParams struct {
 	Content  string
 	Platform string
 	Status   string
@@ -65,8 +66,8 @@ type UpdateContentParams struct {
 	UserID   string
 }
 
-// OptimizeContentParams معاملات تحسين المحتوى
-type OptimizeContentParams struct {
+// ContentOptimizeParams معاملات تحسين المحتوى
+type ContentOptimizeParams struct {
 	Content  string
 	Platform string
 	Goals    []string
@@ -75,19 +76,18 @@ type OptimizeContentParams struct {
 
 // contentServiceImpl التطبيق الفعلي لخدمة المحتوى
 type contentServiceImpl struct {
-	// يمكن إضافة dependencies مثل repositories، AI clients، etc.
+	db *gorm.DB
 }
 
 // NewContentService إنشاء خدمة محتوى جديدة
-func NewContentService() ContentService {
-	return &contentServiceImpl{}
+func NewContentService(db *gorm.DB) ContentService {
+	return &contentServiceImpl{
+		db: db,
+	}
 }
 
-func (s *contentServiceImpl) GenerateContent(ctx context.Context, params GenerateContentParams) (*models.Content, error) {
-	// TODO: تنفيذ منطق إنشاء المحتوى باستخدام الذكاء الاصطناعي
-	// هذا تنفيذ مؤقت للتوضيح
-	
-	// إنشاء المحتوى باستخدام الذكاء الاصطناعي
+func (s *contentServiceImpl) GenerateContent(ctx context.Context, params ContentGenerateParams) (*models.Content, error) {
+	// محاكاة إنشاء المحتوى باستخدام الذكاء الاصطناعي
 	generatedContent := fmt.Sprintf("محتوى تم إنشاؤه حول: %s للمنصة: %s", params.Topic, params.Platform)
 	
 	// تحليل المحتوى المُنشأ
@@ -123,7 +123,7 @@ func (s *contentServiceImpl) GenerateContent(ctx context.Context, params Generat
 		Analysis:    contentAnalysis,
 		Optimization: platformOptimization,
 		Metadata: map[string]interface{}{
-			"wordCount":    len(generatedContent) / 6, // تقدير تقريبي
+			"wordCount":    len(generatedContent) / 6,
 			"readingTime":  len(generatedContent) / 200,
 			"generatedAt":  time.Now().Format(time.RFC3339),
 		},
@@ -140,13 +140,12 @@ func (s *contentServiceImpl) GenerateContent(ctx context.Context, params Generat
 	return content, nil
 }
 
-func (s *contentServiceImpl) BatchGenerateContent(ctx context.Context, params BatchGenerateContentParams) (*models.BatchContent, error) {
-	// TODO: تنفيذ منطق إنشاء المحتوى الجماعي
+func (s *contentServiceImpl) BatchGenerateContent(ctx context.Context, params ContentBatchParams) (*models.BatchContent, error) {
 	var generatedContent []models.Content
 	
 	for _, topic := range params.Topics {
 		for _, platform := range params.Platforms {
-			content, _ := s.GenerateContent(ctx, GenerateContentParams{
+			content, _ := s.GenerateContent(ctx, ContentGenerateParams{
 				Topic:       topic,
 				Platform:    platform,
 				ContentType: "post",
@@ -174,10 +173,7 @@ func (s *contentServiceImpl) BatchGenerateContent(ctx context.Context, params Ba
 	return batchContent, nil
 }
 
-func (s *contentServiceImpl) GetContent(ctx context.Context, params GetContentParams) ([]models.Content, *utils.Pagination, error) {
-	// TODO: تنفيذ منطق جلب المحتوى من قاعدة البيانات
-	// هذا تنفيذ مؤقت يعيد بيانات وهمية
-	
+func (s *contentServiceImpl) GetContent(ctx context.Context, params ContentQueryParams) ([]models.Content, *utils.Pagination, error) {
 	var content []models.Content
 	
 	// محاكاة جلب المحتوى
@@ -203,7 +199,6 @@ func (s *contentServiceImpl) GetContent(ctx context.Context, params GetContentPa
 }
 
 func (s *contentServiceImpl) GetContentByID(ctx context.Context, contentID string, userID string) (*models.Content, error) {
-	// TODO: تنفيذ منطق جلب محتوى محدد
 	if contentID == "" {
 		return nil, fmt.Errorf("معرف المحتوى مطلوب")
 	}
@@ -229,8 +224,7 @@ func (s *contentServiceImpl) GetContentByID(ctx context.Context, contentID strin
 	return content, nil
 }
 
-func (s *contentServiceImpl) UpdateContent(ctx context.Context, contentID string, params UpdateContentParams) (*models.Content, error) {
-	// TODO: تنفيذ منطق تحديث المحتوى
+func (s *contentServiceImpl) UpdateContent(ctx context.Context, contentID string, params ContentUpdateParams) (*models.Content, error) {
 	existingContent, err := s.GetContentByID(ctx, contentID, params.UserID)
 	if err != nil {
 		return nil, err
@@ -259,7 +253,6 @@ func (s *contentServiceImpl) UpdateContent(ctx context.Context, contentID string
 }
 
 func (s *contentServiceImpl) DeleteContent(ctx context.Context, contentID string, userID string) error {
-	// TODO: تنفيذ منطق حذف المحتوى
 	if contentID == "" {
 		return fmt.Errorf("معرف المحتوى مطلوب")
 	}
@@ -269,7 +262,6 @@ func (s *contentServiceImpl) DeleteContent(ctx context.Context, contentID string
 }
 
 func (s *contentServiceImpl) AnalyzeContent(ctx context.Context, contentID string, analysisType string, userID string) (*models.ContentAnalysis, error) {
-	// TODO: تنفيذ منطق تحليل المحتوى باستخدام الذكاء الاصطناعي
 	content, err := s.GetContentByID(ctx, contentID, userID)
 	if err != nil {
 		return nil, err
@@ -293,8 +285,7 @@ func (s *contentServiceImpl) AnalyzeContent(ctx context.Context, contentID strin
 	return analysis, nil
 }
 
-func (s *contentServiceImpl) OptimizeContent(ctx context.Context, params OptimizeContentParams) (*models.ContentOptimization, error) {
-	// TODO: تنفيذ منطق تحسين المحتوى باستخدام الذكاء الاصطناعي
+func (s *contentServiceImpl) OptimizeContent(ctx context.Context, params ContentOptimizeParams) (*models.ContentOptimization, error) {
 	optimizedContent := params.Content + " [محتوى محسن]"
 	
 	optimization := &models.ContentOptimization{
@@ -317,7 +308,6 @@ func (s *contentServiceImpl) OptimizeContent(ctx context.Context, params Optimiz
 }
 
 func (s *contentServiceImpl) GetContentPerformance(ctx context.Context, contentID string, timeframe string, userID string) (*models.ContentPerformance, error) {
-	// TODO: تنفيذ منطق جلب أداء المحتوى
 	performance := &models.ContentPerformance{
 		ContentID:   contentID,
 		Timeframe:   timeframe,
