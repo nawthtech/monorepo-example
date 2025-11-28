@@ -41,8 +41,8 @@ type SalesPerformance struct {
 	Orders int     `json:"orders"`
 }
 
-// PerformanceMetric مقياس الأداء
-type PerformanceMetric struct {
+// AdminPerformanceMetric مقياس الأداء (تم تغيير الاسم لتجنب التضارب)
+type AdminPerformanceMetric struct {
 	Value  float64 `json:"value"`
 	Label  string  `json:"label"`
 	Change float64 `json:"change"`
@@ -50,13 +50,13 @@ type PerformanceMetric struct {
 
 // DashboardData بيانات لوحة التحكم
 type DashboardData struct {
-	Stats         DashboardStats   `json:"stats"`
-	StoreMetrics  StoreMetrics     `json:"storeMetrics"`
-	RecentOrders  []Order          `json:"recentOrders"`
-	UserActivity  []UserActivity   `json:"userActivity"`
-	SystemAlerts  []SystemAlert    `json:"systemAlerts"`
-	SalesTrends   []SalesPerformance `json:"salesTrends"`
-	Performance   []PerformanceMetric `json:"performance"`
+	Stats         DashboardStats         `json:"stats"`
+	StoreMetrics  StoreMetrics           `json:"storeMetrics"`
+	RecentOrders  []Order                `json:"recentOrders"`
+	UserActivity  []UserActivity         `json:"userActivity"`
+	SystemAlerts  []SystemAlert          `json:"systemAlerts"`
+	SalesTrends   []SalesPerformance     `json:"salesTrends"`
+	Performance   []AdminPerformanceMetric `json:"performance"` // تم التحديث هنا
 }
 
 // ================================
