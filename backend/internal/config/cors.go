@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// Cors تكوين CORS
-type Cors struct {
+// CORSOptions إعدادات CORS الرئيسية
+type CORSOptions struct {
 	AllowedOrigins   []string
 	AllowedMethods   []string
 	AllowedHeaders   []string
@@ -136,16 +136,6 @@ func isOriginAllowed(origin string, allowedOrigins []string) bool {
 	}
 	
 	return false
-}
-
-// CORSOptions إعدادات CORS الرئيسية
-type CORSOptions struct {
-	AllowedOrigins   []string
-	AllowedMethods   []string
-	AllowedHeaders   []string
-	ExposedHeaders   []string
-	AllowCredentials bool
-	MaxAge           int
 }
 
 // GetCORSConfig الحصول على إعدادات CORS بناءً على المسار
@@ -309,10 +299,10 @@ func GetCORSStats() map[string]interface{} {
 }
 
 // GetDefaultCORSConfig الحصول على إعدادات CORS الافتراضية
-func GetDefaultCORSConfig() Cors {
+func GetDefaultCORSConfig() CORSOptions {
 	allowedOrigins := getAllowedOrigins()
 	
-	return Cors{
+	return CORSOptions{
 		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
