@@ -45,11 +45,11 @@ type SalesPerformance struct {
 type DashboardData struct {
 	Stats         DashboardStats      `json:"stats"`
 	StoreMetrics  StoreMetrics        `json:"store_metrics"`
-	RecentOrders  []Order             `json:"recent_orders"`  // من shared_models
-	UserActivity  []UserActivity      `json:"user_activity"`  // من shared_models
-	SystemAlerts  []SystemAlert       `json:"system_alerts"`  // من shared_models
+	RecentOrders  []Order             `json:"recent_orders"`
+	UserActivity  []UserActivity      `json:"user_activity"`
+	SystemAlerts  []SystemAlert       `json:"system_alerts"`
 	SalesTrends   []SalesPerformance  `json:"sales_trends"`
-	Performance   []PerformanceMetric `json:"performance"`    // من shared_models
+	Performance   []PerformanceMetric `json:"performance"` // من shared_models
 }
 
 // ================================
