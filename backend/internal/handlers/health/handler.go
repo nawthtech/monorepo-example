@@ -117,6 +117,8 @@ func (h *HealthHandler) Check(c *gin.Context) {
 		Environment: h.environment,
 		Uptime:      time.Since(h.startTime).String(),
 		Checks:      checks,
+  ResponseTime:
+time.Since(start).String(),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
