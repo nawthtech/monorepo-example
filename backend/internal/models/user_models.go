@@ -88,3 +88,30 @@ type UserResetPasswordRequest struct {
 type UserVerifyEmailRequest struct {
 	Token string `json:"token" binding:"required"`
 }
+
+// UserStats إحصائيات المستخدم (مطابق لما في الملفات الأخرى)
+type UserStats struct {
+	UserID          string  `json:"user_id"`
+	TotalServices   int     `json:"total_services"`
+	ActiveServices  int     `json:"active_services"`
+	TotalOrders     int     `json:"total_orders"`
+	CompletedOrders int     `json:"completed_orders"`
+	TotalRevenue    float64 `json:"total_revenue"`
+	AverageRating   float64 `json:"average_rating"`
+	TotalReviews    int     `json:"total_reviews"`
+}
+
+// UserDetails تفاصيل المستخدم (مطابق لما في الملفات الأخرى)
+type UserDetails struct {
+	User      *User     `json:"user"`
+	Stats     *UserStats `json:"stats"`
+	LastLogin time.Time `json:"last_login"`
+}
+
+// UserListResponse استجابة قائمة المستخدمين (مطابق لما في الملفات الأخرى)
+type UserListResponse struct {
+	Users []User `json:"users"`
+	Total int64  `json:"total"`
+	Page  int    `json:"page"`
+	Limit int    `json:"limit"`
+}
