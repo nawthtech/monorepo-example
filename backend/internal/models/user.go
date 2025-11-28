@@ -24,26 +24,14 @@ type User struct {
 
 // UserProfile ملف المستخدم الشخصي
 type UserProfile struct {
-	UserID      string `json:"user_id" gorm:"primaryKey"`
-	Bio         string `json:"bio,omitempty" gorm:"type:text"`
-	Website     string `json:"website,omitempty"`
-	Location    string `json:"location,omitempty"`
+	UserID      string            `json:"user_id" gorm:"primaryKey"`
+	Bio         string            `json:"bio,omitempty" gorm:"type:text"`
+	Website     string            `json:"website,omitempty"`
+	Location    string            `json:"location,omitempty"`
 	SocialLinks map[string]string `json:"social_links,omitempty" gorm:"type:json;serializer:json"`
-	Skills      []string `json:"skills,omitempty" gorm:"type:json;serializer:json"`
-	Languages   []string `json:"languages,omitempty" gorm:"type:json;serializer:json"`
-	Experience  string `json:"experience,omitempty" gorm:"type:text"`
-}
-
-// UserStats إحصائيات المستخدم
-type UserStats struct {
-	UserID          string  `json:"user_id" gorm:"primaryKey"`
-	TotalServices   int     `json:"total_services" gorm:"default:0"`
-	ActiveServices  int     `json:"active_services" gorm:"default:0"`
-	TotalOrders     int     `json:"total_orders" gorm:"default:0"`
-	CompletedOrders int     `json:"completed_orders" gorm:"default:0"`
-	TotalRevenue    float64 `json:"total_revenue" gorm:"default:0"`
-	AverageRating   float64 `json:"average_rating" gorm:"default:0"`
-	TotalReviews    int     `json:"total_reviews" gorm:"default:0"`
+	Skills      []string          `json:"skills,omitempty" gorm:"type:json;serializer:json"`
+	Languages   []string          `json:"languages,omitempty" gorm:"type:json;serializer:json"`
+	Experience  string            `json:"experience,omitempty" gorm:"type:text"`
 }
 
 // SellerInfo معلومات البائع
