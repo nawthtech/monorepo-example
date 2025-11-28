@@ -10,20 +10,20 @@ import (
 
 // User نموذج المستخدم
 type User struct {
-	ID           string    `json:"id" gorm:"primaryKey"`
-	Email        string    `json:"email" gorm:"not null;uniqueIndex"`
-	Username     string    `json:"username" gorm:"not null;uniqueIndex"`
-	Password     string    `json:"-" gorm:"not null"`
-	FirstName    string    `json:"first_name" gorm:"not null"`
-	LastName     string    `json:"last_name" gorm:"not null"`
-	Phone        string    `json:"phone,omitempty"`
-	Avatar       string    `json:"avatar,omitempty"`
-	Role         string    `json:"role" gorm:"default:'user'"`
-	Status       string    `json:"status" gorm:"default:'active'"`
-	EmailVerified bool     `json:"email_verified" gorm:"default:false"`
-	LastLogin    time.Time `json:"last_login,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID            string    `json:"id" gorm:"primaryKey"`
+	Email         string    `json:"email" gorm:"not null;uniqueIndex"`
+	Username      string    `json:"username" gorm:"not null;uniqueIndex"`
+	Password      string    `json:"-" gorm:"not null"`
+	FirstName     string    `json:"first_name" gorm:"not null"`
+	LastName      string    `json:"last_name" gorm:"not null"`
+	Phone         string    `json:"phone,omitempty"`
+	Avatar        string    `json:"avatar,omitempty"`
+	Role          string    `json:"role" gorm:"default:'user'"`
+	Status        string    `json:"status" gorm:"default:'active'"`
+	EmailVerified bool      `json:"email_verified" gorm:"default:false"`
+	LastLogin     time.Time `json:"last_login,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // Service نموذج الخدمة
@@ -47,19 +47,19 @@ type Service struct {
 
 // Content نموذج المحتوى
 type Content struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	Title     string    `json:"title" gorm:"not null"`
-	Content   string    `json:"content" gorm:"type:text;not null"`
-	Type      string    `json:"type" gorm:"not null;index"` // article, blog, news, etc.
-	AuthorID  string    `json:"author_id" gorm:"not null;index"`
-	Slug      string    `json:"slug" gorm:"not null;uniqueIndex"`
-	Image     string    `json:"image,omitempty"`
-	Tags      []string  `json:"tags" gorm:"type:json;serializer:json"`
-	IsPublished bool    `json:"is_published" gorm:"default:false"`
-	Views     int       `json:"views" gorm:"default:0"`
-	Likes     int       `json:"likes" gorm:"default:0"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id" gorm:"primaryKey"`
+	Title       string    `json:"title" gorm:"not null"`
+	Content     string    `json:"content" gorm:"type:text;not null"`
+	Type        string    `json:"type" gorm:"not null;index"` // article, blog, news, etc.
+	AuthorID    string    `json:"author_id" gorm:"not null;index"`
+	Slug        string    `json:"slug" gorm:"not null;uniqueIndex"`
+	Image       string    `json:"image,omitempty"`
+	Tags        []string  `json:"tags" gorm:"type:json;serializer:json"`
+	IsPublished bool      `json:"is_published" gorm:"default:false"`
+	Views       int       `json:"views" gorm:"default:0"`
+	Likes       int       `json:"likes" gorm:"default:0"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	PublishedAt time.Time `json:"published_at,omitempty"`
 }
 
@@ -78,18 +78,18 @@ type Notification struct {
 
 // Review نموذج التقييم
 type Review struct {
-	ID          string    `json:"id" gorm:"primaryKey"`
-	UserID      string    `json:"user_id" gorm:"not null;index"`
-	ServiceID   string    `json:"service_id" gorm:"not null;index"`
-	OrderID     string    `json:"order_id" gorm:"not null;index"`
-	Rating      int       `json:"rating" gorm:"not null;check:rating>=1 AND rating<=5"`
-	Title       string    `json:"title,omitempty"`
-	Comment     string    `json:"comment,omitempty" gorm:"type:text"`
-	IsVerified  bool      `json:"is_verified" gorm:"default:false"`
-	IsHelpful   int       `json:"is_helpful" gorm:"default:0"`
-	IsReported  bool      `json:"is_reported" gorm:"default:false"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID         string    `json:"id" gorm:"primaryKey"`
+	UserID     string    `json:"user_id" gorm:"not null;index"`
+	ServiceID  string    `json:"service_id" gorm:"not null;index"`
+	OrderID    string    `json:"order_id" gorm:"not null;index"`
+	Rating     int       `json:"rating" gorm:"not null;check:rating>=1 AND rating<=5"`
+	Title      string    `json:"title,omitempty"`
+	Comment    string    `json:"comment,omitempty" gorm:"type:text"`
+	IsVerified bool      `json:"is_verified" gorm:"default:false"`
+	IsHelpful  int       `json:"is_helpful" gorm:"default:0"`
+	IsReported bool      `json:"is_reported" gorm:"default:false"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // Cart عربة التسوق
@@ -109,49 +109,51 @@ type Cart struct {
 
 // CartItem عنصر في عربة التسوق
 type CartItem struct {
-	ID          string  `json:"id"`
-	ServiceID   string  `json:"service_id"`
-	ServiceName string  `json:"service_name"`
-	Quantity    int     `json:"quantity"`
-	Price       float64 `json:"price"`
-	Image       string  `json:"image,omitempty"`
+	ID          string    `json:"id"`
+	ServiceID   string    `json:"service_id"`
+	ServiceName string    `json:"service_name"`
+	Quantity    int       `json:"quantity"`
+	Price       float64   `json:"price"`
+	Image       string    `json:"image,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // Category فئة
 type Category struct {
-	ID          string    `json:"id" gorm:"primaryKey"`
-	Name        string    `json:"name" gorm:"not null;uniqueIndex"`
-	Description string    `json:"description" gorm:"type:text"`
-	Slug        string    `json:"slug" gorm:"not null;uniqueIndex"`
-	ParentID    string    `json:"parent_id,omitempty" gorm:"index"`
-	Icon        string    `json:"icon,omitempty"`
-	Image       string    `json:"image,omitempty"`
-	Color       string    `json:"color,omitempty"`
-	SortOrder   int       `json:"sort_order" gorm:"default:0"`
-	IsActive    bool      `json:"is_active" gorm:"default:true"`
-	ServiceCount int      `json:"service_count,omitempty" gorm:"-"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id" gorm:"primaryKey"`
+	Name         string    `json:"name" gorm:"not null;uniqueIndex"`
+	Description  string    `json:"description" gorm:"type:text"`
+	Slug         string    `json:"slug" gorm:"not null;uniqueIndex"`
+	ParentID     string    `json:"parent_id,omitempty" gorm:"index"`
+	Icon         string    `json:"icon,omitempty"`
+	Image        string    `json:"image,omitempty"`
+	Color        string    `json:"color,omitempty"`
+	SortOrder    int       `json:"sort_order" gorm:"default:0"`
+	IsActive     bool      `json:"is_active" gorm:"default:true"`
+	ServiceCount int       `json:"service_count,omitempty" gorm:"-"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Store متجر
 type Store struct {
-	ID          string    `json:"id" gorm:"primaryKey"`
-	Name        string    `json:"name" gorm:"not null"`
-	Slug        string    `json:"slug" gorm:"not null;uniqueIndex"`
-	Description string    `json:"description" gorm:"type:text"`
-	OwnerID     string    `json:"owner_id" gorm:"not null;index"`
-	Banner      string    `json:"banner,omitempty"`
-	Logo        string    `json:"logo,omitempty"`
-	ContactEmail string   `json:"contact_email,omitempty"`
-	Phone       string    `json:"phone,omitempty"`
-	Address     string    `json:"address,omitempty"`
-	Rating      float64   `json:"rating" gorm:"default:0"`
-	TotalSales  int       `json:"total_sales" gorm:"default:0"`
-	IsVerified  bool      `json:"is_verified" gorm:"default:false"`
-	IsActive    bool      `json:"is_active" gorm:"default:true"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id" gorm:"primaryKey"`
+	Name         string    `json:"name" gorm:"not null"`
+	Slug         string    `json:"slug" gorm:"not null;uniqueIndex"`
+	Description  string    `json:"description" gorm:"type:text"`
+	OwnerID      string    `json:"owner_id" gorm:"not null;index"`
+	Banner       string    `json:"banner,omitempty"`
+	Logo         string    `json:"logo,omitempty"`
+	ContactEmail string    `json:"contact_email,omitempty"`
+	Phone        string    `json:"phone,omitempty"`
+	Address      string    `json:"address,omitempty"`
+	Rating       float64   `json:"rating" gorm:"default:0"`
+	TotalSales   int       `json:"total_sales" gorm:"default:0"`
+	IsVerified   bool      `json:"is_verified" gorm:"default:false"`
+	IsActive     bool      `json:"is_active" gorm:"default:true"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Strategy استراتيجية
@@ -187,10 +189,13 @@ type File struct {
 	Size         int64             `json:"size" gorm:"not null"`
 	MimeType     string            `json:"mime_type" gorm:"not null"`
 	Extension    string            `json:"extension" gorm:"not null"`
+	ContentType  string            `json:"content_type" gorm:"not null"` // أضيف هذا الحقل
 	Metadata     map[string]string `json:"metadata" gorm:"type:json;serializer:json"`
 	UserID       string            `json:"user_id" gorm:"not null;index"`
 	IsPublic     bool              `json:"is_public" gorm:"default:false"`
 	UploadedAt   time.Time         `json:"uploaded_at"`
+	CreatedAt    time.Time         `json:"created_at"` // أضيف هذا الحقل
+	UpdatedAt    time.Time         `json:"updated_at"` // أضيف هذا الحقل
 }
 
 // ================================
@@ -199,47 +204,49 @@ type File struct {
 
 // Order طلب
 type Order struct {
-	ID           string          `json:"id" gorm:"primaryKey"`
-	UserID       string          `json:"user_id" gorm:"not null;index"`
-	ServiceID    string          `json:"service_id" gorm:"not null;index"`
-	SellerID     string          `json:"seller_id" gorm:"not null;index"`
-	Items        []OrderItem     `json:"items" gorm:"type:json;serializer:json"`
-	Status       string          `json:"status" gorm:"not null;index"` // pending, confirmed, processing, shipped, delivered, cancelled, refunded
-	TotalAmount  float64         `json:"total_amount" gorm:"not null"`
-	Discount     float64         `json:"discount" gorm:"default:0"`
-	Tax          float64         `json:"tax" gorm:"default:0"`
-	Shipping     float64         `json:"shipping" gorm:"default:0"`
-	FinalAmount  float64         `json:"final_amount" gorm:"not null"`
-	PaymentStatus string         `json:"payment_status" gorm:"not null;index"` // pending, paid, failed, refunded
-	PaymentMethod string         `json:"payment_method" gorm:"not null"`
-	ShippingInfo ShippingInfo    `json:"shipping_info" gorm:"type:json;serializer:json"`
-	CustomerNotes string         `json:"customer_notes,omitempty" gorm:"type:text"`
-	CancelledAt  time.Time       `json:"cancelled_at,omitempty"`
-	DeliveredAt  time.Time       `json:"delivered_at,omitempty"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
+	ID            string       `json:"id" gorm:"primaryKey"`
+	UserID        string       `json:"user_id" gorm:"not null;index"`
+	ServiceID     string       `json:"service_id,omitempty" gorm:"index"` // جعلته اختياريًا
+	SellerID      string       `json:"seller_id" gorm:"not null;index"`
+	Items         []OrderItem  `json:"items" gorm:"type:json;serializer:json"`
+	Status        string       `json:"status" gorm:"not null;index"` // pending, confirmed, processing, shipped, delivered, cancelled, refunded
+	TotalAmount   float64      `json:"total_amount" gorm:"not null"`
+	Discount      float64      `json:"discount" gorm:"default:0"`
+	Tax           float64      `json:"tax" gorm:"default:0"`
+	Shipping      float64      `json:"shipping" gorm:"default:0"`
+	FinalAmount   float64      `json:"final_amount" gorm:"not null"`
+	PaymentStatus string       `json:"payment_status" gorm:"not null;index"` // pending, paid, failed, refunded
+	PaymentMethod string       `json:"payment_method" gorm:"not null"`
+	ShippingInfo  ShippingInfo `json:"shipping_info" gorm:"type:json;serializer:json"`
+	CustomerNotes string       `json:"customer_notes,omitempty" gorm:"type:text"`
+	CancelledAt   time.Time    `json:"cancelled_at,omitempty"`
+	DeliveredAt   time.Time    `json:"delivered_at,omitempty"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
 // OrderItem عنصر في الطلب
 type OrderItem struct {
-	ID          string  `json:"id"`
-	ServiceID   string  `json:"service_id"`
-	ServiceName string  `json:"service_name"`
-	Quantity    int     `json:"quantity"`
-	Price       float64 `json:"price"`
-	Image       string  `json:"image,omitempty"`
+	ID          string    `json:"id"`
+	ServiceID   string    `json:"service_id"`
+	ServiceName string    `json:"service_name"`
+	Quantity    int       `json:"quantity"`
+	Price       float64   `json:"price"`
+	Image       string    `json:"image,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // ShippingInfo معلومات الشحن
 type ShippingInfo struct {
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	Email        string `json:"email"`
-	Phone        string `json:"phone"`
-	Address      string `json:"address"`
-	City         string `json:"city"`
-	Country      string `json:"country"`
-	PostalCode   string `json:"postal_code"`
+	FirstName      string `json:"first_name"`
+	LastName       string `json:"last_name"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
+	Address        string `json:"address"`
+	City           string `json:"city"`
+	Country        string `json:"country"`
+	PostalCode     string `json:"postal_code"`
 	ShippingMethod string `json:"shipping_method"`
 	TrackingNumber string `json:"tracking_number,omitempty"`
 }
@@ -268,17 +275,17 @@ type Payment struct {
 
 // Analytics نموذج التحليلات
 type Analytics struct {
-	ID          string                 `json:"id" gorm:"primaryKey"`
-	Type        string                 `json:"type" gorm:"not null;index"` // page_view, event, conversion, etc.
-	UserID      string                 `json:"user_id,omitempty" gorm:"index"`
-	SessionID   string                 `json:"session_id" gorm:"not null"`
-	Page        string                 `json:"page,omitempty"`
-	Action      string                 `json:"action,omitempty"`
-	Data        map[string]interface{} `json:"data" gorm:"type:json;serializer:json"`
-	IPAddress   string                 `json:"ip_address,omitempty"`
-	UserAgent   string                 `json:"user_agent,omitempty"`
-	Referrer    string                 `json:"referrer,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
+	ID        string                 `json:"id" gorm:"primaryKey"`
+	Type      string                 `json:"type" gorm:"not null;index"` // page_view, event, conversion, etc.
+	UserID    string                 `json:"user_id,omitempty" gorm:"index"`
+	SessionID string                 `json:"session_id" gorm:"not null"`
+	Page      string                 `json:"page,omitempty"`
+	Action    string                 `json:"action,omitempty"`
+	Data      map[string]interface{} `json:"data" gorm:"type:json;serializer:json"`
+	IPAddress string                 `json:"ip_address,omitempty"`
+	UserAgent string                 `json:"user_agent,omitempty"`
+	Referrer  string                 `json:"referrer,omitempty"`
+	CreatedAt time.Time              `json:"created_at"`
 }
 
 // ================================
