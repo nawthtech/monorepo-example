@@ -117,14 +117,13 @@ func (h *HealthHandler) Check(c *gin.Context) {
 		Environment: h.environment,
 		Uptime:      time.Since(h.startTime).String(),
 		Checks:      checks,
-  ResponseTime:
-time.Since(start).String(),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "فحص الصحة مكتمل",
-		"data":    response,
+		"success":      true,
+		"message":      "فحص الصحة مكتمل",
+		"data":         response,
+		"response_time": time.Since(start).String(),
 	})
 }
 
@@ -557,7 +556,7 @@ func (h *HealthHandler) checkSystemResources() HealthCheck {
 			"memory_usage_mb":    memStats.UsedMB,
 			"memory_usage_percent": memStats.UsagePercentage,
 			"goroutines":         goroutines,
-			"go_version":         "1.21",
+			"go_version":         "1.25.4",
 		},
 	}
 }
@@ -663,7 +662,7 @@ func (h *HealthHandler) analyzeHealth(checks map[string]HealthCheck) SystemSumma
 func (h *HealthHandler) getSensitiveInfo() gin.H {
 	return gin.H{
 		"server_time":      time.Now(),
-		"go_version":       "1.21",
+		"go_version":       "1.25.4",
 		"database_driver":  "postgres",
 		"cache_engine":     "In-Memory",
 		"active_sessions":  150,
