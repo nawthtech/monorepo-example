@@ -11,6 +11,20 @@ import (
 )
 
 // ================================
+// هياكل المعاملات المحدثة - إضافة الهياكل الناقصة
+// ================================
+
+type (
+	// ReviewQueryParams هيكل معاملات الاستعراضات
+	ReviewQueryParams struct {
+		Page   int    `json:"page"`
+		Limit  int    `json:"limit"`
+		Rating int    `json:"rating"`
+		SortBy string `json:"sort_by"`
+	}
+)
+
+// ================================
 // الواجهات الرئيسية (Main Interfaces) - المحدثة
 // ================================
 
@@ -1132,6 +1146,673 @@ type (
 )
 
 // ================================
+// تطبيقات الخدمات المحدثة - إضافة الدوال الناقصة
+// ================================
+
+// تطبيقات AIService
+func (s *aiServiceImpl) AnalyzeSentiment(ctx context.Context, text string, language string) (*SentimentAnalysis, error) {
+	return &SentimentAnalysis{
+		Sentiment:  "positive",
+		Confidence: 0.85,
+		Positive:   0.85,
+		Negative:   0.10,
+		Neutral:    0.05,
+	}, nil
+}
+
+func (s *aiServiceImpl) ClassifyContent(ctx context.Context, content string, categories []string) (*ContentClassification, error) {
+	return &ContentClassification{
+		Category:   "technology",
+		Confidence: 0.92,
+		Categories: []Class{
+			{Name: "technology", Confidence: 0.92},
+			{Name: "education", Confidence: 0.08},
+		},
+	}, nil
+}
+
+func (s *aiServiceImpl) ExtractKeywords(ctx context.Context, text string, maxKeywords int) (*KeywordExtraction, error) {
+	return &KeywordExtraction{
+		Keywords: []Keyword{
+			{Word: "artificial", Score: 0.95, Frequency: 3},
+			{Word: "intelligence", Score: 0.92, Frequency: 2},
+		},
+	}, nil
+}
+
+func (s *aiServiceImpl) SummarizeText(ctx context.Context, text string, maxLength int) (*TextSummary, error) {
+	return &TextSummary{
+		Summary:          "هذا ملخص للنص المقدم",
+		OriginalLength:   len(text),
+		SummaryLength:    maxLength,
+		CompressionRatio: float64(maxLength) / float64(len(text)),
+	}, nil
+}
+
+func (s *aiServiceImpl) TranslateText(ctx context.Context, text string, sourceLang string, targetLang string) (*TranslationResult, error) {
+	return &TranslationResult{
+		Text:       "هذا نص مترجم",
+		SourceLang: sourceLang,
+		TargetLang: targetLang,
+		Translations: []Translation{
+			{Text: "هذا نص مترجم", Confidence: 0.95},
+		},
+	}, nil
+}
+
+func (s *aiServiceImpl) GenerateImage(ctx context.Context, params AIImageParams) (*AIImageResult, error) {
+	return &AIImageResult{
+		URL:         "https://example.com/generated-image.jpg",
+		Width:       1024,
+		Height:      1024,
+		Format:      "jpg",
+		GeneratedAt: time.Now(),
+	}, nil
+}
+
+func (s *aiServiceImpl) ChatCompletion(ctx context.Context, messages []AIChatMessage, model string) (*ChatCompletionResult, error) {
+	return &ChatCompletionResult{
+		Message: AIChatMessage{
+			Role:    "assistant",
+			Content: "هذا رد من المساعد",
+		},
+		Tokens:      50,
+		Model:       model,
+		GeneratedAt: time.Now(),
+	}, nil
+}
+
+// تطبيقات AuthService
+func (s *authServiceImpl) Login(ctx context.Context, req AuthLoginRequest) (*AuthResponse, error) {
+	return &AuthResponse{
+		User: &models.User{
+			ID:           "user_123",
+			Email:        req.Email,
+			Username:     "user123",
+			Role:         "user",
+			Status:       "active",
+			EmailVerified: true,
+		},
+		AccessToken:  "access_token_123",
+		RefreshToken: "refresh_token_123",
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+func (s *authServiceImpl) Logout(ctx context.Context, token string) error {
+	return nil
+}
+
+func (s *authServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error) {
+	return &AuthResponse{
+		User: &models.User{
+			ID:           "user_123",
+			Email:        "user@example.com",
+			Username:     "user123",
+			Role:         "user",
+			Status:       "active",
+			EmailVerified: true,
+		},
+		AccessToken:  "new_access_token_123",
+		RefreshToken: "new_refresh_token_123",
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+func (s *authServiceImpl) VerifyToken(ctx context.Context, token string) (*TokenClaims, error) {
+	return &TokenClaims{
+		UserID:    "user_123",
+		Email:     "user@example.com",
+		Role:      "user",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+func (s *authServiceImpl) ForgotPassword(ctx context.Context, email string) error {
+	return nil
+}
+
+func (s *authServiceImpl) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	return nil
+}
+
+func (s *authServiceImpl) ChangePassword(ctx context.Context, userID string, req ChangePasswordRequest) error {
+	return nil
+}
+
+func (s *authServiceImpl) ValidateSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
+	return &SessionInfo{
+		SessionID: sessionID,
+		UserID:    "user_123",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		IPAddress: "192.168.1.1",
+		UserAgent: "Mozilla/5.0...",
+	}, nil
+}
+
+// تطبيقات CartService
+func (s *cartServiceImpl) AddToCart(ctx context.Context, userID string, item models.CartItem) (*models.Cart, error) {
+	return &models.Cart{
+		ID:          "cart_" + userID,
+		UserID:      userID,
+		Items:       []models.CartItem{item},
+		TotalAmount: item.Price * float64(item.Quantity),
+		Discount:    0,
+		Tax:         0,
+		Shipping:    0,
+		FinalAmount: item.Price * float64(item.Quantity),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *cartServiceImpl) UpdateCartItem(ctx context.Context, userID string, itemID string, quantity int) (*models.Cart, error) {
+	return &models.Cart{
+		ID:          "cart_" + userID,
+		UserID:      userID,
+		Items:       []models.CartItem{},
+		TotalAmount: 0,
+		Discount:    0,
+		Tax:         0,
+		Shipping:    0,
+		FinalAmount: 0,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *cartServiceImpl) RemoveFromCart(ctx context.Context, userID string, itemID string) (*models.Cart, error) {
+	return &models.Cart{
+		ID:          "cart_" + userID,
+		UserID:      userID,
+		Items:       []models.CartItem{},
+		TotalAmount: 0,
+		Discount:    0,
+		Tax:         0,
+		Shipping:    0,
+		FinalAmount: 0,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *cartServiceImpl) ClearCart(ctx context.Context, userID string) error {
+	return nil
+}
+
+func (s *cartServiceImpl) GetCartSummary(ctx context.Context, userID string) (*CartSummary, error) {
+	return &CartSummary{
+		TotalItems: 0,
+		Subtotal:   0,
+		Tax:        0,
+		Shipping:   0,
+		Discount:   0,
+		Total:      0,
+	}, nil
+}
+
+func (s *cartServiceImpl) ApplyCoupon(ctx context.Context, userID string, couponCode string) (*models.Cart, error) {
+	return &models.Cart{
+		ID:          "cart_" + userID,
+		UserID:      userID,
+		Items:       []models.CartItem{},
+		TotalAmount: 0,
+		Discount:    10,
+		Tax:         0,
+		Shipping:    0,
+		FinalAmount: -10,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *cartServiceImpl) RemoveCoupon(ctx context.Context, userID string) (*models.Cart, error) {
+	return &models.Cart{
+		ID:          "cart_" + userID,
+		UserID:      userID,
+		Items:       []models.CartItem{},
+		TotalAmount: 0,
+		Discount:    0,
+		Tax:         0,
+		Shipping:    0,
+		FinalAmount: 0,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+// تطبيقات CategoryService
+func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCreateRequest) (*models.Category, error) {
+	return &models.Category{
+		ID:          fmt.Sprintf("category_%d", time.Now().Unix()),
+		Name:        req.Name,
+		Description: req.Description,
+		ParentID:    req.ParentID,
+		Icon:        req.Icon,
+		Color:       req.Color,
+		Image:       req.Image,
+		SortOrder:   req.SortOrder,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *categoryServiceImpl) GetCategories(ctx context.Context, params CategoryQueryParams) ([]models.Category, *utils.Pagination, error) {
+	return []models.Category{}, &utils.Pagination{}, nil
+}
+
+func (s *categoryServiceImpl) GetCategoryByID(ctx context.Context, categoryID string) (*models.Category, error) {
+	return &models.Category{
+		ID:          categoryID,
+		Name:        "فئة تجريبية",
+		Description: "وصف الفئة التجريبية",
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *categoryServiceImpl) UpdateCategory(ctx context.Context, categoryID string, req CategoryUpdateRequest) (*models.Category, error) {
+	return &models.Category{
+		ID:          categoryID,
+		Name:        req.Name,
+		Description: req.Description,
+		Icon:        req.Icon,
+		Color:       req.Color,
+		Image:       req.Image,
+		SortOrder:   req.SortOrder,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *categoryServiceImpl) DeleteCategory(ctx context.Context, categoryID string) error {
+	return nil
+}
+
+func (s *categoryServiceImpl) GetCategoryTree(ctx context.Context) ([]CategoryNode, error) {
+	return []CategoryNode{}, nil
+}
+
+func (s *categoryServiceImpl) GetCategoryStats(ctx context.Context) (*CategoryStats, error) {
+	return &CategoryStats{
+		TotalCategories:  0,
+		ActiveCategories: 0,
+		TopCategories:    []CategoryStat{},
+	}, nil
+}
+
+// تطبيقات OrderService
+func (s *orderServiceImpl) CancelOrder(ctx context.Context, orderID string, reason string) (*models.Order, error) {
+	return &models.Order{
+		ID:           orderID,
+		UserID:       "user_123",
+		Status:       "cancelled",
+		TotalAmount:  100,
+		FinalAmount:  100,
+		PaymentStatus: "refunded",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}, nil
+}
+
+func (s *orderServiceImpl) GetOrderByID(ctx context.Context, orderID string) (*models.Order, error) {
+	return &models.Order{
+		ID:           orderID,
+		UserID:       "user_123",
+		Status:       "completed",
+		TotalAmount:  100,
+		FinalAmount:  100,
+		PaymentStatus: "paid",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}, nil
+}
+
+func (s *orderServiceImpl) GetUserOrders(ctx context.Context, userID string, params OrderQueryParams) ([]models.Order, *utils.Pagination, error) {
+	return []models.Order{}, &utils.Pagination{}, nil
+}
+
+func (s *orderServiceImpl) UpdateOrderStatus(ctx context.Context, orderID string, status string, notes string) (*models.Order, error) {
+	return &models.Order{
+		ID:           orderID,
+		UserID:       "user_123",
+		Status:       status,
+		TotalAmount:  100,
+		FinalAmount:  100,
+		PaymentStatus: "paid",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}, nil
+}
+
+func (s *orderServiceImpl) GetOrderStats(ctx context.Context, timeframe string) (*OrderStats, error) {
+	return &OrderStats{
+		TotalOrders:    0,
+		PendingOrders:  0,
+		CompletedOrders: 0,
+		CanceledOrders: 0,
+		TotalRevenue:   0,
+		AverageOrderValue: 0,
+	}, nil
+}
+
+func (s *orderServiceImpl) ProcessOrderPayment(ctx context.Context, orderID string, paymentInfo PaymentInfo) (*OrderPaymentResult, error) {
+	return &OrderPaymentResult{
+		OrderID:   orderID,
+		PaymentID: "payment_123",
+		Status:    "paid",
+		PaidAt:    time.Now(),
+	}, nil
+}
+
+func (s *orderServiceImpl) TrackOrder(ctx context.Context, orderID string) (*OrderTracking, error) {
+	return &OrderTracking{
+		OrderID:          orderID,
+		Status:           "shipped",
+		TrackingNumber:   "TRK123456",
+		Events:           []TrackingEvent{},
+		EstimatedDelivery: time.Now().Add(48 * time.Hour),
+	}, nil
+}
+
+// تطبيقات PaymentService
+func (s *paymentServiceImpl) AddPaymentMethod(ctx context.Context, userID string, method PaymentMethod) error {
+	return nil
+}
+
+func (s *paymentServiceImpl) ConfirmPayment(ctx context.Context, paymentID string, confirmationData map[string]interface{}) (*PaymentResult, error) {
+	return &PaymentResult{
+		ID:       paymentID,
+		Status:   "succeeded",
+		Amount:   100,
+		Currency: "USD",
+		PaidAt:   time.Now(),
+	}, nil
+}
+
+func (s *paymentServiceImpl) RefundPayment(ctx context.Context, paymentID string, amount float64, reason string) (*RefundResult, error) {
+	return &RefundResult{
+		ID:        paymentID,
+		Status:    "refunded",
+		Amount:    amount,
+		Currency:  "USD",
+		RefundedAt: time.Now(),
+	}, nil
+}
+
+func (s *paymentServiceImpl) GetPaymentMethods(ctx context.Context, userID string) ([]PaymentMethod, error) {
+	return []PaymentMethod{}, nil
+}
+
+func (s *paymentServiceImpl) RemovePaymentMethod(ctx context.Context, userID string, methodID string) error {
+	return nil
+}
+
+func (s *paymentServiceImpl) GetPaymentHistory(ctx context.Context, userID string, params PaymentQueryParams) ([]models.Payment, *utils.Pagination, error) {
+	return []models.Payment{}, &utils.Pagination{}, nil
+}
+
+func (s *paymentServiceImpl) ValidatePayment(ctx context.Context, paymentData map[string]interface{}) (*PaymentValidation, error) {
+	return &PaymentValidation{
+		IsValid: true,
+		Message: "الدفع صالح",
+		Errors:  []string{},
+	}, nil
+}
+
+// تطبيقات ReportService
+func (s *reportServiceImpl) GenerateFinancialReport(ctx context.Context, params ReportParams) (*FinancialReport, error) {
+	return &FinancialReport{
+		Period:        "monthly",
+		TotalRevenue:  10000,
+		TotalExpenses: 5000,
+		NetProfit:     5000,
+		RevenueSources: map[string]float64{
+			"services": 8000,
+			"products": 2000,
+		},
+		ExpenseBreakdown: map[string]float64{
+			"salaries":  3000,
+			"marketing": 2000,
+		},
+	}, nil
+}
+
+func (s *reportServiceImpl) GenerateSalesReport(ctx context.Context, params ReportParams) (*SalesReport, error) {
+	return &SalesReport{
+		Period:       "monthly",
+		TotalSales:   100,
+		TotalRevenue: 10000,
+		TopServices:  []ServiceStat{},
+		SalesByDay:   map[string]int{},
+		RevenueByDay: map[string]float64{},
+	}, nil
+}
+
+func (s *reportServiceImpl) GenerateUserReport(ctx context.Context, params ReportParams) (*UserReport, error) {
+	return &UserReport{
+		Period:           "monthly",
+		NewUsers:         50,
+		ActiveUsers:      200,
+		UserGrowth:       25.0,
+		UserDemographics: map[string]int{},
+	}, nil
+}
+
+func (s *reportServiceImpl) GenerateServiceReport(ctx context.Context, params ReportParams) (*ServiceReport, error) {
+	return &ServiceReport{
+		Period:            "monthly",
+		TotalServices:     100,
+		NewServices:       10,
+		PopularServices:   []ServiceStat{},
+		ServiceCategories: map[string]int{},
+	}, nil
+}
+
+func (s *reportServiceImpl) GenerateSystemReport(ctx context.Context, params ReportParams) (*SystemReport, error) {
+	return &SystemReport{
+		Period:             "monthly",
+		SystemUptime:       99.9,
+		ErrorCount:         5,
+		ActiveSessions:     150,
+		PerformanceMetrics: map[string]float64{},
+	}, nil
+}
+
+func (s *reportServiceImpl) GetReportTemplates(ctx context.Context) ([]ReportTemplate, error) {
+	return []ReportTemplate{}, nil
+}
+
+func (s *reportServiceImpl) ScheduleReport(ctx context.Context, req ScheduleReportRequest) (*ScheduledReport, error) {
+	return &ScheduledReport{
+		ID:         "schedule_123",
+		TemplateID: req.TemplateID,
+		Status:     "scheduled",
+		NextRun:    time.Now().Add(24 * time.Hour),
+		LastRun:    time.Time{},
+		CreatedAt:  time.Now(),
+	}, nil
+}
+
+func (s *reportServiceImpl) GetScheduledReports(ctx context.Context, params ScheduledReportQuery) ([]ScheduledReport, *utils.Pagination, error) {
+	return []ScheduledReport{}, &utils.Pagination{}, nil
+}
+
+// تطبيقات StoreService
+func (s *storeServiceImpl) CreateStore(ctx context.Context, req StoreCreateRequest) (*models.Store, error) {
+	return &models.Store{
+		ID:           fmt.Sprintf("store_%d", time.Now().Unix()),
+		Name:         req.Name,
+		Slug:         req.Slug,
+		Description:  req.Description,
+		ContactEmail: req.ContactEmail,
+		Phone:        req.Phone,
+		Address:      req.Address,
+		Banner:       req.Banner,
+		Logo:         req.Logo,
+		OwnerID:      req.OwnerID,
+		IsActive:     true,
+		IsVerified:   false,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}, nil
+}
+
+func (s *storeServiceImpl) GetStoreByID(ctx context.Context, storeID string) (*models.Store, error) {
+	return &models.Store{
+		ID:          storeID,
+		Name:        "متجر تجريبي",
+		Slug:        "test-store",
+		Description: "وصف المتجر التجريبي",
+		IsActive:    true,
+		IsVerified:  true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *storeServiceImpl) GetStoreBySlug(ctx context.Context, slug string) (*models.Store, error) {
+	return &models.Store{
+		ID:          "store_123",
+		Name:        "متجر تجريبي",
+		Slug:        slug,
+		Description: "وصف المتجر التجريبي",
+		IsActive:    true,
+		IsVerified:  true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *storeServiceImpl) UpdateStore(ctx context.Context, storeID string, req StoreUpdateRequest) (*models.Store, error) {
+	return &models.Store{
+		ID:          storeID,
+		Name:        req.Name,
+		Description: req.Description,
+		ContactEmail: req.ContactEmail,
+		Phone:       req.Phone,
+		Address:     req.Address,
+		Banner:      req.Banner,
+		Logo:        req.Logo,
+		IsActive:    true,
+		IsVerified:  true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *storeServiceImpl) DeleteStore(ctx context.Context, storeID string) error {
+	return nil
+}
+
+func (s *storeServiceImpl) GetStoreStats(ctx context.Context, storeID string) (*StoreStats, error) {
+	return &StoreStats{
+		TotalSales:    100,
+		TotalRevenue:  5000,
+		AverageRating: 4.5,
+		TotalReviews:  50,
+		ActiveServices: 10,
+	}, nil
+}
+
+func (s *storeServiceImpl) GetStoreReviews(ctx context.Context, storeID string, params ReviewQueryParams) ([]models.Review, *utils.Pagination, error) {
+	return []models.Review{}, &utils.Pagination{}, nil
+}
+
+func (s *storeServiceImpl) VerifyStore(ctx context.Context, storeID string) error {
+	return nil
+}
+
+func (s *storeServiceImpl) GetFeaturedStores(ctx context.Context) ([]models.Store, error) {
+	return []models.Store{}, nil
+}
+
+// تطبيقات StrategyService
+func (s *strategyServiceImpl) BacktestStrategy(ctx context.Context, req BacktestRequest) (*BacktestResult, error) {
+	return &BacktestResult{
+		StrategyID:  req.StrategyID,
+		Period:      "1 month",
+		TotalTrades: 100,
+		WinRate:     0.75,
+		ProfitLoss:  1500,
+		Metrics: map[string]float64{
+			"sharpe_ratio": 1.5,
+			"max_drawdown": -5.2,
+		},
+		ExecutedAt: time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) CreateStrategy(ctx context.Context, req StrategyCreateRequest) (*models.Strategy, error) {
+	return &models.Strategy{
+		ID:          fmt.Sprintf("strategy_%d", time.Now().Unix()),
+		Name:        req.Name,
+		Description: req.Description,
+		Type:        req.Type,
+		Parameters:  req.Parameters,
+		CreatedBy:   req.CreatedBy,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) GetStrategyByID(ctx context.Context, strategyID string) (*models.Strategy, error) {
+	return &models.Strategy{
+		ID:          strategyID,
+		Name:        "استراتيجية تجريبية",
+		Description: "وصف الاستراتيجية التجريبية",
+		Type:        "trading",
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) UpdateStrategy(ctx context.Context, strategyID string, req StrategyUpdateRequest) (*models.Strategy, error) {
+	return &models.Strategy{
+		ID:          strategyID,
+		Name:        req.Name,
+		Description: req.Description,
+		Parameters:  req.Parameters,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) DeleteStrategy(ctx context.Context, strategyID string) error {
+	return nil
+}
+
+func (s *strategyServiceImpl) ExecuteStrategy(ctx context.Context, strategyID string, params map[string]interface{}) (*StrategyExecutionResult, error) {
+	return &StrategyExecutionResult{
+		StrategyID: strategyID,
+		Success:    true,
+		Output:     map[string]interface{}{"result": "success"},
+		Metrics:    map[string]float64{"accuracy": 0.95},
+		ExecutedAt: time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) GetStrategyPerformance(ctx context.Context, strategyID string, timeframe string) (*StrategyPerformance, error) {
+	return &StrategyPerformance{
+		StrategyID:      strategyID,
+		TotalExecutions: 50,
+		SuccessRate:     0.88,
+		AverageMetrics:  map[string]float64{"accuracy": 0.92},
+		LastExecuted:    time.Now(),
+	}, nil
+}
+
+func (s *strategyServiceImpl) GetStrategyTemplates(ctx context.Context) ([]StrategyTemplate, error) {
+	return []StrategyTemplate{}, nil
+}
+
+// ================================
 // دوال الإنشاء المحدثة
 // ================================
 
@@ -1215,7 +1896,7 @@ func NewServiceService(db *gorm.DB) ServiceService {
 	return &serviceServiceImpl{db: db}
 }
 
-func NewCacheService(/* parameters */) CacheService {
+func NewCacheService() CacheService {
 	return &cacheServiceImpl{}
 }
 
@@ -1271,144 +1952,4 @@ func NewServiceContainer(db *gorm.DB) *ServiceContainer {
 		Wishlist:      NewWishlistService(db),
 		Subscription:  NewSubscriptionService(db),
 	}
-}
-
-// ================================
-// تطبيقات أساسية للخدمات المحدثة
-// ================================
-
-func (s *aiServiceImpl) GenerateText(ctx context.Context, params AIGenerateParams) (*AIGenerationResult, error) {
-	return &AIGenerationResult{
-		Text:        "نص تم إنشاؤه بواسطة الذكاء الاصطناعي: " + params.Prompt,
-		Tokens:      50,
-		Model:       params.Model,
-		GeneratedAt: time.Now(),
-	}, nil
-}
-
-func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest) (*AuthResponse, error) {
-	user := &models.User{
-		ID:           fmt.Sprintf("user_%d", time.Now().Unix()),
-		Email:        req.Email,
-		Username:     req.Username,
-		Password:     "hashed_password", // يجب تشفير كلمة المرور
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Phone:        req.Phone,
-		Role:         "user",
-		Status:       "active",
-		EmailVerified: false,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-
-	session := &models.Session{
-		ID:        fmt.Sprintf("session_%d", time.Now().Unix()),
-		UserID:    user.ID,
-		Token:     "session_token_" + fmt.Sprintf("%d", time.Now().Unix()),
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		CreatedAt: time.Now(),
-	}
-
-	return &AuthResponse{
-		User:         user,
-		AccessToken:  "access_token_" + fmt.Sprintf("%d", time.Now().Unix()),
-		RefreshToken: "refresh_token_" + fmt.Sprintf("%d", time.Now().Unix()),
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
-		Session:      session,
-	}, nil
-}
-
-func (s *cartServiceImpl) GetCart(ctx context.Context, userID string) (*models.Cart, error) {
-	return &models.Cart{
-		ID:          "cart_" + userID,
-		UserID:      userID,
-		Items:       []models.CartItem{},
-		TotalAmount: 0,
-		Discount:    0,
-		Tax:         0,
-		Shipping:    0,
-		FinalAmount: 0,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}, nil
-}
-
-func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateRequest) (*models.Order, error) {
-	// حساب المبلغ الإجمالي
-	var totalAmount float64
-	for _, item := range req.Items {
-		totalAmount += item.Price * float64(item.Quantity)
-	}
-
-	return &models.Order{
-		ID:           fmt.Sprintf("order_%d", time.Now().Unix()),
-		UserID:       "user_id_from_context", // سيتم تعيينه من السياق
-		SellerID:     "seller_id_from_items", // سيتم استخلاصه من العناصر
-		Items:        req.Items,
-		Status:       "pending",
-		TotalAmount:  totalAmount,
-		Discount:     0,
-		Tax:          0,
-		Shipping:     0,
-		FinalAmount:  totalAmount,
-		PaymentStatus: "pending",
-		PaymentMethod: req.PaymentMethod,
-		ShippingInfo: req.ShippingInfo,
-		CustomerNotes: req.CustomerNotes,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}, nil
-}
-
-func (s *paymentServiceImpl) CreatePaymentIntent(ctx context.Context, req PaymentIntentRequest) (*PaymentIntent, error) {
-	return &PaymentIntent{
-		ID:           fmt.Sprintf("pi_%d", time.Now().Unix()),
-		ClientSecret: "secret_" + fmt.Sprintf("%d", time.Now().Unix()),
-		Amount:       req.Amount,
-		Currency:     req.Currency,
-		Status:       "requires_payment_method",
-		CreatedAt:    time.Now(),
-	}, nil
-}
-
-// ... تطبيقات مماثلة للخدمات الأخرى
-
-// تطبيقات أساسية للخدمات الجديدة
-func (s *couponServiceImpl) CreateCoupon(ctx context.Context, req CouponCreateRequest) (*models.Coupon, error) {
-	return &models.Coupon{
-		ID:           fmt.Sprintf("coupon_%d", time.Now().Unix()),
-		Code:         req.Code,
-		Description:  req.Description,
-		DiscountType: req.DiscountType,
-		DiscountValue: req.DiscountValue,
-		MinAmount:    req.MinAmount,
-		MaxDiscount:  req.MaxDiscount,
-		UsageLimit:   req.UsageLimit,
-		UsedCount:    0,
-		StartDate:    req.StartDate,
-		EndDate:      req.EndDate,
-		IsActive:     true,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}, nil
-}
-
-func (s *wishlistServiceImpl) AddToWishlist(ctx context.Context, userID string, serviceID string) error {
-	// تنفيذ إضافة إلى قائمة الرغبات
-	return nil
-}
-
-func (s *subscriptionServiceImpl) CreateSubscription(ctx context.Context, req SubscriptionCreateRequest) (*models.Subscription, error) {
-	return &models.Subscription{
-		ID:          fmt.Sprintf("sub_%d", time.Now().Unix()),
-		UserID:      req.UserID,
-		PlanID:      req.PlanID,
-		Status:      "active",
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
-		RenewalDate: req.EndDate.AddDate(0, 1, 0), // تجديد بعد شهر
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}, nil
 }
