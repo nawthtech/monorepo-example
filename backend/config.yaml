@@ -1,0 +1,82 @@
+# ========== الإعدادات العامة ==========
+environment: development
+port: 3000
+app_version: 1.0.0
+encryption_key: "your-secure-encryption-key-here"
+
+# ========== قاعدة البيانات ==========
+database_url: "postgres://postgres:postgres@localhost:5432/nawthtech?sslmode=disable"
+db_max_idle_conns: 10
+db_max_open_conns: 100
+db_max_lifetime: 3600
+
+# ========== المصادقة ==========
+jwt_secret: "your-super-secure-jwt-secret-key-here"
+jwt_expiration: "24h"
+refresh_expiration: "168h" # 7 أيام
+bcrypt_cost: 12
+
+# ========== CORS ==========
+allowed_origins: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
+allowed_methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS,HEAD"
+allowed_headers: "Content-Type,Authorization,X-Requested-With,X-API-Key,Accept,Origin,X-Client-Version,X-Device-ID,X-Platform,X-Plausible-Token,X-Matomo-Token,X-Fathom-Key,X-Request-ID,Cache-Control,X-CSRF-Token"
+exposed_headers: "X-Request-ID,X-Response-Time,X-API-Version,X-RateLimit-Limit,X-RateLimit-Remaining,X-Total-Count,Content-Length"
+allow_credentials: true
+max_age: 86400
+
+# ========== Redis ==========
+redis_url: ""
+redis_host: "localhost"
+redis_port: "6379"
+redis_password: ""
+redis_db: 0
+
+# ========== التخزين المؤقت ==========
+cache_enabled: true
+cache_prefix: "nawthtech:"
+cache_default_ttl: "1h"
+cache_max_retries: 3
+
+# ========== الخدمات ==========
+services_max_per_user: 50
+services_max_active: 20
+services_pagination_limit: 20
+services_max_pagination_limit: 100
+services_search_cache_ttl: "5m"
+services_featured_cache_ttl: "30m"
+services_max_images: 10
+services_max_features: 20
+services_max_tags: 15
+services_min_title_length: 3
+services_max_title_length: 200
+services_min_description_length: 10
+services_max_description_length: 2000
+services_min_price: 0
+services_max_price: 1000000
+services_min_duration: 1
+services_max_duration: 365
+services_auto_approve: true
+services_allow_editing: true
+services_enable_reviews: true
+services_enable_ratings: true
+services_enable_bookings: true
+services_enable_promotions: true
+services_rate_limit_create: 10
+services_rate_limit_update: 30
+services_rate_limit_search: 60
+
+# ========== الرفع ==========
+upload_max_file_size: 10485760 # 10MB
+upload_allowed_types: "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+upload_image_max_width: 1920
+upload_image_max_height: 1080
+upload_storage_path: "./uploads"
+
+# ========== البريد الإلكتروني ==========
+email_enabled: false
+email_host: ""
+email_port: 587
+email_username: ""
+email_password: ""
+email_from_email: "support@nawthtech.com"
+email_from_name: "نوذ تك"
