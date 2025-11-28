@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nawthtech/nawthtech/backend/internal/config"
+	"github.com/nawthtech/nawthtech/backend/internal/handlers/health"
+	"github.com/nawthtech/nawthtech/backend/internal/handlers/sse"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
 )
@@ -20,6 +22,9 @@ func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceCon
 	// مجموعة API الرئيسية
 	api := router.Group("/api/v1")
 	
+	// ========== مسارات الصحة ==========
+	registerHealthRoutes(router, serviceContainer, config)
+	
 	// ========== المسارات العامة (لا تتطلب مصادقة) ==========
 	registerPublicRoutes(api, serviceContainer, middlewares)
 	
@@ -32,8 +37,8 @@ func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceCon
 	// ========== مسارات البائعين ==========
 	registerSellerRoutes(api, serviceContainer, middlewares)
 	
-	// ========== مسارات الوقت الحقيقي ==========
-	registerRealTimeRoutes(api, serviceContainer, middlewares)
+	// ========== مسارات الوقت الحقيقي (SSE) ==========
+	registerSSERoutes(api, serviceContainer, middlewares)
 	
 	// ========== مسارات الويب هووك ==========
 	registerWebhookRoutes(api, serviceContainer, middlewares)
@@ -62,18 +67,55 @@ func initializeMiddlewares(services *services.ServiceContainer, config *config.C
 	}
 }
 
-// registerPublicRoutes تسجيل المسارات العامة
-func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
-	// معالج الصحة
-	api.GET("/health", func(c *gin.Context) {
+// registerHealthRoutes تسجيل مسارات الصحة
+func registerHealthRoutes(router *gin.Engine, services *services.ServiceContainer, config *config.Config) {
+	// إنشاء معالج الصحة
+	healthHandler := health.NewHealthHandler(services.Repository.DB(), services.Cache, config)
+	
+	// مسارات الصحة العامة (بدون بادئة api/v1)
+	router.GET("/health", healthHandler.Check)
+	router.GET("/health/live", healthHandler.Live)
+	router.GET("/health/ready", healthHandler.Ready)
+	router.GET("/health/info", healthHandler.Info)
+	router.GET("/health/detailed", healthHandler.Detailed)
+	router.GET("/health/metrics", healthHandler.Metrics)
+	
+	// مسارات الصحة للمسؤولين (مع المصادقة)
+	adminHealth := router.Group("/health")
+	adminHealth.Use(middleware.AuthMiddleware(services.Auth), middleware.AdminMiddleware())
+	adminHealth.GET("/admin", healthHandler.AdminHealth)
+}
+
+// registerSSERoutes تسجيل مسارات SSE
+func registerSSERoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
+	// مسارات SSE (تتطلب مصادقة)
+	sseGroup := api.Group("/sse")
+	sseGroup.Use(middlewares.AuthMiddleware)
+	
+	// مسار SSE الرئيسي
+	sseGroup.GET("/events", sse.Handler)
+	
+	// مسار إشعارات SSE
+	sseGroup.GET("/notifications", sse.NotificationHandler)
+	
+	// مسار SSE للمسؤولين
+	adminSSE := sseGroup.Group("/admin")
+	adminSSE.Use(middlewares.AdminMiddleware)
+	adminSSE.GET("/events", sse.AdminHandler)
+	
+	// مسار إحصائيات اتصالات SSE (للمسؤولين فقط)
+	adminSSE.GET("/connections", func(c *gin.Context) {
+		stats := sse.GetConnectionStats()
 		c.JSON(200, gin.H{
-			"status":    "healthy",
-			"service":   "nawthtech-backend",
-			"timestamp": time.Now().Format(time.RFC3339),
-			"version":   "1.0.0",
+			"success": true,
+			"message": "إحصائيات اتصالات SSE",
+			"data":    stats,
 		})
 	})
-	
+}
+
+// registerPublicRoutes تسجيل المسارات العامة
+func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	// معالج المصادقة
 	authHandler := NewAuthHandler(services.Auth)
 	api.POST("/auth/register", authHandler.Register)
@@ -183,7 +225,7 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected.PUT("/subscription/renew", subscriptionHandler.RenewSubscription)
 	protected.GET("/subscription/plans", subscriptionHandler.GetSubscriptionPlans)
 	
-	// معاجل الذكاء الاصطناعي
+	// معالج الذكاء الاصطناعي
 	aiHandler := NewAIHandler(services.AI)
 	protected.POST("/ai/generate-text", aiHandler.GenerateText)
 	protected.POST("/ai/analyze-sentiment", aiHandler.AnalyzeSentiment)
@@ -286,27 +328,6 @@ func registerSellerRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	seller.GET("/stores/my/reviews", storeHandler.GetStoreReviews)
 }
 
-// registerRealTimeRoutes تسجيل مسارات الوقت الحقيقي
-func registerRealTimeRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
-	// معالج الإشعارات في الوقت الحقيقي
-	notificationHandler := NewNotificationHandler(services.Notification)
-	api.GET("/notifications/stream", middlewares.AuthMiddleware, notificationHandler.StreamNotifications)
-	
-	// معالج الاستراتيجيات
-	strategyHandler := NewStrategyHandler(services.Strategy)
-	protected := api.Group("")
-	protected.Use(middlewares.AuthMiddleware)
-	protected.POST("/strategies", strategyHandler.CreateStrategy)
-	protected.GET("/strategies", strategyHandler.GetStrategies)
-	protected.GET("/strategies/:id", strategyHandler.GetStrategyByID)
-	protected.PUT("/strategies/:id", strategyHandler.UpdateStrategy)
-	protected.DELETE("/strategies/:id", strategyHandler.DeleteStrategy)
-	protected.POST("/strategies/:id/execute", strategyHandler.ExecuteStrategy)
-	protected.GET("/strategies/:id/performance", strategyHandler.GetStrategyPerformance)
-	protected.POST("/strategies/backtest", strategyHandler.BacktestStrategy)
-	protected.GET("/strategies/templates", strategyHandler.GetStrategyTemplates)
-}
-
 // registerWebhookRoutes تسجيل مسارات الويب هووك
 func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	webhook := api.Group("/webhook")
@@ -326,7 +347,7 @@ func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceConta
 	}
 }
 
-// HealthHandler معالج الصحة
+// HealthHandler معالج الصحة المبسط
 type HealthHandler struct {
 	config *config.Config
 }
@@ -343,32 +364,6 @@ func (h *HealthHandler) Check(c *gin.Context) {
 		"service":   "nawthtech-backend",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"version":   h.config.Version,
-	}
-	c.JSON(200, response)
-}
-
-func (h *HealthHandler) Live(c *gin.Context) {
-	response := gin.H{
-		"status":  "alive",
-		"message": "الخدمة حية وتعمل",
-	}
-	c.JSON(200, response)
-}
-
-func (h *HealthHandler) Ready(c *gin.Context) {
-	response := gin.H{
-		"status":  "ready",
-		"message": "الخدمة جاهزة لمعالجة الطلبات",
-	}
-	c.JSON(200, response)
-}
-
-func (h *HealthHandler) Info(c *gin.Context) {
-	response := gin.H{
-		"name":        "NawthTech Backend",
-		"version":     h.config.Version,
-		"environment": h.config.Environment,
-		"timestamp":   time.Now().Format(time.RFC3339),
 	}
 	c.JSON(200, response)
 }
