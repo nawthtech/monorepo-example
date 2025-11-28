@@ -7,83 +7,36 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
-	"gorm.io/gorm"
 )
 
-// ServiceContainer حاوية الخدمات
-type ServiceContainer struct {
-	// الخدمات الأساسية
-	AuthService         services.AuthService
-	UserService         services.UserService
-	AdminService        services.AdminService
-	ServicesService     services.ServicesService
-	CacheService        services.CacheService
-	HealthService       services.HealthService
-	
-	// خدمات المتجر والطلبات
-	StoreService        services.StoreService
-	CartService         services.CartService
-	OrdersService       services.OrdersService
-	PaymentService      services.PaymentService
-	CategoryService     services.CategoryService
-	
-	// خدمات المحتوى والإشعارات
-	ContentService      services.ContentService
-	NotificationService services.NotificationService
-	UploadService       services.UploadService
-	
-	// خدمات التقارير والتحليلات
-	AnalyticsService    services.AnalyticsService
-	ReportsService      services.ReportsService
-	StrategiesService   services.StrategiesService
-	
-	// خدمات الذكاء الاصطناعي والموقع
-	AIService           services.AIService
-	WebsiteService      services.WebsiteService
-}
-
-// MiddlewareContainer حاوية الوسائط
-type MiddlewareContainer struct {
-	AuthMiddleware      gin.HandlerFunc
-	AdminMiddleware     gin.HandlerFunc
-	SellerMiddleware    gin.HandlerFunc
-	CORSMiddleware      gin.HandlerFunc
-	SecurityMiddleware  gin.HandlerFunc
-	CacheMiddleware     *middleware.CacheMiddleware
-	RateLimitMiddleware *middleware.RateLimitMiddleware
-}
-
 // RegisterAllRoutes تسجيل جميع المسارات
-func RegisterAllRoutes(router *gin.Engine, db *gorm.DB, config *config.Config) {
+func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceContainer, config *config.Config) {
 	// تطبيق middleware العام على مستوى التطبيق
 	applyGlobalMiddleware(router, config)
 	
-	// إنشاء حاوية الخدمات
-	services := initializeServices(db, config)
-	
 	// إنشاء حاوية الوسائط
-	middlewares := initializeMiddlewares(services, config)
+	middlewares := initializeMiddlewares(serviceContainer, config)
 	
 	// مجموعة API الرئيسية
 	api := router.Group("/api/v1")
 	
 	// ========== المسارات العامة (لا تتطلب مصادقة) ==========
-	registerPublicRoutes(api, services, middlewares)
+	registerPublicRoutes(api, serviceContainer, middlewares)
 	
 	// ========== المسارات المحمية (تتطلب مصادقة) ==========
-	registerProtectedRoutes(api, services, middlewares)
+	registerProtectedRoutes(api, serviceContainer, middlewares)
 	
 	// ========== مسارات المسؤولين ==========
-	registerAdminRoutes(api, services, middlewares)
+	registerAdminRoutes(api, serviceContainer, middlewares)
 	
 	// ========== مسارات البائعين ==========
-	registerSellerRoutes(api, services, middlewares)
+	registerSellerRoutes(api, serviceContainer, middlewares)
 	
-	// ========== مسارات SSE والوقت الحقيقي ==========
-	registerRealTimeRoutes(api, services, middlewares)
+	// ========== مسارات الوقت الحقيقي ==========
+	registerRealTimeRoutes(api, serviceContainer, middlewares)
 	
-	// ========== مسارات الويب هووك والتحليلات ==========
-	registerWebhookRoutes(api, services, middlewares)
+	// ========== مسارات الويب هووك ==========
+	registerWebhookRoutes(api, serviceContainer, middlewares)
 }
 
 // applyGlobalMiddleware تطبيق الوسائط العامة على مستوى التطبيق
@@ -94,319 +47,293 @@ func applyGlobalMiddleware(router *gin.Engine, config *config.Config) {
 	// Security headers middleware
 	router.Use(middleware.SecurityHeaders())
 	
-	// Logging middleware
-	router.Use(middleware.Logging())
-	
 	// Rate limiting middleware
 	router.Use(middleware.RateLimit())
 }
 
-// initializeServices تهيئة جميع الخدمات
-func initializeServices(db *gorm.DB, config *config.Config) *ServiceContainer {
-	// تهيئة خدمة التخزين المؤقت أولاً
-	cacheService := services.NewCacheService(config.GetCacheConfig())
-	
-	// الخدمات الأساسية
-	authService := services.NewAuthService(db, config.JWTSecret)
-	userService := services.NewUserService(db)
-	adminService := services.NewAdminService(db)
-	healthService := services.NewHealthService(db)
-	
-	// خدمات المستودعات
-	servicesRepo := services.NewServicesRepository(db)
-	servicesService := services.NewServicesService(servicesRepo)
-	
-	// خدمات المتجر والطلبات
-	storeService := services.NewStoreService(db)
-	cartService := services.NewCartService(db)
-	ordersService := services.NewOrdersService(db)
-	paymentService := services.NewPaymentService(db)
-	categoryService := services.NewCategoryService(db)
-	
-	// خدمات المحتوى والإشعارات
-	contentService := services.NewContentService(db)
-	notificationService := services.NewNotificationService(db)
-	uploadService := services.NewUploadService(config.GetUploadConfig())
-	
-	// خدمات التقارير والتحليلات
-	analyticsService := services.NewAnalyticsService(db)
-	reportsService := services.NewReportsService(db)
-	strategiesService := services.NewStrategiesService(db)
-	
-	// خدمات الذكاء الاصطناعي والموقع
-	aiService := services.NewAIService(db)
-	websiteService := services.NewWebsiteService(db)
-	
-	return &ServiceContainer{
-		AuthService:         authService,
-		UserService:         userService,
-		AdminService:        adminService,
-		ServicesService:     servicesService,
-		CacheService:        cacheService,
-		HealthService:       healthService,
-		StoreService:        storeService,
-		CartService:         cartService,
-		OrdersService:       ordersService,
-		PaymentService:      paymentService,
-		CategoryService:     categoryService,
-		ContentService:      contentService,
-		NotificationService: notificationService,
-		UploadService:       uploadService,
-		AnalyticsService:    analyticsService,
-		ReportsService:      reportsService,
-		StrategiesService:   strategiesService,
-		AIService:           aiService,
-		WebsiteService:      websiteService,
-	}
-}
-
 // initializeMiddlewares تهيئة جميع الوسائط
-func initializeMiddlewares(services *ServiceContainer, config *config.Config) *MiddlewareContainer {
-	// الوسائط الأساسية
-	authMiddleware := middleware.AuthMiddleware(services.AuthService)
-	adminMiddleware := middleware.AdminMiddleware()
-	sellerMiddleware := middleware.SellerMiddleware()
-	
-	// وسائط التخزين المؤقت
-	cacheMiddleware := middleware.NewCacheMiddleware(services.CacheService, config.Cache.Prefix)
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(services.CacheService)
-	
-	return &MiddlewareContainer{
-		AuthMiddleware:      authMiddleware,
-		AdminMiddleware:     adminMiddleware,
-		SellerMiddleware:    sellerMiddleware,
-		CacheMiddleware:     cacheMiddleware,
-		RateLimitMiddleware: rateLimitMiddleware,
+func initializeMiddlewares(services *services.ServiceContainer, config *config.Config) *middleware.MiddlewareContainer {
+	return &middleware.MiddlewareContainer{
+		AuthMiddleware:      middleware.AuthMiddleware(services.Auth),
+		AdminMiddleware:     middleware.AdminMiddleware(),
+		CORSMiddleware:      middleware.CORS(),
+		SecurityMiddleware:  middleware.SecurityHeaders(),
+		RateLimitMiddleware: middleware.RateLimit(),
 	}
 }
 
 // registerPublicRoutes تسجيل المسارات العامة
-func registerPublicRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
+func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	// معالج الصحة
-	healthHandler := NewHealthHandler(services.HealthService, config.Load())
-	api.GET("/health", healthHandler.Check)
-	api.GET("/health/live", healthHandler.Live)
-	api.GET("/health/ready", healthHandler.Ready)
-	api.GET("/health/info", healthHandler.Info)
+	api.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":    "healthy",
+			"service":   "nawthtech-backend",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"version":   "1.0.0",
+		})
+	})
 	
 	// معالج المصادقة
-	authHandler := NewAuthHandler(services.AuthService, services.UserService)
+	authHandler := NewAuthHandler(services.Auth)
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
 	api.POST("/auth/refresh", authHandler.RefreshToken)
 	api.POST("/auth/forgot-password", authHandler.ForgotPassword)
 	api.POST("/auth/reset-password", authHandler.ResetPassword)
 	
-	// معالج الموقع
-	websiteHandler := NewWebsiteHandler(services.WebsiteService)
-	api.GET("/website/content", websiteHandler.GetContent)
-	api.GET("/website/features", websiteHandler.GetFeatures)
-	api.GET("/website/testimonials", websiteHandler.GetTestimonials)
-	
 	// معالج الخدمات (العامة)
-	servicesHandler := NewServicesHandler(services.ServicesService, services.AuthService)
-	api.GET("/services", servicesHandler.GetServices)
-	api.GET("/services/search", servicesHandler.SearchServices)
-	api.GET("/services/featured", servicesHandler.GetFeaturedServices)
-	api.GET("/services/categories", servicesHandler.GetAllCategories)
-	api.GET("/services/tags/popular", servicesHandler.GetPopularTags)
-	api.GET("/services/popular", servicesHandler.GetPopularServices)
-	api.GET("/services/category/:category", servicesHandler.GetServicesByCategory)
-	api.GET("/services/tag/:tag", servicesHandler.GetServicesByTag)
-	api.GET("/services/:serviceId", servicesHandler.GetServiceDetails)
-	api.GET("/services/:serviceId/recommended", servicesHandler.GetRecommendedServices)
-	api.GET("/services/:serviceId/similar", servicesHandler.GetSimilarServices)
-	api.GET("/services/seller/:sellerId", servicesHandler.GetSellerServices)
-	api.GET("/services/:serviceId/ratings", servicesHandler.GetServiceRatings)
+	serviceHandler := NewServiceHandler(services.Service)
+	api.GET("/services", serviceHandler.GetServices)
+	api.GET("/services/search", serviceHandler.SearchServices)
+	api.GET("/services/featured", serviceHandler.GetFeaturedServices)
+	api.GET("/services/categories", serviceHandler.GetCategories)
+	api.GET("/services/:id", serviceHandler.GetServiceByID)
+	
+	// معالج الفئات
+	categoryHandler := NewCategoryHandler(services.Category)
+	api.GET("/categories", categoryHandler.GetCategories)
+	api.GET("/categories/tree", categoryHandler.GetCategoryTree)
+	api.GET("/categories/:id", categoryHandler.GetCategoryByID)
+	
+	// معالج المتاجر
+	storeHandler := NewStoreHandler(services.Store)
+	api.GET("/stores", storeHandler.GetStores)
+	api.GET("/stores/featured", storeHandler.GetFeaturedStores)
+	api.GET("/stores/:id", storeHandler.GetStoreByID)
+	api.GET("/stores/slug/:slug", storeHandler.GetStoreBySlug)
+	
+	// معالج المحتوى
+	contentHandler := NewContentHandler(services.Content)
+	api.GET("/content", contentHandler.GetContentList)
+	api.GET("/content/:id", contentHandler.GetContentByID)
+	api.GET("/content/slug/:slug", contentHandler.GetContentBySlug)
 }
 
 // registerProtectedRoutes تسجيل المسارات المحمية
-func registerProtectedRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
+func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	protected := api.Group("")
 	protected.Use(middlewares.AuthMiddleware)
 	
 	// معالج المستخدم
-	userHandler := NewUserHandler(services.UserService)
+	userHandler := NewUserHandler(services.User)
 	protected.GET("/user/profile", userHandler.GetProfile)
 	protected.PUT("/user/profile", userHandler.UpdateProfile)
 	protected.PUT("/user/password", userHandler.ChangePassword)
-	protected.GET("/user/notifications", userHandler.GetNotifications)
-	protected.PUT("/user/notifications/:id/read", userHandler.MarkNotificationRead)
+	protected.GET("/user/stats", userHandler.GetUserStats)
 	
 	// معالج السلة
-	cartHandler := NewCartHandler(services.CartService)
+	cartHandler := NewCartHandler(services.Cart)
 	protected.GET("/cart", cartHandler.GetCart)
 	protected.POST("/cart/items", cartHandler.AddToCart)
-	protected.PUT("/cart/items/:itemId", cartHandler.UpdateCartItem)
-	protected.DELETE("/cart/items/:itemId", cartHandler.RemoveFromCart)
+	protected.PUT("/cart/items/:id", cartHandler.UpdateCartItem)
+	protected.DELETE("/cart/items/:id", cartHandler.RemoveFromCart)
 	protected.DELETE("/cart", cartHandler.ClearCart)
+	protected.GET("/cart/summary", cartHandler.GetCartSummary)
+	protected.POST("/cart/apply-coupon", cartHandler.ApplyCoupon)
+	protected.DELETE("/cart/coupon", cartHandler.RemoveCoupon)
 	
 	// معالج الطلبات
-	ordersHandler := NewOrdersHandler(services.OrdersService)
-	protected.GET("/orders", ordersHandler.GetUserOrders)
-	protected.GET("/orders/:orderId", ordersHandler.GetOrderDetails)
-	protected.POST("/orders", ordersHandler.CreateOrder)
-	protected.PUT("/orders/:orderId/cancel", ordersHandler.CancelOrder)
+	orderHandler := NewOrderHandler(services.Order)
+	protected.GET("/orders", orderHandler.GetUserOrders)
+	protected.GET("/orders/:id", orderHandler.GetOrderByID)
+	protected.POST("/orders", orderHandler.CreateOrder)
+	protected.PUT("/orders/:id/cancel", orderHandler.CancelOrder)
+	protected.GET("/orders/:id/track", orderHandler.TrackOrder)
 	
-	// معالج التقييمات
-	protected.POST("/services/:serviceId/ratings", servicesHandler.AddRating)
-	protected.PUT("/ratings/:ratingId", servicesHandler.UpdateRating)
-	protected.DELETE("/ratings/:ratingId", servicesHandler.DeleteRating)
-	protected.GET("/my/ratings", servicesHandler.GetMyRatings)
+	// معالج الدفع
+	paymentHandler := NewPaymentHandler(services.Payment)
+	protected.GET("/payment/methods", paymentHandler.GetPaymentMethods)
+	protected.POST("/payment/methods", paymentHandler.AddPaymentMethod)
+	protected.DELETE("/payment/methods/:id", paymentHandler.RemovePaymentMethod)
+	protected.GET("/payment/history", paymentHandler.GetPaymentHistory)
+	protected.POST("/payment/intent", paymentHandler.CreatePaymentIntent)
+	protected.POST("/payment/confirm", paymentHandler.ConfirmPayment)
 	
-	// معالج المفضلة
-	protected.POST("/services/:serviceId/favorite", servicesHandler.AddToFavorites)
-	protected.DELETE("/services/:serviceId/favorite", servicesHandler.RemoveFromFavorites)
-	protected.GET("/user/favorites", servicesHandler.GetFavoriteServices)
+	// معالج الرفع
+	uploadHandler := NewUploadHandler(services.Upload)
+	protected.POST("/upload", uploadHandler.UploadFile)
+	protected.GET("/upload/files", uploadHandler.GetUserFiles)
+	protected.GET("/upload/files/:id", uploadHandler.GetFile)
+	protected.DELETE("/upload/files/:id", uploadHandler.DeleteFile)
+	protected.POST("/upload/presigned-url", uploadHandler.GeneratePresignedURL)
+	protected.GET("/upload/quota", uploadHandler.GetUploadQuota)
 	
-	// معالج التوفر
-	protected.POST("/services/:serviceId/check-availability", servicesHandler.CheckAvailability)
+	// معالج الإشعارات
+	notificationHandler := NewNotificationHandler(services.Notification)
+	protected.GET("/notifications", notificationHandler.GetUserNotifications)
+	protected.PUT("/notifications/:id/read", notificationHandler.MarkAsRead)
+	protected.PUT("/notifications/read-all", notificationHandler.MarkAllAsRead)
+	protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
+	protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
+	
+	// معالج قائمة الرغبات
+	wishlistHandler := NewWishlistHandler(services.Wishlist)
+	protected.GET("/wishlist", wishlistHandler.GetUserWishlist)
+	protected.POST("/wishlist/:serviceId", wishlistHandler.AddToWishlist)
+	protected.DELETE("/wishlist/:serviceId", wishlistHandler.RemoveFromWishlist)
+	protected.GET("/wishlist/check/:serviceId", wishlistHandler.IsInWishlist)
+	protected.GET("/wishlist/count", wishlistHandler.GetWishlistCount)
+	
+	// معالج الاشتراكات
+	subscriptionHandler := NewSubscriptionHandler(services.Subscription)
+	protected.GET("/subscription", subscriptionHandler.GetUserSubscription)
+	protected.POST("/subscription", subscriptionHandler.CreateSubscription)
+	protected.PUT("/subscription/cancel", subscriptionHandler.CancelSubscription)
+	protected.PUT("/subscription/renew", subscriptionHandler.RenewSubscription)
+	protected.GET("/subscription/plans", subscriptionHandler.GetSubscriptionPlans)
+	
+	// معاجل الذكاء الاصطناعي
+	aiHandler := NewAIHandler(services.AI)
+	protected.POST("/ai/generate-text", aiHandler.GenerateText)
+	protected.POST("/ai/analyze-sentiment", aiHandler.AnalyzeSentiment)
+	protected.POST("/ai/classify-content", aiHandler.ClassifyContent)
+	protected.POST("/ai/extract-keywords", aiHandler.ExtractKeywords)
+	protected.POST("/ai/summarize-text", aiHandler.SummarizeText)
+	protected.POST("/ai/translate", aiHandler.TranslateText)
+	protected.POST("/ai/generate-image", aiHandler.GenerateImage)
+	protected.POST("/ai/chat", aiHandler.ChatCompletion)
 }
 
 // registerAdminRoutes تسجيل مسارات المسؤولين
-func registerAdminRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
+func registerAdminRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	admin := api.Group("/admin")
 	admin.Use(middlewares.AuthMiddleware, middlewares.AdminMiddleware)
 	
 	// معالج الإدارة
-	adminHandler := NewAdminHandler(services.AdminService)
+	adminHandler := NewAdminHandler(services.Admin)
 	admin.GET("/dashboard", adminHandler.GetDashboard)
 	admin.GET("/dashboard/stats", adminHandler.GetDashboardStats)
-	admin.GET("/system/health", adminHandler.GetSystemHealth)
-	admin.GET("/system/metrics", adminHandler.GetSystemMetrics)
-	admin.POST("/system/maintenance", adminHandler.SetMaintenanceMode)
 	admin.GET("/users", adminHandler.GetUsers)
-	admin.PUT("/users/:userId/status", adminHandler.UpdateUserStatus)
-	admin.PUT("/users/:userId/role", adminHandler.UpdateUserRole)
-	
-	// معالج الخدمات (الإدارة)
-	servicesHandler := NewServicesHandler(services.ServicesService, services.AuthService)
-	admin.GET("/services", servicesHandler.GetAllServices)
-	admin.PUT("/services/:serviceId/status", servicesHandler.AdminUpdateServiceStatus)
-	admin.PUT("/services/:serviceId/featured", servicesHandler.AdminUpdateFeaturedStatus)
-	admin.DELETE("/services/:serviceId", servicesHandler.AdminDeleteService)
-	admin.GET("/services/stats/overview", servicesHandler.GetAdminServicesStats)
-	admin.GET("/services/stats/categories", servicesHandler.GetCategoriesStats)
-	admin.GET("/services/stats/growth", servicesHandler.GetAdminServicesGrowth)
-	admin.GET("/services/reports/popular", servicesHandler.GetPopularServicesReport)
-	admin.DELETE("/ratings/:ratingId", servicesHandler.AdminDeleteRating)
-	admin.GET("/ratings/reported", servicesHandler.GetReportedRatings)
+	admin.PUT("/users/:id/status", adminHandler.UpdateUserStatus)
+	admin.PUT("/users/:id/role", adminHandler.UpdateUserRole)
+	admin.GET("/system/logs", adminHandler.GetSystemLogs)
+	admin.PUT("/system/settings", adminHandler.UpdateSystemSettings)
 	
 	// معالج التقارير
-	reportsHandler := NewReportsHandler(services.ReportsService)
-	admin.GET("/reports/services", reportsHandler.GetServicesReport)
-	admin.GET("/reports/users", reportsHandler.GetUsersReport)
-	admin.GET("/reports/orders", reportsHandler.GetOrdersReport)
-	admin.GET("/reports/financial", reportsHandler.GetFinancialReport)
-	admin.POST("/reports/generate", reportsHandler.GenerateReport)
+	reportHandler := NewReportHandler(services.Report)
+	admin.GET("/reports/sales", reportHandler.GenerateSalesReport)
+	admin.GET("/reports/users", reportHandler.GenerateUserReport)
+	admin.GET("/reports/services", reportHandler.GenerateServiceReport)
+	admin.GET("/reports/financial", reportHandler.GenerateFinancialReport)
+	admin.GET("/reports/system", reportHandler.GenerateSystemReport)
+	admin.GET("/reports/templates", reportHandler.GetReportTemplates)
+	admin.POST("/reports/schedule", reportHandler.ScheduleReport)
+	admin.GET("/reports/scheduled", reportHandler.GetScheduledReports)
 	
 	// معالج التحليلات
-	analyticsHandler := NewAnalyticsHandler(services.AnalyticsService)
-	admin.GET("/analytics/overview", analyticsHandler.GetOverview)
-	admin.GET("/analytics/services", analyticsHandler.GetServicesAnalytics)
-	admin.GET("/analytics/users", analyticsHandler.GetUsersAnalytics)
-	admin.GET("/analytics/sales", analyticsHandler.GetSalesAnalytics)
+	analyticsHandler := NewAnalyticsHandler(services.Analytics)
+	admin.GET("/analytics/user", analyticsHandler.GetUserAnalytics)
+	admin.GET("/analytics/service", analyticsHandler.GetServiceAnalytics)
+	admin.GET("/analytics/platform", analyticsHandler.GetPlatformAnalytics)
 	
-	// معالج التخزين المؤقت (الإدارة)
-	cacheHandler := NewCacheHandler(services.CacheService)
-	admin.DELETE("/cache/flush", cacheHandler.Flush)
-	admin.DELETE("/cache/flush-pattern", cacheHandler.FlushPattern)
-	admin.GET("/cache/stats", cacheHandler.Stats)
-	admin.GET("/cache/health", cacheHandler.Health)
+	// معالج الفئات (الإدارة)
+	categoryHandler := NewCategoryHandler(services.Category)
+	admin.POST("/categories", categoryHandler.CreateCategory)
+	admin.PUT("/categories/:id", categoryHandler.UpdateCategory)
+	admin.DELETE("/categories/:id", categoryHandler.DeleteCategory)
+	admin.GET("/categories/stats", categoryHandler.GetCategoryStats)
 	
-	// معالج الصحة (الإدارة)
-	healthHandler := NewHealthHandler(services.HealthService, config.Load())
-	admin.GET("/health/admin", healthHandler.AdminHealth)
-	admin.GET("/health/detailed", healthHandler.Detailed)
-	admin.GET("/health/metrics", healthHandler.Metrics)
+	// معالج المتاجر (الإدارة)
+	storeHandler := NewStoreHandler(services.Store)
+	admin.POST("/stores", storeHandler.CreateStore)
+	admin.PUT("/stores/:id", storeHandler.UpdateStore)
+	admin.DELETE("/stores/:id", storeHandler.DeleteStore)
+	admin.POST("/stores/:id/verify", storeHandler.VerifyStore)
+	admin.GET("/stores/:id/stats", storeHandler.GetStoreStats)
+	
+	// معالج الطلبات (الإدارة)
+	orderHandler := NewOrderHandler(services.Order)
+	admin.GET("/orders", orderHandler.GetAllOrders)
+	admin.PUT("/orders/:id/status", orderHandler.UpdateOrderStatus)
+	admin.GET("/orders/stats", orderHandler.GetOrderStats)
+	
+	// معالج الكوبونات
+	couponHandler := NewCouponHandler(services.Coupon)
+	admin.POST("/coupons", couponHandler.CreateCoupon)
+	admin.GET("/coupons", couponHandler.GetCoupons)
+	admin.GET("/coupons/:id", couponHandler.GetCouponByID)
+	admin.PUT("/coupons/:id", couponHandler.UpdateCoupon)
+	admin.DELETE("/coupons/:id", couponHandler.DeleteCoupon)
+	admin.POST("/coupons/validate", couponHandler.ValidateCoupon)
 }
 
 // registerSellerRoutes تسجيل مسارات البائعين
-func registerSellerRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
+func registerSellerRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	seller := api.Group("/seller")
-	seller.Use(middlewares.AuthMiddleware, middlewares.SellerMiddleware)
+	seller.Use(middlewares.AuthMiddleware, middleware.SellerMiddleware())
 	
 	// معالج الخدمات (البائعين)
-	servicesHandler := NewServicesHandler(services.ServicesService, services.AuthService)
-	seller.POST("/services", servicesHandler.CreateService)
-	seller.PUT("/services/:serviceId", servicesHandler.UpdateService)
-	seller.PATCH("/services/:serviceId/status", servicesHandler.UpdateServiceStatus)
-	seller.DELETE("/services/:serviceId", servicesHandler.DeleteService)
-	seller.GET("/services/my", servicesHandler.GetMyServices)
-	seller.GET("/services/my/stats", servicesHandler.GetServicesStats)
-	seller.GET("/services/my/stats/status", servicesHandler.GetServicesStatusCount)
-	seller.GET("/services/my/growth", servicesHandler.GetServicesGrowth)
-	seller.POST("/services/search/advanced", servicesHandler.AdvancedSearch)
-	seller.POST("/services/:serviceId/time-slots", servicesHandler.CreateTimeSlot)
-	seller.GET("/services/:serviceId/time-slots", servicesHandler.GetTimeSlots)
+	serviceHandler := NewServiceHandler(services.Service)
+	seller.POST("/services", serviceHandler.CreateService)
+	seller.PUT("/services/:id", serviceHandler.UpdateService)
+	seller.DELETE("/services/:id", serviceHandler.DeleteService)
+	seller.GET("/services/my", serviceHandler.GetMyServices)
+	seller.GET("/services/stats", serviceHandler.GetServiceStats)
 	
 	// معالج الطلبات (البائعين)
-	ordersHandler := NewOrdersHandler(services.OrdersService)
-	seller.GET("/orders", ordersHandler.GetSellerOrders)
-	seller.PUT("/orders/:orderId/status", ordersHandler.UpdateOrderStatus)
-	seller.GET("/orders/stats", ordersHandler.GetSellerOrdersStats)
+	orderHandler := NewOrderHandler(services.Order)
+	seller.GET("/orders", orderHandler.GetSellerOrders)
+	seller.PUT("/orders/:id/status", orderHandler.UpdateOrderStatus)
+	seller.GET("/orders/stats", orderHandler.GetSellerOrderStats)
 	
-	// معالج الرفع (البائعين)
-	uploadsHandler := NewUploadsHandler(services.UploadService)
-	seller.POST("/uploads/images", uploadsHandler.UploadImage)
-	seller.POST("/uploads/documents", uploadsHandler.UploadDocument)
-	seller.DELETE("/uploads/:fileId", uploadsHandler.DeleteFile)
+	// معالج المتاجر (البائعين)
+	storeHandler := NewStoreHandler(services.Store)
+	seller.POST("/stores", storeHandler.CreateStore)
+	seller.PUT("/stores/my", storeHandler.UpdateStore)
+	seller.GET("/stores/my", storeHandler.GetMyStore)
+	seller.GET("/stores/my/stats", storeHandler.GetMyStoreStats)
+	seller.GET("/stores/my/reviews", storeHandler.GetStoreReviews)
 }
 
 // registerRealTimeRoutes تسجيل مسارات الوقت الحقيقي
-func registerRealTimeRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
-	// مسارات SSE
-	sseHandler := sse.NewSSEHandler()
-	api.GET("/sse/events", middlewares.AuthMiddleware, sseHandler.Handler)
-	api.GET("/sse/notifications", middlewares.AuthMiddleware, sseHandler.NotificationHandler)
-	api.GET("/sse/admin/events", middlewares.AuthMiddleware, middlewares.AdminMiddleware, sseHandler.AdminHandler)
+func registerRealTimeRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
+	// معالج الإشعارات في الوقت الحقيقي
+	notificationHandler := NewNotificationHandler(services.Notification)
+	api.GET("/notifications/stream", middlewares.AuthMiddleware, notificationHandler.StreamNotifications)
 	
-	// معالج الإشعارات
-	notificationHandler := NewNotificationHandler(services.NotificationService)
-	api.GET("/notifications", middlewares.AuthMiddleware, notificationHandler.GetNotifications)
-	api.PUT("/notifications/:id/read", middlewares.AuthMiddleware, notificationHandler.MarkAsRead)
-	api.PUT("/notifications/read-all", middlewares.AuthMiddleware, notificationHandler.MarkAllAsRead)
-	api.POST("/notifications", middlewares.AuthMiddleware, middlewares.AdminMiddleware, notificationHandler.SendNotification)
+	// معالج الاستراتيجيات
+	strategyHandler := NewStrategyHandler(services.Strategy)
+	protected := api.Group("")
+	protected.Use(middlewares.AuthMiddleware)
+	protected.POST("/strategies", strategyHandler.CreateStrategy)
+	protected.GET("/strategies", strategyHandler.GetStrategies)
+	protected.GET("/strategies/:id", strategyHandler.GetStrategyByID)
+	protected.PUT("/strategies/:id", strategyHandler.UpdateStrategy)
+	protected.DELETE("/strategies/:id", strategyHandler.DeleteStrategy)
+	protected.POST("/strategies/:id/execute", strategyHandler.ExecuteStrategy)
+	protected.GET("/strategies/:id/performance", strategyHandler.GetStrategyPerformance)
+	protected.POST("/strategies/backtest", strategyHandler.BacktestStrategy)
+	protected.GET("/strategies/templates", strategyHandler.GetStrategyTemplates)
 }
 
-// registerWebhookRoutes تسجيل مسارات الويب هووك والتحليلات
-func registerWebhookRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
-	// مسارات ويب هووك للخدمات الخارجية
+// registerWebhookRoutes تسجيل مسارات الويب هووك
+func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	webhook := api.Group("/webhook")
 	{
-		// Stripe webhooks
-		webhook.POST("/stripe/payment-success", services.PaymentService.HandleStripeWebhook)
-		webhook.POST("/stripe/payment-failed", services.PaymentService.HandleStripeWebhook)
-		webhook.POST("/stripe/subscription", services.PaymentService.HandleStripeWebhook)
+		// ويب هووك الدفع
+		paymentHandler := NewPaymentHandler(services.Payment)
+		webhook.POST("/payment/stripe", paymentHandler.HandleStripeWebhook)
+		webhook.POST("/payment/paypal", paymentHandler.HandlePayPalWebhook)
 		
-		// Cloudinary webhooks
-		webhook.POST("/cloudinary/upload", services.UploadService.HandleCloudinaryWebhook)
-		webhook.POST("/cloudinary/delete", services.UploadService.HandleCloudinaryWebhook)
-	}
-	
-	// مسارات التحليلات البديلة
-	analytics := api.Group("/analytics")
-	{
-		// Plausible analytics
-		analytics.POST("/plausible/event", services.AnalyticsService.HandlePlausibleEvent)
-		analytics.GET("/plausible/stats", services.AnalyticsService.GetPlausibleStats)
+		// ويب هووك الرفع
+		uploadHandler := NewUploadHandler(services.Upload)
+		webhook.POST("/upload/cloudinary", uploadHandler.HandleCloudinaryWebhook)
 		
-		// Matomo analytics
-		analytics.POST("/matomo/track", services.AnalyticsService.HandleMatomoTrack)
-		analytics.GET("/matomo/stats", services.AnalyticsService.GetMatomoStats)
+		// ويب هووك التحليلات
+		analyticsHandler := NewAnalyticsHandler(services.Analytics)
+		webhook.POST("/analytics/plausible", analyticsHandler.HandlePlausibleWebhook)
 	}
 }
 
-// HealthHandler معالج الصحة المبسط للمسارات الأساسية
+// HealthHandler معالج الصحة
 type HealthHandler struct {
-	healthService services.HealthService
-	config        *config.Config
+	config *config.Config
 }
 
-func NewHealthHandler(healthService services.HealthService, config *config.Config) *HealthHandler {
+func NewHealthHandler(config *config.Config) *HealthHandler {
 	return &HealthHandler{
-		healthService: healthService,
-		config:        config,
+		config: config,
 	}
 }
 
