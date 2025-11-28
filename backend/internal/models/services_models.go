@@ -93,14 +93,14 @@ type ServiceSearchResult struct {
 
 // ServiceStats إحصائيات الخدمات
 type ServiceStats struct {
-	TotalServices  int     `json:"total_services"`
-	ActiveServices int     `json:"active_services"`
-	InactiveServices int   `json:"inactive_services"`
-	SuspendedServices int  `json:"suspended_services"`
-	TotalRevenue   float64 `json:"total_revenue"`
-	AverageRating  float64 `json:"average_rating"`
-	TotalOrders    int     `json:"total_orders"`
-	PopularCategory string `json:"popular_category"`
+	TotalServices     int     `json:"total_services"`
+	ActiveServices    int     `json:"active_services"`
+	InactiveServices  int     `json:"inactive_services"`
+	SuspendedServices int     `json:"suspended_services"`
+	TotalRevenue      float64 `json:"total_revenue"`
+	AverageRating     float64 `json:"average_rating"`
+	TotalOrders       int     `json:"total_orders"`
+	PopularCategory   string  `json:"popular_category"`
 }
 
 // ServiceAnalytics تحليلات الخدمات
@@ -169,26 +169,26 @@ type ServiceCategoryRequest struct {
 
 // ServiceTimeSlot فترات زمنية للخدمة
 type ServiceTimeSlot struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	ServiceID string    `json:"service_id" gorm:"not null;index"`
-	Date      time.Time `json:"date" gorm:"not null;index"`
-	StartTime string    `json:"start_time" gorm:"not null"` // HH:MM
-	EndTime   string    `json:"end_time" gorm:"not null"`   // HH:MM
-	Available bool      `json:"available" gorm:"default:true"`
-	Booked    bool      `json:"booked" gorm:"default:false"`
-	MaxSlots  int       `json:"max_slots" gorm:"default:1"`
-	BookedSlots int     `json:"booked_slots" gorm:"default:0"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id" gorm:"primaryKey"`
+	ServiceID   string    `json:"service_id" gorm:"not null;index"`
+	Date        time.Time `json:"date" gorm:"not null;index"`
+	StartTime   string    `json:"start_time" gorm:"not null"` // HH:MM
+	EndTime     string    `json:"end_time" gorm:"not null"`   // HH:MM
+	Available   bool      `json:"available" gorm:"default:true"`
+	Booked      bool      `json:"booked" gorm:"default:false"`
+	MaxSlots    int       `json:"max_slots" gorm:"default:1"`
+	BookedSlots int       `json:"booked_slots" gorm:"default:0"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // ServiceAvailability توفر الخدمة
 type ServiceAvailability struct {
-	ServiceID      string             `json:"service_id"`
-	Date           time.Time          `json:"date"`
-	AvailableSlots []ServiceTimeSlot  `json:"available_slots"`
-	IsAvailable    bool               `json:"is_available"`
-	Message        string             `json:"message,omitempty"`
+	ServiceID      string            `json:"service_id"`
+	Date           time.Time         `json:"date"`
+	AvailableSlots []ServiceTimeSlot `json:"available_slots"`
+	IsAvailable    bool              `json:"is_available"`
+	Message        string            `json:"message,omitempty"`
 }
 
 // ServiceBooking حجز الخدمة
@@ -245,19 +245,19 @@ type ServicePromotion struct {
 
 // ServiceRecommendation توصية الخدمة
 type ServiceRecommendation struct {
-	ServiceID    string  `json:"service_id"`
-	Title        string  `json:"title"`
-	Category     string  `json:"category"`
-	Price        float64 `json:"price"`
-	Rating       float64 `json:"rating"`
-	TotalOrders  int     `json:"total_orders"`
-	Similarity   float64 `json:"similarity"` // درجة التشابه
-	Reason       string  `json:"reason"`     // سبب التوصية
+	ServiceID   string  `json:"service_id"`
+	Title       string  `json:"title"`
+	Category    string  `json:"category"`
+	Price       float64 `json:"price"`
+	Rating      float64 `json:"rating"`
+	TotalOrders int     `json:"total_orders"`
+	Similarity  float64 `json:"similarity"` // درجة التشابه
+	Reason      string  `json:"reason"`     // سبب التوصية
 }
 
 // ServiceTrends اتجاهات الخدمات
 type ServiceTrends struct {
-	Period          string    `json:"period"`
+	Period          string         `json:"period"`
 	TopCategories   []CategoryTrend `json:"top_categories"`
 	PopularServices []Service       `json:"popular_services"`
 	PriceTrends     []PriceTrend    `json:"price_trends"`
@@ -266,32 +266,32 @@ type ServiceTrends struct {
 
 // CategoryTrend اتجاه الفئة
 type CategoryTrend struct {
-	Category    string  `json:"category"`
-	Growth      float64 `json:"growth"` // نسبة النمو
-	ServiceCount int    `json:"service_count"`
-	TotalOrders int    `json:"total_orders"`
+	Category     string  `json:"category"`
+	Growth       float64 `json:"growth"` // نسبة النمو
+	ServiceCount int     `json:"service_count"`
+	TotalOrders  int     `json:"total_orders"`
 }
 
 // PriceTrend اتجاه الأسعار
 type PriceTrend struct {
-	Date  string  `json:"date"`
-	Min   float64 `json:"min"`
-	Max   float64 `json:"max"`
-	Avg   float64 `json:"avg"`
+	Date string  `json:"date"`
+	Min  float64 `json:"min"`
+	Max  float64 `json:"max"`
+	Avg  float64 `json:"avg"`
 }
 
 // SearchTrend اتجاهات البحث
 type SearchTrend struct {
-	Query     string `json:"query"`
-	Count     int    `json:"count"`
-	Category  string `json:"category"`
+	Query    string `json:"query"`
+	Count    int    `json:"count"`
+	Category string `json:"category"`
 }
 
 // ServiceExport تصدير بيانات الخدمات
 type ServiceExport struct {
-	Format    string    `json:"format"` // csv, excel, json
-	StartDate time.Time `json:"start_date"`
-	EndDate   time.Time `json:"end_date"`
-	Fields    []string  `json:"fields"`
+	Format    string                 `json:"format"` // csv, excel, json
+	StartDate time.Time              `json:"start_date"`
+	EndDate   time.Time              `json:"end_date"`
+	Fields    []string               `json:"fields"`
 	Filters   map[string]interface{} `json:"filters"`
 }
