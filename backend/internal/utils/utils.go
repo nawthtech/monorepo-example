@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
- "log/slog"
 	"math"
 	"net/http"
 	"reflect"
@@ -647,10 +646,12 @@ func CalculateOrderTotal(subtotal, tax, shipping, discount float64) float64 {
 // LogOperation تسجيل عملية مع الوقت
 func LogOperation(ctx context.Context, operation string, fn func() error) error {
 	start := time.Now()
+	
+	// استخدام الحقول مباشرة بدلاً من دوال المساعدة
 	logger.Info(ctx, "بدء العملية", 
-		logger.UserIDAttr(GetUserIDFromContext(ctx)),
-		logger.RequestIDAttr(GetRequestIDFromContext(ctx)),
-		logger.With("operation", operation),
+		"user_id", GetUserIDFromContext(ctx),
+		"request_id", GetRequestIDFromContext(ctx),
+		"operation", operation,
 	)
 
 	err := fn()
@@ -658,14 +659,14 @@ func LogOperation(ctx context.Context, operation string, fn func() error) error 
 	duration := time.Since(start)
 	if err != nil {
 		logger.Error(ctx, "فشل العملية",
-			logger.With("operation", operation),
-			logger.DurationAttr("duration", duration),
-			logger.ErrAttr(err),
+			"operation", operation,
+			"duration", duration,
+			"error", err.Error(),
 		)
 	} else {
 		logger.Info(ctx, "انتهاء العملية بنجاح",
-			logger.With("operation", operation),
-			logger.DurationAttr("duration", duration),
+			"operation", operation,
+			"duration", duration,
 		)
 	}
 
@@ -679,8 +680,8 @@ func MeasureExecutionTime(ctx context.Context, name string, fn func()) time.Dura
 	duration := time.Since(start)
 
 	logger.Debug(ctx, "قياس وقت التنفيذ",
-		logger.With("operation", name),
-		logger.DurationAttr("duration", duration),
+		"operation", name,
+		"duration", duration,
 	)
 
 	return duration
