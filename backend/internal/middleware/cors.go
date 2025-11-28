@@ -3,67 +3,66 @@ package middleware
 import (
 	"net/http"
 	"strings"
-	
-	"nawthtech/backend/internal/config"
-	"nawthtech/backend/internal/logger"
+
+	"github.com/gin-gonic/gin"
+	"github.com/nawthtech/nawthtech/backend/internal/config"
 )
 
 // CORS middleware لإعدادات CORS الديناميكية
-func CORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func CORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// الحصول على إعدادات CORS بناءً على المسار
-		corsConfig := config.GetCORSConfig(r.URL.Path)
+		corsConfig := config.GetCORSConfig(c.Request.URL.Path)
 		
-		origin := r.Header.Get("Origin")
+		origin := c.Request.Header.Get("Origin")
 		
 		// التحقق من النطاق المسموح به
 		if !config.ValidateOrigin(origin) {
-			logger.Warn("CORS request blocked", map[string]interface{}{
-				"origin": origin,
-				"path":   r.URL.Path,
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":   "Not allowed by CORS",
+				"message": "النطاق غير مسموح به",
 			})
-			http.Error(w, "Not allowed by CORS", http.StatusForbidden)
 			return
 		}
 		
 		// تعيين رؤوس CORS
 		if origin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Origin", origin)
 		} else {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Origin", "*")
 		}
 		
-		w.Header().Set("Access-Control-Allow-Methods", strings.Join(corsConfig.AllowedMethods, ", "))
-		w.Header().Set("Access-Control-Allow-Headers", strings.Join(corsConfig.AllowedHeaders, ", "))
-		w.Header().Set("Access-Control-Expose-Headers", strings.Join(corsConfig.ExposedHeaders, ", "))
+		c.Header("Access-Control-Allow-Methods", strings.Join(corsConfig.AllowedMethods, ", "))
+		c.Header("Access-Control-Allow-Headers", strings.Join(corsConfig.AllowedHeaders, ", "))
+		c.Header("Access-Control-Expose-Headers", strings.Join(corsConfig.ExposedHeaders, ", "))
 		
 		if corsConfig.AllowCredentials {
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 		
 		if corsConfig.MaxAge > 0 {
-			w.Header().Set("Access-Control-Max-Age", string(rune(corsConfig.MaxAge)))
+			c.Header("Access-Control-Max-Age", string(rune(corsConfig.MaxAge)))
 		}
 		
 		// معالجة طلبات Preflight
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusNoContent)
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 		
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
 
 // SecurityHeaders middleware لأمان إضافي
-func SecurityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 		
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
