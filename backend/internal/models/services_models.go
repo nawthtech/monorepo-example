@@ -29,9 +29,9 @@ type Service struct {
 // ServiceDetails تفاصيل الخدمة الكاملة
 type ServiceDetails struct {
 	Service
-	Seller          *User    `json:"seller,omitempty" gorm:"-"`
-	Reviews         []Review `json:"reviews,omitempty" gorm:"-"`
-	AverageRating   float64  `json:"average_rating" gorm:"-"`
+	Seller          *User     `json:"seller,omitempty" gorm:"-"`
+	Reviews         []Review  `json:"reviews,omitempty" gorm:"-"`
+	AverageRating   float64   `json:"average_rating" gorm:"-"`
 	SimilarServices []Service `json:"similar_services,omitempty" gorm:"-"`
 }
 
@@ -89,18 +89,6 @@ type ServiceSearchResult struct {
 	Limit      int       `json:"limit"`
 	TotalPages int       `json:"total_pages"`
 	HasMore    bool      `json:"has_more"`
-}
-
-// ServiceStats إحصائيات الخدمات
-type ServiceStats struct {
-	TotalServices     int     `json:"total_services"`
-	ActiveServices    int     `json:"active_services"`
-	InactiveServices  int     `json:"inactive_services"`
-	SuspendedServices int     `json:"suspended_services"`
-	TotalRevenue      float64 `json:"total_revenue"`
-	AverageRating     float64 `json:"average_rating"`
-	TotalOrders       int     `json:"total_orders"`
-	PopularCategory   string  `json:"popular_category"`
 }
 
 // ServiceAnalytics تحليلات الخدمات
