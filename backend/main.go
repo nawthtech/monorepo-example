@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -56,7 +55,7 @@ func main() {
 	serviceContainer := services.NewServiceContainer(db)
 
 	// تهيئة خدمة التخزين المؤقت
-	cacheService := initCacheService(cfg)
+	cacheService := initCacheService()
 
 	// فحص صحة التطبيق
 	if !healthCheck(cfg, db, cacheService) {
@@ -73,7 +72,7 @@ func main() {
 	registerMiddlewares(app, cfg)
 
 	// تسجيل جميع المسارات باستخدام حاوية الخدمات
-	registerAllRoutes(app, serviceContainer, cfg, cacheService, db)
+	registerAllRoutes(app, serviceContainer, cfg, db)
 
 	// بدء الخادم
 	startServer(app, cfg, cacheService)
@@ -84,13 +83,13 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	logger.Stdout.Info("🗄️  تهيئة اتصال قاعدة البيانات...")
 
 	// في بيئة التطوير، يمكن استخدام SQLite للاختبار
-	if cfg.IsDevelopment() && cfg.DatabaseURL == "" {
+	if cfg.IsDevelopment() && cfg.Database.DSN == "" {
 		logger.Stdout.Info("🔧 استخدام قاعدة بيانات للتطوير")
 		// يمكن إضافة SQLite هنا إذا أردت
 		return nil, nil
 	}
 
-	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(cfg.Database.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +121,10 @@ func closeDatabase(db *gorm.DB) {
 }
 
 // initCacheService تهيئة خدمة التخزين المؤقت
-func initCacheService(cfg *config.Config) services.CacheService {
+func initCacheService() services.CacheService {
 	logger.Stdout.Info("🔮 تهيئة خدمة التخزين المؤقت...")
 
-	if !cfg.IsCacheEnabled() {
-		logger.Stdout.Info("⚠️  خدمة التخزين المؤقت معطلة في الإعدادات")
-		return services.NewCacheService(nil)
-	}
-
-	cacheService := services.NewCacheService(nil)
+	cacheService := services.NewCacheService()
 	logger.Stdout.Info("✅ تم تهيئة خدمة التخزين المؤقت بنجاح")
 	return cacheService
 }
@@ -213,9 +207,9 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 }
 
 // registerAllRoutes تسجيل جميع المسارات
-func registerAllRoutes(app *gin.Engine, services *services.ServiceContainer, cfg *config.Config, db, cacheService services.CacheService) {
+func registerAllRoutes(app *gin.Engine, services *services.ServiceContainer, cfg *config.Config, db *gorm.DB) {
 	// استخدام الدالة الجديدة من handlers مع حاوية الخدمات
-	handlers.RegisterAllRoutes(app, services, db, cfg)
+	handlers.RegisterAllRoutes(app, services, cfg, db)
 
 	// ✅ تسجيل مسار لفحص إحصائيات CORS (للتطوير فقط)
 	if cfg.IsDevelopment() {
