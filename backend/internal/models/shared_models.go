@@ -6,13 +6,6 @@ import "time"
 // النماذج المشتركة بين الخدمات
 // ================================
 
-// PerformanceMetric مقياس الأداء (نموذج مشترك)
-type PerformanceMetric struct {
-	Value  float64 `json:"value"`
-	Label  string  `json:"label"`
-	Change float64 `json:"change"`
-}
-
 // Pagination الترقيم الصفحي
 type Pagination struct {
 	Page  int `json:"page"`
