@@ -44,15 +44,20 @@ type ServiceContainer struct {
 
 // MiddlewareContainer حاوية الوسائط
 type MiddlewareContainer struct {
-	AuthMiddleware   gin.HandlerFunc
-	AdminMiddleware  gin.HandlerFunc
-	SellerMiddleware gin.HandlerFunc
-	CacheMiddleware  *middleware.CacheMiddleware
+	AuthMiddleware      gin.HandlerFunc
+	AdminMiddleware     gin.HandlerFunc
+	SellerMiddleware    gin.HandlerFunc
+	CORSMiddleware      gin.HandlerFunc
+	SecurityMiddleware  gin.HandlerFunc
+	CacheMiddleware     *middleware.CacheMiddleware
 	RateLimitMiddleware *middleware.RateLimitMiddleware
 }
 
 // RegisterAllRoutes تسجيل جميع المسارات
 func RegisterAllRoutes(router *gin.Engine, db *gorm.DB, config *config.Config) {
+	// تطبيق middleware العام على مستوى التطبيق
+	applyGlobalMiddleware(router, config)
+	
 	// إنشاء حاوية الخدمات
 	services := initializeServices(db, config)
 	
@@ -76,6 +81,24 @@ func RegisterAllRoutes(router *gin.Engine, db *gorm.DB, config *config.Config) {
 	
 	// ========== مسارات SSE والوقت الحقيقي ==========
 	registerRealTimeRoutes(api, services, middlewares)
+	
+	// ========== مسارات الويب هووك والتحليلات ==========
+	registerWebhookRoutes(api, services, middlewares)
+}
+
+// applyGlobalMiddleware تطبيق الوسائط العامة على مستوى التطبيق
+func applyGlobalMiddleware(router *gin.Engine, config *config.Config) {
+	// CORS middleware - يتم تطبيقه على مستوى التطبيق بالكامل
+	router.Use(middleware.CORS())
+	
+	// Security headers middleware
+	router.Use(middleware.SecurityHeaders())
+	
+	// Logging middleware
+	router.Use(middleware.Logging())
+	
+	// Rate limiting middleware
+	router.Use(middleware.RateLimit())
 }
 
 // initializeServices تهيئة جميع الخدمات
@@ -344,6 +367,34 @@ func registerRealTimeRoutes(api *gin.RouterGroup, services *ServiceContainer, mi
 	api.PUT("/notifications/:id/read", middlewares.AuthMiddleware, notificationHandler.MarkAsRead)
 	api.PUT("/notifications/read-all", middlewares.AuthMiddleware, notificationHandler.MarkAllAsRead)
 	api.POST("/notifications", middlewares.AuthMiddleware, middlewares.AdminMiddleware, notificationHandler.SendNotification)
+}
+
+// registerWebhookRoutes تسجيل مسارات الويب هووك والتحليلات
+func registerWebhookRoutes(api *gin.RouterGroup, services *ServiceContainer, middlewares *MiddlewareContainer) {
+	// مسارات ويب هووك للخدمات الخارجية
+	webhook := api.Group("/webhook")
+	{
+		// Stripe webhooks
+		webhook.POST("/stripe/payment-success", services.PaymentService.HandleStripeWebhook)
+		webhook.POST("/stripe/payment-failed", services.PaymentService.HandleStripeWebhook)
+		webhook.POST("/stripe/subscription", services.PaymentService.HandleStripeWebhook)
+		
+		// Cloudinary webhooks
+		webhook.POST("/cloudinary/upload", services.UploadService.HandleCloudinaryWebhook)
+		webhook.POST("/cloudinary/delete", services.UploadService.HandleCloudinaryWebhook)
+	}
+	
+	// مسارات التحليلات البديلة
+	analytics := api.Group("/analytics")
+	{
+		// Plausible analytics
+		analytics.POST("/plausible/event", services.AnalyticsService.HandlePlausibleEvent)
+		analytics.GET("/plausible/stats", services.AnalyticsService.GetPlausibleStats)
+		
+		// Matomo analytics
+		analytics.POST("/matomo/track", services.AnalyticsService.HandleMatomoTrack)
+		analytics.GET("/matomo/stats", services.AnalyticsService.GetMatomoStats)
+	}
 }
 
 // HealthHandler معالج الصحة المبسط للمسارات الأساسية
