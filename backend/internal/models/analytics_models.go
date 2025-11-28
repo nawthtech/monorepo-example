@@ -45,7 +45,7 @@ type PerformanceAnalytics struct {
 	Timeframe string              `json:"timeframe"`
 	Platform  string              `json:"platform"`
 	Metrics   string              `json:"metrics"`
-	Data      []AnalyticsPerformanceMetric `json:"data"` // يستخدم الاسم المختلف
+	Data      []AnalyticsPerformanceMetric `json:"data"`
 	Summary   *PerformanceSummary `json:"summary"`
 	GeneratedAt time.Time         `json:"generated_at"`
 }
