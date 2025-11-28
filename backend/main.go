@@ -213,9 +213,9 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 }
 
 // registerAllRoutes تسجيل جميع المسارات
-func registerAllRoutes(app *gin.Engine, services *services.ServiceContainer, cfg *config.Config, cacheService services.CacheService) {
+func registerAllRoutes(app *gin.Engine, services *services.ServiceContainer, cfg *config.Config, db, cacheService services.CacheService) {
 	// استخدام الدالة الجديدة من handlers مع حاوية الخدمات
-	handlers.RegisterAllRoutes(app, services, cfg)
+	handlers.RegisterAllRoutes(app, services, db, cfg)
 
 	// ✅ تسجيل مسار لفحص إحصائيات CORS (للتطوير فقط)
 	if cfg.IsDevelopment() {
