@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+ "log/slog"
 	"math"
 	"net/http"
 	"reflect"
@@ -649,7 +650,7 @@ func LogOperation(ctx context.Context, operation string, fn func() error) error 
 	logger.Info(ctx, "بدء العملية", 
 		logger.UserIDAttr(GetUserIDFromContext(ctx)),
 		logger.RequestIDAttr(GetRequestIDFromContext(ctx)),
-		slog.String("operation", operation),
+		logger.With("operation", operation),
 	)
 
 	err := fn()
@@ -657,14 +658,14 @@ func LogOperation(ctx context.Context, operation string, fn func() error) error 
 	duration := time.Since(start)
 	if err != nil {
 		logger.Error(ctx, "فشل العملية",
-			slog.String("operation", operation),
-			slog.Duration("duration", duration),
+			logger.With("operation", operation),
+			logger.DurationAttr("duration", duration),
 			logger.ErrAttr(err),
 		)
 	} else {
 		logger.Info(ctx, "انتهاء العملية بنجاح",
-			slog.String("operation", operation),
-			slog.Duration("duration", duration),
+			logger.With("operation", operation),
+			logger.DurationAttr("duration", duration),
 		)
 	}
 
@@ -678,8 +679,8 @@ func MeasureExecutionTime(ctx context.Context, name string, fn func()) time.Dura
 	duration := time.Since(start)
 
 	logger.Debug(ctx, "قياس وقت التنفيذ",
-		slog.String("operation", name),
-		slog.Duration("duration", duration),
+		logger.With("operation", name),
+		logger.DurationAttr("duration", duration),
 	)
 
 	return duration
