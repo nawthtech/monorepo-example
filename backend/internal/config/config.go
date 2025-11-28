@@ -109,9 +109,9 @@ type DatabaseConfig struct {
 // Config التكوين الرئيسي
 type Config struct {
 	Environment   string         `env:"ENVIRONMENT"`
-	Port          string         `env:"PORT"`
-	Version       string         `env:"APP_VERSION"`
-	EncryptionKey string         `env:"ENCRYPTION_KEY"`
+	Port          string `env:"PORT"`
+	Version       string `env:"APP_VERSION"`
+	EncryptionKey string `env:"ENCRYPTION_KEY"`
 	Database      DatabaseConfig `envPrefix:"DB_"`
 	Auth          AuthConfig     `envPrefix:"AUTH_"`
 	Cors          Cors           `envPrefix:"CORS_"`
@@ -464,6 +464,11 @@ func (c *Config) GetRedisAddress() string {
 
 // GetDatabaseURL الحصول على رابط قاعدة البيانات
 func (c *Config) GetDatabaseURL() string {
+	return c.Database.URL
+}
+
+// GetDSN الحصول على DSN لقاعدة البيانات
+func (c *Config) GetDSN() string {
 	return c.Database.URL
 }
 
