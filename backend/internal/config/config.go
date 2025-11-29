@@ -23,13 +23,14 @@ type Cors struct {
 	MaxAge           int      `env:"MAX_AGE"`
 }
 
-// Redis تكوين Redis
-type Redis struct {
-	URL      string `env:"REDIS_URL"`
-	Host     string `env:"REDIS_HOST"`
-	Port     string `env:"REDIS_PORT"`
-	Password string `env:"REDIS_PASSWORD"`
-	DB       int    `env:"REDIS_DB"`
+// MongoDB تكوين MongoDB
+type MongoDB struct {
+	URL               string        `env:"MONGODB_URL"`
+	DatabaseName      string        `env:"MONGODB_DATABASE"`
+	ConnectTimeout    time.Duration `env:"MONGODB_CONNECT_TIMEOUT"`
+	MaxPoolSize       uint64        `env:"MONGODB_MAX_POOL_SIZE"`
+	MinPoolSize       uint64        `env:"MONGODB_MIN_POOL_SIZE"`
+	HeartbeatInterval time.Duration `env:"MONGODB_HEARTBEAT_INTERVAL"`
 }
 
 // Cache تكوين التخزين المؤقت
@@ -42,32 +43,38 @@ type Cache struct {
 
 // ServicesConfig تكوين الخدمات
 type ServicesConfig struct {
-	MaxServicesPerUser      int           `env:"SERVICES_MAX_PER_USER"`
-	MaxActiveServices       int           `env:"SERVICES_MAX_ACTIVE"`
-	DefaultPaginationLimit  int           `env:"SERVICES_PAGINATION_LIMIT"`
-	MaxPaginationLimit      int           `env:"SERVICES_MAX_PAGINATION_LIMIT"`
-	SearchCacheTTL          time.Duration `env:"SERVICES_SEARCH_CACHE_TTL"`
-	FeaturedCacheTTL        time.Duration `env:"SERVICES_FEATURED_CACHE_TTL"`
-	MaxImagesPerService     int           `env:"SERVICES_MAX_IMAGES"`
-	MaxFeaturesPerService   int           `env:"SERVICES_MAX_FEATURES"`
-	MaxTagsPerService       int           `env:"SERVICES_MAX_TAGS"`
-	MinTitleLength          int           `env:"SERVICES_MIN_TITLE_LENGTH"`
-	MaxTitleLength          int           `env:"SERVICES_MAX_TITLE_LENGTH"`
-	MinDescriptionLength    int           `env:"SERVICES_MIN_DESCRIPTION_LENGTH"`
-	MaxDescriptionLength    int           `env:"SERVICES_MAX_DESCRIPTION_LENGTH"`
-	MinPrice                float64       `env:"SERVICES_MIN_PRICE"`
-	MaxPrice                float64       `env:"SERVICES_MAX_PRICE"`
-	MinDuration             int           `env:"SERVICES_MIN_DURATION"`
-	MaxDuration             int           `env:"SERVICES_MAX_DURATION"`
-	AutoApproveServices     bool          `env:"SERVICES_AUTO_APPROVE"`
-	AllowServiceEditing     bool          `env:"SERVICES_ALLOW_EDITING"`
-	EnableServiceReviews    bool          `env:"SERVICES_ENABLE_REVIEWS"`
-	EnableServiceRatings    bool          `env:"SERVICES_ENABLE_RATINGS"`
-	EnableServiceBookings   bool          `env:"SERVICES_ENABLE_BOOKINGS"`
-	EnableServicePromotions bool          `env:"SERVICES_ENABLE_PROMOTIONS"`
-	RateLimitCreate         int           `env:"SERVICES_RATE_LIMIT_CREATE"`
-	RateLimitUpdate         int           `env:"SERVICES_RATE_LIMIT_UPDATE"`
-	RateLimitSearch         int           `env:"SERVICES_RATE_LIMIT_SEARCH"`
+	MaxServicesPerUser     int           `env:"SERVICES_MAX_PER_USER"`
+	MaxActiveServices      int           `env:"SERVICES_MAX_ACTIVE"`
+	DefaultPaginationLimit int           `env:"SERVICES_PAGINATION_LIMIT"`
+	MaxPaginationLimit     int           `env:"SERVICES_MAX_PAGINATION_LIMIT"`
+	SearchCacheTTL         time.Duration `env:"SERVICES_SEARCH_CACHE_TTL"`
+	FeaturedCacheTTL       time.Duration `env:"SERVICES_FEATURED_CACHE_TTL"`
+	MaxImagesPerService    int           `env:"SERVICES_MAX_IMAGES"`
+	MaxTagsPerService      int           `env:"SERVICES_MAX_TAGS"`
+	MinTitleLength         int           `env:"SERVICES_MIN_TITLE_LENGTH"`
+	MaxTitleLength         int           `env:"SERVICES_MAX_TITLE_LENGTH"`
+	MinDescriptionLength   int           `env:"SERVICES_MIN_DESCRIPTION_LENGTH"`
+	MaxDescriptionLength   int           `env:"SERVICES_MAX_DESCRIPTION_LENGTH"`
+	MinPrice               float64       `env:"SERVICES_MIN_PRICE"`
+	MaxPrice               float64       `env:"SERVICES_MAX_PRICE"`
+	MinDuration            int           `env:"SERVICES_MIN_DURATION"`
+	MaxDuration            int           `env:"SERVICES_MAX_DURATION"`
+	AutoApproveServices    bool          `env:"SERVICES_AUTO_APPROVE"`
+	AllowServiceEditing    bool          `env:"SERVICES_ALLOW_EDITING"`
+	EnableServiceReviews   bool          `env:"SERVICES_ENABLE_REVIEWS"`
+	EnableServiceRatings   bool          `env:"SERVICES_ENABLE_RATINGS"`
+	RateLimitCreate        int           `env:"SERVICES_RATE_LIMIT_CREATE"`
+	RateLimitUpdate        int           `env:"SERVICES_RATE_LIMIT_UPDATE"`
+	RateLimitSearch        int           `env:"SERVICES_RATE_LIMIT_SEARCH"`
+}
+
+// Cloudinary تكوين Cloudinary
+type Cloudinary struct {
+	CloudName   string `env:"CLOUDINARY_CLOUD_NAME"`
+	APIKey      string `env:"CLOUDINARY_API_KEY"`
+	APISecret   string `env:"CLOUDINARY_API_SECRET"`
+	UploadPreset string `env:"CLOUDINARY_UPLOAD_PRESET"`
+	Folder      string `env:"CLOUDINARY_FOLDER"`
 }
 
 // Upload تكوين الرفع
@@ -76,7 +83,7 @@ type Upload struct {
 	AllowedTypes   []string `env:"UPLOAD_ALLOWED_TYPES" envSeparator:","`
 	ImageMaxWidth  int      `env:"UPLOAD_IMAGE_MAX_WIDTH"`
 	ImageMaxHeight int      `env:"UPLOAD_IMAGE_MAX_HEIGHT"`
-	StoragePath    string   `env:"UPLOAD_STORAGE_PATH"`
+	StorageBackend string   `env:"UPLOAD_STORAGE_BACKEND"` // cloudinary أو local
 }
 
 // Email تكوين البريد
@@ -98,27 +105,19 @@ type AuthConfig struct {
 	BCryptCost        int           `env:"BCRYPT_COST"`
 }
 
-// DatabaseConfig تكوين قاعدة البيانات
-type DatabaseConfig struct {
-	URL          string `env:"DATABASE_URL"`
-	MaxIdleConns int    `env:"DB_MAX_IDLE_CONNS"`
-	MaxOpenConns int    `env:"DB_MAX_OPEN_CONNS"`
-	MaxLifetime  int    `env:"DB_MAX_LIFETIME"`
-}
-
 // Config التكوين الرئيسي
 type Config struct {
 	Environment   string         `env:"ENVIRONMENT"`
-	Port          string `env:"PORT"`
-	Version       string `env:"APP_VERSION"`
-	EncryptionKey string `env:"ENCRYPTION_KEY"`
-	Database      DatabaseConfig `envPrefix:"DB_"`
+	Port          string         `env:"PORT"`
+	Version       string         `env:"APP_VERSION"`
+	EncryptionKey string         `env:"ENCRYPTION_KEY"`
+	MongoDB       MongoDB        `envPrefix:"MONGODB_"`
 	Auth          AuthConfig     `envPrefix:"AUTH_"`
 	Cors          Cors           `envPrefix:"CORS_"`
-	Redis         Redis          `envPrefix:"REDIS_"`
 	Cache         Cache          `envPrefix:"CACHE_"`
 	Services      ServicesConfig `envPrefix:"SERVICES_"`
 	Upload        Upload         `envPrefix:"UPLOAD_"`
+	Cloudinary    Cloudinary     `envPrefix:"CLOUDINARY_"`
 	Email         Email          `envPrefix:"EMAIL_"`
 }
 
@@ -141,11 +140,13 @@ func Load() *Config {
 		Port:          getEnv("PORT", "3000"),
 		Version:       getEnv("APP_VERSION", "1.0.0"),
 		EncryptionKey: getEnv("ENCRYPTION_KEY", "default-encryption-key-change-in-production"),
-		Database: DatabaseConfig{
-			URL:          getEnv("DATABASE_URL", ""),
-			MaxIdleConns: getEnvInt("DB_MAX_IDLE_CONNS", 10),
-			MaxOpenConns: getEnvInt("DB_MAX_OPEN_CONNS", 100),
-			MaxLifetime:  getEnvInt("DB_MAX_LIFETIME", 3600),
+		MongoDB: MongoDB{
+			URL:               getEnv("MONGODB_URL", "mongodb://localhost:27017/nawthtech"),
+			DatabaseName:      getEnv("MONGODB_DATABASE", "nawthtech"),
+			ConnectTimeout:    getEnvDuration("MONGODB_CONNECT_TIMEOUT", 10*time.Second),
+			MaxPoolSize:       getEnvUint64("MONGODB_MAX_POOL_SIZE", 100),
+			MinPoolSize:       getEnvUint64("MONGODB_MIN_POOL_SIZE", 10),
+			HeartbeatInterval: getEnvDuration("MONGODB_HEARTBEAT_INTERVAL", 10*time.Second),
 		},
 		Auth: AuthConfig{
 			JWTSecret:         getEnv("JWT_SECRET", "default-jwt-secret-change-in-production"),
@@ -161,13 +162,6 @@ func Load() *Config {
 			AllowCredentials: getEnvBool("ALLOW_CREDENTIALS", true),
 			MaxAge:           getEnvInt("MAX_AGE", 86400),
 		},
-		Redis: Redis{
-			URL:      getEnv("REDIS_URL", ""),
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnv("REDIS_PORT", "6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getEnvInt("REDIS_DB", 0),
-		},
 		Cache: Cache{
 			Enabled:    getEnvBool("CACHE_ENABLED", true),
 			Prefix:     getEnv("CACHE_PREFIX", "nawthtech:"),
@@ -175,39 +169,43 @@ func Load() *Config {
 			MaxRetries: getEnvInt("CACHE_MAX_RETRIES", 3),
 		},
 		Services: ServicesConfig{
-			MaxServicesPerUser:      getEnvInt("SERVICES_MAX_PER_USER", 50),
-			MaxActiveServices:       getEnvInt("SERVICES_MAX_ACTIVE", 20),
-			DefaultPaginationLimit:  getEnvInt("SERVICES_PAGINATION_LIMIT", 20),
-			MaxPaginationLimit:      getEnvInt("SERVICES_MAX_PAGINATION_LIMIT", 100),
-			SearchCacheTTL:          getEnvDuration("SERVICES_SEARCH_CACHE_TTL", 5*time.Minute),
-			FeaturedCacheTTL:        getEnvDuration("SERVICES_FEATURED_CACHE_TTL", 30*time.Minute),
-			MaxImagesPerService:     getEnvInt("SERVICES_MAX_IMAGES", 10),
-			MaxFeaturesPerService:   getEnvInt("SERVICES_MAX_FEATURES", 20),
-			MaxTagsPerService:       getEnvInt("SERVICES_MAX_TAGS", 15),
-			MinTitleLength:          getEnvInt("SERVICES_MIN_TITLE_LENGTH", 3),
-			MaxTitleLength:          getEnvInt("SERVICES_MAX_TITLE_LENGTH", 200),
-			MinDescriptionLength:    getEnvInt("SERVICES_MIN_DESCRIPTION_LENGTH", 10),
-			MaxDescriptionLength:    getEnvInt("SERVICES_MAX_DESCRIPTION_LENGTH", 2000),
-			MinPrice:                getEnvFloat("SERVICES_MIN_PRICE", 0),
-			MaxPrice:                getEnvFloat("SERVICES_MAX_PRICE", 1000000),
-			MinDuration:             getEnvInt("SERVICES_MIN_DURATION", 1),
-			MaxDuration:             getEnvInt("SERVICES_MAX_DURATION", 365),
-			AutoApproveServices:     getEnvBool("SERVICES_AUTO_APPROVE", true),
-			AllowServiceEditing:     getEnvBool("SERVICES_ALLOW_EDITING", true),
-			EnableServiceReviews:    getEnvBool("SERVICES_ENABLE_REVIEWS", true),
-			EnableServiceRatings:    getEnvBool("SERVICES_ENABLE_RATINGS", true),
-			EnableServiceBookings:   getEnvBool("SERVICES_ENABLE_BOOKINGS", true),
-			EnableServicePromotions: getEnvBool("SERVICES_ENABLE_PROMOTIONS", true),
-			RateLimitCreate:         getEnvInt("SERVICES_RATE_LIMIT_CREATE", 10),
-			RateLimitUpdate:         getEnvInt("SERVICES_RATE_LIMIT_UPDATE", 30),
-			RateLimitSearch:         getEnvInt("SERVICES_RATE_LIMIT_SEARCH", 60),
+			MaxServicesPerUser:     getEnvInt("SERVICES_MAX_PER_USER", 50),
+			MaxActiveServices:      getEnvInt("SERVICES_MAX_ACTIVE", 20),
+			DefaultPaginationLimit: getEnvInt("SERVICES_PAGINATION_LIMIT", 20),
+			MaxPaginationLimit:     getEnvInt("SERVICES_MAX_PAGINATION_LIMIT", 100),
+			SearchCacheTTL:         getEnvDuration("SERVICES_SEARCH_CACHE_TTL", 5*time.Minute),
+			FeaturedCacheTTL:       getEnvDuration("SERVICES_FEATURED_CACHE_TTL", 30*time.Minute),
+			MaxImagesPerService:    getEnvInt("SERVICES_MAX_IMAGES", 10),
+			MaxTagsPerService:      getEnvInt("SERVICES_MAX_TAGS", 15),
+			MinTitleLength:         getEnvInt("SERVICES_MIN_TITLE_LENGTH", 3),
+			MaxTitleLength:         getEnvInt("SERVICES_MAX_TITLE_LENGTH", 200),
+			MinDescriptionLength:   getEnvInt("SERVICES_MIN_DESCRIPTION_LENGTH", 10),
+			MaxDescriptionLength:   getEnvInt("SERVICES_MAX_DESCRIPTION_LENGTH", 2000),
+			MinPrice:               getEnvFloat("SERVICES_MIN_PRICE", 0),
+			MaxPrice:               getEnvFloat("SERVICES_MAX_PRICE", 1000000),
+			MinDuration:            getEnvInt("SERVICES_MIN_DURATION", 1),
+			MaxDuration:            getEnvInt("SERVICES_MAX_DURATION", 365),
+			AutoApproveServices:    getEnvBool("SERVICES_AUTO_APPROVE", true),
+			AllowServiceEditing:    getEnvBool("SERVICES_ALLOW_EDITING", true),
+			EnableServiceReviews:   getEnvBool("SERVICES_ENABLE_REVIEWS", true),
+			EnableServiceRatings:   getEnvBool("SERVICES_ENABLE_RATINGS", true),
+			RateLimitCreate:        getEnvInt("SERVICES_RATE_LIMIT_CREATE", 10),
+			RateLimitUpdate:        getEnvInt("SERVICES_RATE_LIMIT_UPDATE", 30),
+			RateLimitSearch:        getEnvInt("SERVICES_RATE_LIMIT_SEARCH", 60),
 		},
 		Upload: Upload{
 			MaxFileSize:    getEnvInt64("UPLOAD_MAX_FILE_SIZE", 10*1024*1024),
 			AllowedTypes:   getEnvSlice("UPLOAD_ALLOWED_TYPES", []string{"image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"}, ","),
 			ImageMaxWidth:  getEnvInt("UPLOAD_IMAGE_MAX_WIDTH", 1920),
 			ImageMaxHeight: getEnvInt("UPLOAD_IMAGE_MAX_HEIGHT", 1080),
-			StoragePath:    getEnv("UPLOAD_STORAGE_PATH", "./uploads"),
+			StorageBackend: getEnv("UPLOAD_STORAGE_BACKEND", "cloudinary"),
+		},
+		Cloudinary: Cloudinary{
+			CloudName:    getEnv("CLOUDINARY_CLOUD_NAME", ""),
+			APIKey:       getEnv("CLOUDINARY_API_KEY", ""),
+			APISecret:    getEnv("CLOUDINARY_API_SECRET", ""),
+			UploadPreset: getEnv("CLOUDINARY_UPLOAD_PRESET", "nawthtech_uploads"),
+			Folder:       getEnv("CLOUDINARY_FOLDER", "nawthtech"),
 		},
 		Email: Email{
 			Enabled:   getEnvBool("EMAIL_ENABLED", false),
@@ -239,6 +237,8 @@ func Load() *Config {
 		"environment", appConfig.Environment,
 		"port", appConfig.Port,
 		"version", appConfig.Version,
+		"database", "MongoDB",
+		"storage", appConfig.Upload.StorageBackend,
 	)
 
 	return appConfig
@@ -259,8 +259,7 @@ func setCorsDefaults() {
 		appConfig.Cors.AllowedHeaders = []string{
 			"Content-Type", "Authorization", "X-Requested-With", "X-API-Key",
 			"Accept", "Origin", "X-Client-Version", "X-Device-ID", "X-Platform",
-			"X-Plausible-Token", "X-Matomo-Token", "X-Fathom-Key", "X-Request-ID",
-			"Cache-Control", "X-CSRF-Token",
+			"X-Request-ID", "Cache-Control", "X-CSRF-Token",
 		}
 	}
 	if len(appConfig.Cors.ExposedHeaders) == 0 {
@@ -287,12 +286,15 @@ func validateConfig() error {
 	if err := validateAuthConfig(); err != nil {
 		return err
 	}
+	if err := validateCloudinaryConfig(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func validateRequiredFields() error {
-	if appConfig.Database.URL == "" {
-		return fmt.Errorf("DATABASE_URL is required")
+	if appConfig.MongoDB.URL == "" {
+		return fmt.Errorf("MONGODB_URL is required")
 	}
 	if appConfig.Auth.JWTSecret == "" || appConfig.Auth.JWTSecret == "default-jwt-secret-change-in-production" {
 		return fmt.Errorf("JWT_SECRET is required and must be changed in production")
@@ -344,6 +346,10 @@ func validateUploadConfig() error {
 		return fmt.Errorf("UPLOAD_IMAGE_MAX_HEIGHT يجب أن يكون أكبر من الصفر")
 	}
 
+	if appConfig.Upload.StorageBackend != "cloudinary" && appConfig.Upload.StorageBackend != "local" {
+		return fmt.Errorf("UPLOAD_STORAGE_BACKEND يجب أن يكون 'cloudinary' أو 'local'")
+	}
+
 	return nil
 }
 
@@ -363,6 +369,21 @@ func validateAuthConfig() error {
 	return nil
 }
 
+func validateCloudinaryConfig() error {
+	if appConfig.Upload.StorageBackend == "cloudinary" {
+		if appConfig.Cloudinary.CloudName == "" {
+			return fmt.Errorf("CLOUDINARY_CLOUD_NAME مطلوب عند استخدام Cloudinary")
+		}
+		if appConfig.Cloudinary.APIKey == "" {
+			return fmt.Errorf("CLOUDINARY_API_KEY مطلوب عند استخدام Cloudinary")
+		}
+		if appConfig.Cloudinary.APISecret == "" {
+			return fmt.Errorf("CLOUDINARY_API_SECRET مطلوب عند استخدام Cloudinary")
+		}
+	}
+	return nil
+}
+
 // ========== دوال مساعدة ==========
 
 func getEnv(key, defaultValue string) string {
@@ -375,6 +396,15 @@ func getEnv(key, defaultValue string) string {
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvUint64(key string, defaultValue uint64) uint64 {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.ParseUint(value, 10, 64); err == nil {
 			return intValue
 		}
 	}
@@ -454,22 +484,19 @@ func (c *Config) IsCacheEnabled() bool {
 	return c.Cache.Enabled
 }
 
-// GetRedisAddress الحصول على عنوان Redis
-func (c *Config) GetRedisAddress() string {
-	if c.Redis.URL != "" {
-		return c.Redis.URL
-	}
-	return c.Redis.Host + ":" + c.Redis.Port
+// IsCloudinaryEnabled التحقق من تفعيل Cloudinary
+func (c *Config) IsCloudinaryEnabled() bool {
+	return c.Upload.StorageBackend == "cloudinary"
 }
 
-// GetDatabaseURL الحصول على رابط قاعدة البيانات
-func (c *Config) GetDatabaseURL() string {
-	return c.Database.URL
+// GetMongoDBURL الحصول على رابط MongoDB
+func (c *Config) GetMongoDBURL() string {
+	return c.MongoDB.URL
 }
 
-// GetDSN الحصول على DSN لقاعدة البيانات
-func (c *Config) GetDSN() string {
-	return c.Database.URL
+// GetDatabaseName الحصول على اسم قاعدة البيانات
+func (c *Config) GetDatabaseName() string {
+	return c.MongoDB.DatabaseName
 }
 
 // GetJWTSecret الحصول على مفتاح JWT
@@ -509,40 +536,35 @@ func (c *Config) GetCacheConfig() map[string]interface{} {
 		"prefix":      c.Cache.Prefix,
 		"default_ttl": c.Cache.DefaultTTL,
 		"max_retries": c.Cache.MaxRetries,
-		"redis_url":   c.GetRedisAddress(),
-		"redis_db":    c.Redis.DB,
 	}
 }
 
 // GetServicesConfig الحصول على تكوين الخدمات
 func (c *Config) GetServicesConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"max_services_per_user":      c.Services.MaxServicesPerUser,
-		"max_active_services":        c.Services.MaxActiveServices,
-		"default_pagination_limit":   c.Services.DefaultPaginationLimit,
-		"max_pagination_limit":       c.Services.MaxPaginationLimit,
-		"search_cache_ttl":           c.Services.SearchCacheTTL,
-		"featured_cache_ttl":         c.Services.FeaturedCacheTTL,
-		"max_images_per_service":     c.Services.MaxImagesPerService,
-		"max_features_per_service":   c.Services.MaxFeaturesPerService,
-		"max_tags_per_service":       c.Services.MaxTagsPerService,
-		"min_title_length":           c.Services.MinTitleLength,
-		"max_title_length":           c.Services.MaxTitleLength,
-		"min_description_length":     c.Services.MinDescriptionLength,
-		"max_description_length":     c.Services.MaxDescriptionLength,
-		"min_price":                  c.Services.MinPrice,
-		"max_price":                  c.Services.MaxPrice,
-		"min_duration":               c.Services.MinDuration,
-		"max_duration":               c.Services.MaxDuration,
-		"auto_approve_services":      c.Services.AutoApproveServices,
-		"allow_service_editing":      c.Services.AllowServiceEditing,
-		"enable_service_reviews":     c.Services.EnableServiceReviews,
-		"enable_service_ratings":     c.Services.EnableServiceRatings,
-		"enable_service_bookings":    c.Services.EnableServiceBookings,
-		"enable_service_promotions":  c.Services.EnableServicePromotions,
-		"rate_limit_create":          c.Services.RateLimitCreate,
-		"rate_limit_update":          c.Services.RateLimitUpdate,
-		"rate_limit_search":          c.Services.RateLimitSearch,
+		"max_services_per_user":    c.Services.MaxServicesPerUser,
+		"max_active_services":      c.Services.MaxActiveServices,
+		"default_pagination_limit": c.Services.DefaultPaginationLimit,
+		"max_pagination_limit":     c.Services.MaxPaginationLimit,
+		"search_cache_ttl":         c.Services.SearchCacheTTL,
+		"featured_cache_ttl":       c.Services.FeaturedCacheTTL,
+		"max_images_per_service":   c.Services.MaxImagesPerService,
+		"max_tags_per_service":     c.Services.MaxTagsPerService,
+		"min_title_length":         c.Services.MinTitleLength,
+		"max_title_length":         c.Services.MaxTitleLength,
+		"min_description_length":   c.Services.MinDescriptionLength,
+		"max_description_length":   c.Services.MaxDescriptionLength,
+		"min_price":                c.Services.MinPrice,
+		"max_price":                c.Services.MaxPrice,
+		"min_duration":             c.Services.MinDuration,
+		"max_duration":             c.Services.MaxDuration,
+		"auto_approve_services":    c.Services.AutoApproveServices,
+		"allow_service_editing":    c.Services.AllowServiceEditing,
+		"enable_service_reviews":   c.Services.EnableServiceReviews,
+		"enable_service_ratings":   c.Services.EnableServiceRatings,
+		"rate_limit_create":        c.Services.RateLimitCreate,
+		"rate_limit_update":        c.Services.RateLimitUpdate,
+		"rate_limit_search":        c.Services.RateLimitSearch,
 	}
 }
 
@@ -553,7 +575,19 @@ func (c *Config) GetUploadConfig() map[string]interface{} {
 		"allowed_types":    c.Upload.AllowedTypes,
 		"image_max_width":  c.Upload.ImageMaxWidth,
 		"image_max_height": c.Upload.ImageMaxHeight,
-		"storage_path":     c.Upload.StoragePath,
+		"storage_backend":  c.Upload.StorageBackend,
+	}
+}
+
+// GetCloudinaryConfig الحصول على تكوين Cloudinary
+func (c *Config) GetCloudinaryConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"cloud_name":    c.Cloudinary.CloudName,
+		"api_key":       c.Cloudinary.APIKey,
+		"api_secret":    c.Cloudinary.APISecret,
+		"upload_preset": c.Cloudinary.UploadPreset,
+		"folder":        c.Cloudinary.Folder,
+		"enabled":       c.IsCloudinaryEnabled(),
 	}
 }
 
@@ -572,20 +606,22 @@ func (c *Config) GetEmailConfig() map[string]interface{} {
 // GetAuthConfig الحصول على تكوين المصادقة
 func (c *Config) GetAuthConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"jwt_secret":          c.Auth.JWTSecret,
-		"jwt_expiration":      c.Auth.JWTExpiration,
-		"refresh_expiration":  c.Auth.RefreshExpiration,
-		"bcrypt_cost":         c.Auth.BCryptCost,
+		"jwt_secret":         c.Auth.JWTSecret,
+		"jwt_expiration":     c.Auth.JWTExpiration,
+		"refresh_expiration": c.Auth.RefreshExpiration,
+		"bcrypt_cost":        c.Auth.BCryptCost,
 	}
 }
 
-// GetDatabaseConfig الحصول على تكوين قاعدة البيانات
-func (c *Config) GetDatabaseConfig() map[string]interface{} {
+// GetMongoDBConfig الحصول على تكوين MongoDB
+func (c *Config) GetMongoDBConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"url":           c.Database.URL,
-		"max_idle_conns": c.Database.MaxIdleConns,
-		"max_open_conns": c.Database.MaxOpenConns,
-		"max_lifetime":   c.Database.MaxLifetime,
+		"url":                c.MongoDB.URL,
+		"database_name":      c.MongoDB.DatabaseName,
+		"connect_timeout":    c.MongoDB.ConnectTimeout,
+		"max_pool_size":      c.MongoDB.MaxPoolSize,
+		"min_pool_size":      c.MongoDB.MinPoolSize,
+		"heartbeat_interval": c.MongoDB.HeartbeatInterval,
 	}
 }
 
