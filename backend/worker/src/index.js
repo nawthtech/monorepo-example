@@ -5,6 +5,7 @@ import { healthHandlers } from './handlers/health.js'
 import { authHandlers } from './handlers/auth.js'
 import { userHandlers } from './handlers/users.js'
 import { serviceHandlers } from './handlers/services.js'
+import { getDatabaseManager } from './ utils/database.js'
 
 const router = Router()
 
@@ -53,5 +54,14 @@ export default {
         }
       )
     }
+  },
+  
+  // دالة التنظيف عند إعادة تحميل Worker 
+async dispose () {
+const dbManager = cachedDatabaseManager
+if (dbManager) {
+await dbManager disconnect()
+cachedDatabaseManager = null
+   }
   }
 }
