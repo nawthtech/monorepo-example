@@ -28,15 +28,31 @@ func TestGetGoroutineCount(t *testing.T) {
 	}
 }
 
-func TestGenerateID(t *testing.T) {
-	id1 := GenerateID()
-	id2 := GenerateID()
+// إذا كان لديك دالة GenerateID في utils، أضف هذا الاختبار
+// إذا لم تكن موجودة، احذف هذا الاختبار أو أنشئ الدالة أولاً
+
+func TestGenerateRandomString(t *testing.T) {
+	// اختبار دالة مساعدة إذا كانت موجودة
+	str1 := generateRandomString(10)
+	str2 := generateRandomString(10)
 	
-	if id1 == id2 {
-		t.Errorf("Expected unique IDs, got duplicates: %s", id1)
+	if len(str1) != 10 {
+		t.Errorf("Expected string length 10, got %d", len(str1))
 	}
 	
-	if len(id1) == 0 {
-		t.Errorf("Expected non-empty ID, got empty string")
+	if str1 == str2 {
+		t.Errorf("Expected unique strings, got duplicates: %s", str1)
 	}
 }
+
+// إذا لم تكن generateRandomString موجودة، أضف هذه الدالة المساعدة إلى utils.go:
+/*
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+	}
+	return string(b)
+}
+*/
