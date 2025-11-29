@@ -8,10 +8,18 @@ import (
 func TestLoad(t *testing.T) {
 	// حفظ الإعدادات الحالية
 	originalEnv := os.Getenv("ENVIRONMENT")
-	defer os.Setenv("ENVIRONMENT", originalEnv)
+	originalDB := os.Getenv("DATABASE_URL")
+	defer func() {
+		os.Setenv("ENVIRONMENT", originalEnv)
+		os.Setenv("DATABASE_URL", originalDB)
+	}()
 	
 	// تعيين بيئة اختبار
 	os.Setenv("ENVIRONMENT", "test")
+	os.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
+	
+	// إعادة تعيين appConfig لفرض إعادة التحميل
+	appConfig = nil
 	
 	cfg := Load()
 	
@@ -55,5 +63,18 @@ func TestIsProduction(t *testing.T) {
 	cfg.Environment = "development"
 	if cfg.IsProduction() {
 		t.Error("Expected IsProduction to return false for 'development' environment")
+	}
+}
+
+func TestGetDSN(t *testing.T) {
+	cfg := &Config{
+		Database: DatabaseConfig{
+			URL: "postgres://user:pass@localhost:5432/db",
+		},
+	}
+	
+	dsn := cfg.GetDSN()
+	if dsn != "postgres://user:pass@localhost:5432/db" {
+		t.Errorf("Expected DSN to match, got '%s'", dsn)
 	}
 }
