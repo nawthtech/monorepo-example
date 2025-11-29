@@ -1,865 +1,441 @@
-package utils
+package logger
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"io"
-	"math"
-	"net/http"
-	"reflect"
-	"regexp"
+	"log/slog"
+	"os"
 	"runtime"
-	"strconv"
-	"strings"
 	"time"
-	"unicode"
-
-	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/nawthtech/backend/logger"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// ========== هياكل البيانات ==========
+// ========== أنواع وواجهات ==========
 
-// Pagination هيكل الترقيم
-type Pagination struct {
-	Page       int   `json:"page"`
-	Limit      int   `json:"limit"`
-	Total      int64 `json:"total"`
-	TotalPages int   `json:"total_pages"`
-	HasNext    bool  `json:"has_next"`
-	HasPrev    bool  `json:"has_prev"`
+// Logger واجهة للسجلات
+type Logger interface {
+	Debug(ctx context.Context, msg string, args ...any)
+	Info(ctx context.Context, msg string, args ...any)
+	Warn(ctx context.Context, msg string, args ...any)
+	Error(ctx context.Context, msg string, args ...any)
+	With(args ...any) Logger
 }
 
-// Response هيكل الاستجابة الموحد
-type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Meta    interface{} `json:"meta,omitempty"`
+// DefaultLogger تطبيق افتراضي للسجلات
+type DefaultLogger struct {
+	logger *slog.Logger
 }
 
-// MemoryStats إحصائيات الذاكرة
-type MemoryStats struct {
-	UsedMB          float64 `json:"used_mb"`
-	TotalMB         float64 `json:"total_mb"`
-	UsagePercentage float64 `json:"usage_percentage"`
+// ========== متغيرات عامة ==========
+
+var (
+	// Loggers الرئيسية
+	Stdout *slog.Logger
+	Stderr *slog.Logger
+	
+	// Global logger instance
+	globalLogger Logger
+)
+
+// ========== التهيئة والإعداد ==========
+
+// Init تهيئة النظام
+func Init(env string) {
+	level := slog.LevelInfo
+	if env == "development" {
+		level = slog.LevelDebug
+	}
+
+	opts := &slog.HandlerOptions{
+		Level: level,
+	}
+
+	if env == "development" {
+		// في التطوير، استخدام TextHandler للقراءة السهلة
+		Stdout = slog.New(slog.NewTextHandler(os.Stdout, opts))
+		Stderr = slog.New(slog.NewTextHandler(os.Stderr, opts))
+	} else {
+		// في الإنتاج، استخدام JSONHandler
+		opts.AddSource = true
+		Stdout = slog.New(slog.NewJSONHandler(os.Stdout, opts))
+		Stderr = slog.New(slog.NewJSONHandler(os.Stderr, opts))
+	}
+
+	globalLogger = &DefaultLogger{logger: Stdout}
 }
 
-// ValidationError خطأ التحقق
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
+// ========== تطبيق واجهة Logger ==========
+
+func (l *DefaultLogger) Debug(ctx context.Context, msg string, args ...any) {
+	l.logger.DebugContext(ctx, msg, args...)
 }
 
-// ========== دوال الاستجابة ==========
-
-// SuccessResponse إرسال استجابة ناجحة
-func SuccessResponse(c *gin.Context, statusCode int, message string, data interface{}) {
-	response := Response{
-		Success: true,
-		Message: message,
-		Data:    data,
-	}
-
-	// إضافة metadata إذا كان data يحتوي على pagination
-	if pagination, ok := extractPagination(data); ok {
-		response.Meta = gin.H{"pagination": pagination}
-	}
-
-	c.JSON(statusCode, response)
+func (l *DefaultLogger) Info(ctx context.Context, msg string, args ...any) {
+	l.logger.InfoContext(ctx, msg, args...)
 }
 
-// ErrorResponse إرسال استجابة خطأ
-func ErrorResponse(c *gin.Context, statusCode int, message string, errorCode string) {
-	c.JSON(statusCode, Response{
-		Success: false,
-		Message: message,
-		Error:   errorCode,
-	})
+func (l *DefaultLogger) Warn(ctx context.Context, msg string, args ...any) {
+	l.logger.WarnContext(ctx, msg, args...)
 }
 
-// ValidationErrorResponse إرسال استجابة أخطاء تحقق
-func ValidationErrorResponse(c *gin.Context, errors []ValidationError) {
-	c.JSON(http.StatusBadRequest, Response{
-		Success: false,
-		Message: "أخطاء في التحقق من البيانات",
-		Error:   "VALIDATION_ERROR",
-		Data:    errors,
-	})
+func (l *DefaultLogger) Error(ctx context.Context, msg string, args ...any) {
+	l.logger.ErrorContext(ctx, msg, args...)
 }
 
-// extractPagination استخراج معلومات الترقيم من البيانات
-func extractPagination(data interface{}) (*Pagination, bool) {
-	if data == nil {
-		return nil, false
-	}
-
-	val := reflect.ValueOf(data)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	if val.Kind() == reflect.Struct {
-		paginationField := val.FieldByName("Pagination")
-		if paginationField.IsValid() && paginationField.Type() == reflect.TypeOf(&Pagination{}) {
-			if pagination, ok := paginationField.Interface().(*Pagination); ok {
-				return pagination, true
-			}
-		}
-	}
-
-	return nil, false
+func (l *DefaultLogger) With(args ...any) Logger {
+	return &DefaultLogger{logger: l.logger.With(args...)}
 }
 
-// ========== دوال الترقيم ==========
+// ========== دوال الوصول العالمية ==========
 
-// NewPagination إنشاء كائن ترقيم جديد
-func NewPagination(page, limit int, total int64) *Pagination {
-	if page < 1 {
-		page = 1
+// Debug تسجيل معلومات تصحيح
+func Debug(ctx context.Context, msg string, args ...any) {
+	if globalLogger == nil {
+		Init("development")
 	}
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-
-	totalPages := int(math.Ceil(float64(total) / float64(limit)))
-	hasNext := page < totalPages
-	hasPrev := page > 1
-
-	return &Pagination{
-		Page:       page,
-		Limit:      limit,
-		Total:      total,
-		TotalPages: totalPages,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
-	}
+	globalLogger.Debug(ctx, msg, args...)
 }
 
-// GetPaginationParams الحصول على معاملات الترقيم من الطلب
-func GetPaginationParams(c *gin.Context) (page, limit int) {
-	page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ = strconv.Atoi(c.DefaultQuery("limit", "20"))
-
-	if page < 1 {
-		page = 1
+// Info تسجيل معلومات
+func Info(ctx context.Context, msg string, args ...any) {
+	if globalLogger == nil {
+		Init("development")
 	}
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-
-	return page, limit
+	globalLogger.Info(ctx, msg, args...)
 }
 
-// ApplyPagination تطبيق الترقيم على الاستعلام
-func ApplyPagination(query interface{}, page, limit int) (interface{}, *Pagination) {
-	// هذه دالة عامة - يمكن تخصيصها حسب ORM المستخدم
-	// في GORM يمكن استخدام: db.Offset((page - 1) * limit).Limit(limit)
-	offset := (page - 1) * limit
-	return map[string]interface{}{
-		"query":  query,
-		"offset": offset,
-		"limit":  limit,
-	}, &Pagination{
-		Page:  page,
-		Limit: limit,
+// Warn تسجيل تحذير
+func Warn(ctx context.Context, msg string, args ...any) {
+	if globalLogger == nil {
+		Init("development")
 	}
+	globalLogger.Warn(ctx, msg, args...)
 }
 
-// ========== دوال التحقق والتحقق من الصحة ==========
-
-// IsEmpty التحقق إذا كانت القيمة فارغة
-func IsEmpty(value interface{}) bool {
-	if value == nil {
-		return true
+// Error تسجيل خطأ
+func Error(ctx context.Context, msg string, args ...any) {
+	if globalLogger == nil {
+		Init("development")
 	}
-
-	switch v := value.(type) {
-	case string:
-		return strings.TrimSpace(v) == ""
-	case int, int8, int16, int32, int64:
-		return v == 0
-	case uint, uint8, uint16, uint32, uint64:
-		return v == 0
-	case float32, float64:
-		return v == 0
-	case bool:
-		return !v
-	case []interface{}:
-		return len(v) == 0
-	case map[string]interface{}:
-		return len(v) == 0
-	default:
-		return reflect.ValueOf(v).IsZero()
-	}
+	globalLogger.Error(ctx, msg, args...)
 }
 
-// IsValidEmail التحقق من صحة البريد الإلكتروني
-func IsValidEmail(email string) bool {
-	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	matched, _ := regexp.MatchString(pattern, email)
-	return matched
-}
-
-// IsValidPhone التحقق من صحة رقم الهاتف
-func IsValidPhone(phone string) bool {
-	// نموذج مبسط لرقم الهاتف - يمكن تعديله حسب الاحتياج
-	pattern := `^[\+]?[0-9]{10,15}$`
-	matched, _ := regexp.MatchString(pattern, phone)
-	return matched
-}
-
-// IsStrongPassword التحقق من قوة كلمة المرور
-func IsStrongPassword(password string) bool {
-	if len(password) < 8 {
-		return false
+// With إرجاع logger مع حقول إضافية
+func With(args ...any) Logger {
+	if globalLogger == nil {
+		Init("development")
 	}
+	return globalLogger.With(args...)
+}
 
-	var (
-		hasUpper   = false
-		hasLower   = false
-		hasNumber  = false
-		hasSpecial = false
+// ========== دوال مساعدة أساسية ==========
+
+// ErrAttr دالة مساعدة لإرجاع سمة الخطأ
+func ErrAttr(err error) slog.Attr {
+	if err == nil {
+		return slog.String("error", "")
+	}
+	return slog.String("error", err.Error())
+}
+
+// DurationAttr دالة مساعدة للوقت
+func DurationAttr(duration time.Duration) slog.Attr {
+	return slog.Duration("duration", duration)
+}
+
+// TimestampAttr دالة مساعدة للطابع الزمني
+func TimestampAttr() slog.Attr {
+	return slog.String("timestamp", time.Now().Format(time.RFC3339))
+}
+
+// RequestIDAttr دالة مساعدة لمعرف الطلب
+func RequestIDAttr(requestID string) slog.Attr {
+	return slog.String("request_id", requestID)
+}
+
+// UserIDAttr دالة مساعدة لمعرف المستخدم
+func UserIDAttr(userID string) slog.Attr {
+	return slog.String("user_id", userID)
+}
+
+// ========== دوال مساعدة للطلبات والشبكة ==========
+
+// RequestAttr سمات الطلب
+func RequestAttr(method, path string, statusCode int, duration time.Duration) slog.Attr {
+	return slog.Group("request",
+		slog.String("method", method),
+		slog.String("path", path),
+		slog.Int("status_code", statusCode),
+		slog.Duration("duration", duration),
 	)
+}
 
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasNumber = true
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			hasSpecial = true
-		}
+// CORSAttr سمة CORS
+func CORSAttr(origin, method string, allowed bool) slog.Attr {
+	return slog.Group("cors",
+		slog.String("origin", origin),
+		slog.String("method", method),
+		slog.Bool("allowed", allowed),
+	)
+}
+
+// DatabaseQueryAttr سمة استعلام قاعدة البيانات
+func DatabaseQueryAttr(operation, collection string, duration time.Duration, documentsAffected int64) slog.Attr {
+	return slog.Group("database",
+		slog.String("operation", operation),
+		slog.String("collection", collection),
+		slog.Duration("duration", duration),
+		slog.Int64("documents_affected", documentsAffected),
+	)
+}
+
+// MongoDBConnectionAttr سمة اتصال MongoDB
+func MongoDBConnectionAttr(status string, duration time.Duration, err error) slog.Attr {
+	attrs := []slog.Attr{
+		slog.String("status", status),
+		slog.Duration("duration", duration),
+		slog.String("database", "MongoDB"),
 	}
-
-	return hasUpper && hasLower && hasNumber && hasSpecial
-}
-
-// ValidateStruct التحقق من صحة الهيكل
-func ValidateStruct(s interface{}) []ValidationError {
-	var errors []ValidationError
-	val := reflect.ValueOf(s).Elem()
-	typ := val.Type()
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := typ.Field(i)
-
-		// الحصول على tag التحقق
-		validateTag := fieldType.Tag.Get("validate")
-		if validateTag == "" {
-			continue
-		}
-
-		rules := strings.Split(validateTag, ",")
-		fieldName := getFieldName(fieldType)
-
-		for _, rule := range rules {
-			switch rule {
-			case "required":
-				if IsEmpty(field.Interface()) {
-					errors = append(errors, ValidationError{
-						Field:   fieldName,
-						Message: "هذا الحقل مطلوب",
-					})
-				}
-			case "email":
-				if !IsEmpty(field.Interface()) && !IsValidEmail(field.String()) {
-					errors = append(errors, ValidationError{
-						Field:   fieldName,
-						Message: "البريد الإلكتروني غير صالح",
-					})
-				}
-			case "phone":
-				if !IsEmpty(field.Interface()) && !IsValidPhone(field.String()) {
-					errors = append(errors, ValidationError{
-						Field:   fieldName,
-						Message: "رقم الهاتف غير صالح",
-					})
-				}
-			}
-		}
-	}
-
-	return errors
-}
-
-// getFieldName الحصول على اسم الحقل للعرض
-func getFieldName(field reflect.StructField) string {
-	jsonTag := field.Tag.Get("json")
-	if jsonTag != "" {
-		parts := strings.Split(jsonTag, ",")
-		if parts[0] != "" {
-			return parts[0]
-		}
-	}
-	return field.Name
-}
-
-// ========== دوال التشفير والأمان ==========
-
-// HashPassword تشفير كلمة المرور
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
-}
-
-// CheckPassword التحقق من كلمة المرور
-func CheckPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-// GenerateRandomString إنشاء سلسلة عشوائية
-func GenerateRandomString(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-// GenerateAPIKey إنشاء مفتاح API
-func GenerateAPIKey() (string, error) {
-	return GenerateRandomString(32)
-}
-
-// GenerateSecureToken إنشاء توكن آمن
-func GenerateSecureToken() (string, error) {
-	return GenerateRandomString(64)
-}
-
-// ========== دوال الوقت والتاريخ ==========
-
-// Now الحصول على الوقت الحالي
-func Now() time.Time {
-	return time.Now().UTC()
-}
-
-// FormatTime تنسيق الوقت
-func FormatTime(t time.Time, format string) string {
-	if format == "" {
-		format = time.RFC3339
-	}
-	return t.Format(format)
-}
-
-// ParseTime تحليل الوقت من سلسلة
-func ParseTime(timeStr, format string) (time.Time, error) {
-	if format == "" {
-		format = time.RFC3339
-	}
-	return time.Parse(format, timeStr)
-}
-
-// IsExpired التحقق إذا انتهت الصلاحية
-func IsExpired(expiryTime time.Time) bool {
-	return Now().After(expiryTime)
-}
-
-// CalculateExpiryTime حساب وقت انتهاء الصلاحية
-func CalculateExpiryTime(duration time.Duration) time.Time {
-	return Now().Add(duration)
-}
-
-// HumanizeDuration تحويل المدة إلى نص مقروء
-func HumanizeDuration(duration time.Duration) string {
-	if duration < time.Minute {
-		return "أقل من دقيقة"
-	}
-
-	if duration < time.Hour {
-		minutes := int(duration.Minutes())
-		return fmt.Sprintf("%d دقيقة", minutes)
-	}
-
-	if duration < 24*time.Hour {
-		hours := int(duration.Hours())
-		return fmt.Sprintf("%d ساعة", hours)
-	}
-
-	days := int(duration.Hours() / 24)
-	return fmt.Sprintf("%d يوم", days)
-}
-
-// ========== دوال JSON ==========
-
-// ToJSON تحويل البيانات إلى JSON
-func ToJSON(data interface{}) (string, error) {
-	bytes, err := json.Marshal(data)
+	
 	if err != nil {
-		return "", err
+		attrs = append(attrs, ErrAttr(err))
 	}
-	return string(bytes), nil
+	
+	return slog.Group("mongodb_connection", attrs...)
 }
 
-// FromJSON تحويل JSON إلى بيانات
-func FromJSON(jsonStr string, result interface{}) error {
-	return json.Unmarshal([]byte(jsonStr), result)
+// ========== دوال مساعدة للأداء والذاكرة ==========
+
+// PerformanceAttr سمة الأداء
+func PerformanceAttr(operation string, duration time.Duration) slog.Attr {
+	return slog.Group("performance",
+		slog.String("operation", operation),
+		slog.Duration("duration", duration),
+	)
 }
 
-// PrettyJSON تحويل البيانات إلى JSON منسق
-func PrettyJSON(data interface{}) (string, error) {
-	bytes, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-// ========== دوال السياق ==========
-
-// GetRequestIDFromContext الحصول على معرف الطلب من السياق
-func GetRequestIDFromContext(ctx context.Context) string {
-	if reqID, ok := ctx.Value("requestID").(string); ok {
-		return reqID
-	}
-	return ""
-}
-
-// GetUserIDFromContext الحصول على معرف المستخدم من السياق
-func GetUserIDFromContext(ctx context.Context) string {
-	if userID, ok := ctx.Value("userID").(string); ok {
-		return userID
-	}
-	return ""
-}
-
-// GetUserRoleFromContext الحصول على دور المستخدم من السياق
-func GetUserRoleFromContext(ctx context.Context) string {
-	if userRole, ok := ctx.Value("userRole").(string); ok {
-		return userRole
-	}
-	return ""
-}
-
-// WithTimeout إنشاء سياق مع مهلة زمنية
-func WithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, timeout)
-}
-
-// ========== دوال النظام والأداء ==========
-
-// GetMemoryUsageMB الحصول على استخدام الذاكرة بالميجابايت
-func GetMemoryUsageMB() MemoryStats {
+// MemoryUsageAttr سمة استخدام الذاكرة
+func MemoryUsageAttr() slog.Attr {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-
-	usedMB := float64(m.Alloc) / 1024 / 1024
-	totalMB := float64(m.Sys) / 1024 / 1024
-	usagePercentage := (usedMB / totalMB) * 100
-
-	return MemoryStats{
-		UsedMB:          math.Round(usedMB*100) / 100,
-		TotalMB:         math.Round(totalMB*100) / 100,
-		UsagePercentage: math.Round(usagePercentage*100) / 100,
-	}
-}
-
-// GetGoroutineCount الحصول على عدد الـ goroutines
-func GetGoroutineCount() int {
-	return runtime.NumGoroutine()
-}
-
-// GetCPUUsage الحصول على استخدام المعالج (محاكاة)
-func GetCPUUsage() float64 {
-	// في التطبيق الحقيقي، يمكن استخدام حزمة مثل gopsutil
-	// هذه محاكاة مبسطة
-	return math.Round((float64(runtime.NumGoroutine())/1000)*10000) / 100
-}
-
-// ========== دوال الملفات والرفع ==========
-
-// GetFileExtension الحصول على امتداد الملف
-func GetFileExtension(filename string) string {
-	parts := strings.Split(filename, ".")
-	if len(parts) > 1 {
-		return strings.ToLower(parts[len(parts)-1])
-	}
-	return ""
-}
-
-// IsAllowedFileType التحقق من نوع الملف المسموح
-func IsAllowedFileType(filename string, allowedTypes []string) bool {
-	ext := GetFileExtension(filename)
-	for _, allowedType := range allowedTypes {
-		if strings.EqualFold(ext, allowedType) {
-			return true
-		}
-	}
-	return false
-}
-
-// CalculateFileSizeMB حساب حجم الملف بالميجابايت
-func CalculateFileSizeMB(size int64) float64 {
-	return float64(size) / 1024 / 1024
-}
-
-// ValidateFileSize التحقق من حجم الملف
-func ValidateFileSize(size int64, maxSizeMB int64) bool {
-	return size <= maxSizeMB*1024*1024
-}
-
-// ========== دوال السلسلة النصية ==========
-
-// TruncateString تقصير السلسلة النصية
-func TruncateString(s string, maxLength int) string {
-	if len(s) <= maxLength {
-		return s
-	}
-	return s[:maxLength] + "..."
-}
-
-// ToCamelCase تحويل إلى CamelCase
-func ToCamelCase(s string) string {
-	words := strings.Fields(strings.ReplaceAll(s, "_", " "))
-	for i, word := range words {
-		if i == 0 {
-			words[i] = strings.ToLower(word)
-		} else {
-			words[i] = strings.Title(strings.ToLower(word))
-		}
-	}
-	return strings.Join(words, "")
-}
-
-// ToSnakeCase تحويل إلى snake_case
-func ToSnakeCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if unicode.IsUpper(r) {
-			if i > 0 {
-				result.WriteByte('_')
-			}
-			result.WriteRune(unicode.ToLower(r))
-		} else {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
-
-// ContainsString التحقق إذا كانت المصفوفة تحتوي على قيمة
-func ContainsString(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
-
-// RemoveDuplicates إزالة التكرارات من المصفوفة
-func RemoveDuplicates(slice []string) []string {
-	keys := make(map[string]bool)
-	var result []string
-	for _, item := range slice {
-		if _, value := keys[item]; !value {
-			keys[item] = true
-			result = append(result, item)
-		}
-	}
-	return result
-}
-
-// ========== دوال الرياضيات ==========
-
-// Round التقريب إلى منازل محددة
-func Round(value float64, decimals int) float64 {
-	multiplier := math.Pow(10, float64(decimals))
-	return math.Round(value*multiplier) / multiplier
-}
-
-// CalculatePercentage حساب النسبة المئوية
-func CalculatePercentage(part, total float64) float64 {
-	if total == 0 {
-		return 0
-	}
-	return (part / total) * 100
-}
-
-// CalculateDiscount حساب الخصم
-func CalculateDiscount(originalPrice, discountPercent float64) float64 {
-	return originalPrice * (discountPercent / 100)
-}
-
-// CalculateTax حساب الضريبة
-func CalculateTax(amount, taxRate float64) float64 {
-	return amount * (taxRate / 100)
-}
-
-// ========== دوال المساعدة للخدمات ==========
-
-// GenerateServiceSlug إنشاء slug للخدمة
-func GenerateServiceSlug(title string) string {
-	// إزالة الرموز الخاصة
-	reg := regexp.MustCompile("[^a-zA-Z0-9\\s-]")
-	slug := reg.ReplaceAllString(title, "")
-
-	// استبدال المسافات بشرطات
-	slug = strings.ReplaceAll(slug, " ", "-")
-
-	// تحويل إلى أحرف صغيرة
-	slug = strings.ToLower(slug)
-
-	// إزالة الشرطات المكررة
-	reg = regexp.MustCompile("-+")
-	slug = reg.ReplaceAllString(slug, "-")
-
-	return slug
-}
-
-// GenerateOrderNumber إنشاء رقم طلب
-func GenerateOrderNumber() string {
-	timestamp := time.Now().Unix()
-	randomPart, _ := GenerateRandomString(6)
-	return fmt.Sprintf("ORD-%d-%s", timestamp, randomPart)
-}
-
-// GenerateTrackingNumber إنشاء رقم تتبع
-func GenerateTrackingNumber() string {
-	timestamp := time.Now().UnixNano()
-	return fmt.Sprintf("TRK%d", timestamp)
-}
-
-// CalculateOrderTotal حساب الإجمالي للطلب
-func CalculateOrderTotal(subtotal, tax, shipping, discount float64) float64 {
-	return subtotal + tax + shipping - discount
-}
-
-// ========== دوال التسجيل والتصحيح ==========
-
-// LogOperation تسجيل عملية مع الوقت
-func LogOperation(ctx context.Context, operation string, fn func() error) error {
-	start := time.Now()
-	
-	// استخدام نظام التسجيل الجديد مع الحقول المنظمة
-	logger.Info(ctx, "بدء العملية", 
-		"user_id", GetUserIDFromContext(ctx),
-		"request_id", GetRequestIDFromContext(ctx),
-		"operation", operation,
+	return slog.Group("memory",
+		slog.String("alloc", formatMemory(m.Alloc)),
+		slog.String("total_alloc", formatMemory(m.TotalAlloc)),
+		slog.String("sys", formatMemory(m.Sys)),
+		slog.Uint64("num_gc", uint64(m.NumGC)),
 	)
-
-	err := fn()
-
-	duration := time.Since(start)
-	if err != nil {
-		logger.Error(ctx, "فشل العملية",
-			"operation", operation,
-			"duration", duration,
-			"error", err.Error(),
-		)
-	} else {
-		logger.Info(ctx, "انتهاء العملية بنجاح",
-			"operation", operation,
-			"duration", duration,
-		)
-	}
-
-	return err
 }
 
-// MeasureExecutionTime قياس وقت التنفيذ
-func MeasureExecutionTime(ctx context.Context, name string, fn func()) time.Duration {
-	start := time.Now()
-	fn()
-	duration := time.Since(start)
-
-	logger.Debug(ctx, "قياس وقت التنفيذ",
-		"operation", name,
-		"duration", duration,
-	)
-
-	return duration
+// GoroutineCountAttr سمة عدد الـ goroutines
+func GoroutineCountAttr() slog.Attr {
+	return slog.Int("goroutines", runtime.NumGoroutine())
 }
 
-// LogServiceOperation تسجيل عملية خدمة باستخدام نظام التسجيل الجديد
-func LogServiceOperation(ctx context.Context, service, operation string, duration time.Duration, success bool, err error) {
-	logger.LogServiceOperation(ctx, service, operation, duration, success, err)
-}
-
-// LogDatabaseOperation تسجيل عملية قاعدة البيانات
-func LogDatabaseOperation(ctx context.Context, operation, collection string, duration time.Duration, documentsAffected int64, err error) {
-	logger.LogMongoDBOperation(ctx, operation, collection, duration, documentsAffected, err)
-}
-
-// LogAuthenticationOperation تسجيل عملية مصادقة
-func LogAuthenticationOperation(ctx context.Context, operation, userID string, success bool, err error) {
-	logger.LogAuthentication(ctx, operation, userID, success, err)
-}
-
-// ========== دوال الشبكة والـ HTTP ==========
-
-// GetClientIP الحصول على IP العميل
-func GetClientIP(r *http.Request) string {
-	// التحقق من الرؤوس أولاً
-	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
-		ips := strings.Split(ip, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
-		}
-	}
-
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return ip
-	}
-
-	// استخدام العنوان المباشر
-	return strings.Split(r.RemoteAddr, ":")[0]
-}
-
-// GetUserAgent الحصول على user agent
-func GetUserAgent(r *http.Request) string {
-	return r.Header.Get("User-Agent")
-}
-
-// IsMobileRequest التحقق إذا كان الطلب من جهاز محمول
-func IsMobileRequest(r *http.Request) bool {
-	userAgent := strings.ToLower(GetUserAgent(r))
-	mobileKeywords := []string{"mobile", "android", "iphone", "ipod", "ipad", "blackberry", "windows phone"}
-
-	for _, keyword := range mobileKeywords {
-		if strings.Contains(userAgent, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-// LogHTTPRequest تسجيل طلب HTTP باستخدام نظام التسجيل الجديد
-func LogHTTPRequest(ctx context.Context, method, path string, statusCode int, duration time.Duration, userID string) {
-	logger.LogRequest(ctx, method, path, statusCode, duration, userID)
-}
-
-// LogCORSRequest تسجيل طلب CORS
-func LogCORSRequest(ctx context.Context, origin, method, path string, allowed bool) {
-	logger.LogCORSRequest(ctx, origin, method, path, allowed)
-}
-
-// ========== دوال القراءة والكتابة ==========
-
-// ReadAll قراءة كل البيانات من القارئ
-func ReadAll(r io.Reader) ([]byte, error) {
-	return io.ReadAll(r)
-}
-
-// CopyData نسخ البيانات من قارئ إلى كاتب
-func CopyData(dst io.Writer, src io.Reader) (int64, error) {
-	return io.Copy(dst, src)
-}
-
-// ========== دوال التطبيقات الخاصة ==========
-
-// CalculateRating حساب التقييم
-func CalculateRating(ratings []int) float64 {
-	if len(ratings) == 0 {
-		return 0
-	}
-
-	sum := 0
-	for _, rating := range ratings {
-		sum += rating
-	}
-
-	return Round(float64(sum)/float64(len(ratings)), 1)
-}
-
-// GenerateVerificationCode إنشاء رمز التحقق
-func GenerateVerificationCode() string {
-	// إنشاء رمز مكون من 6 أرقام
-	code, _ := GenerateRandomString(3)
-	return strings.ToUpper(code)
-}
-
-// FormatCurrency تنسيق العملة
-func FormatCurrency(amount float64, currency string) string {
-	switch currency {
-	case "USD":
-		return fmt.Sprintf("$%.2f", amount)
-	case "EUR":
-		return fmt.Sprintf("€%.2f", amount)
-	case "SAR":
-		return fmt.Sprintf("%.2f ر.س", amount)
-	default:
-		return fmt.Sprintf("%.2f %s", amount, currency)
-	}
-}
-
-// GetDefaultAvatarURL الحصول على صورة افتراضية
-func GetDefaultAvatarURL() string {
-	return "/assets/images/default-avatar.png"
-}
-
-// CalculateAge حساب العمر
-func CalculateAge(birthDate time.Time) int {
-	now := Now()
-	years := now.Year() - birthDate.Year()
-
-	// إذا لم يحن عيد الميلاد بعد هذا العام، نطرح سنة
-	if now.YearDay() < birthDate.YearDay() {
-		years--
-	}
-
-	return years
-}
-
-// ========== دوال مساعدة للتسجيل ==========
-
-// GetLogger الحصول على الـ logger العالمي
-func GetLogger() logger.Logger {
-	return logger.GetGlobalLogger()
-}
-
-// WithSuccess إضافة رمز نجاح للسجل
-func WithSuccess() logger.Logger {
-	return logger.WithSuccess(logger.GetGlobalLogger())
-}
-
-// WithError إضافة رمز خطأ للسجل
-func WithError() logger.Logger {
-	return logger.WithError(logger.GetGlobalLogger())
-}
-
-// WithWarning إضافة رمز تحذير للسجل
-func WithWarning() logger.Logger {
-	return logger.WithWarning(logger.GetGlobalLogger())
-}
+// ========== دوال تسجيل مخصصة ==========
 
 // LogStartup تسجيل بدء التشغيل
 func LogStartup(ctx context.Context, service, version, environment string) {
-	logger.LogStartup(ctx, service, version, environment)
+	Info(ctx, "🚀 بدء تشغيل الخدمة",
+		slog.String("service", service),
+		slog.String("version", version),
+		slog.String("environment", environment),
+		slog.String("database", "MongoDB"),
+	)
 }
 
 // LogShutdown تسجيل إيقاف التشغيل
 func LogShutdown(ctx context.Context, service string, reason string) {
-	logger.LogShutdown(ctx, service, reason)
+	Info(ctx, "🛑 إيقاف تشغيل الخدمة",
+		slog.String("service", service),
+		slog.String("reason", reason),
+	)
 }
 
 // LogHealthCheck تسجيل فحص الصحة
 func LogHealthCheck(ctx context.Context, service, status string, duration time.Duration, details map[string]interface{}) {
-	logger.LogHealthCheck(ctx, service, status, duration, details)
+	attrs := make([]any, 0, len(details)+3)
+	attrs = append(attrs,
+		slog.String("service", service),
+		slog.String("status", status),
+		slog.Duration("duration", duration),
+	)
+	
+	for k, v := range details {
+		attrs = append(attrs, slog.Any(k, v))
+	}
+	
+	Info(ctx, "فحص صحة الخدمة", attrs...)
 }
 
 // LogDatabaseConnection تسجيل اتصال قاعدة البيانات
 func LogDatabaseConnection(ctx context.Context, status string, duration time.Duration, err error) {
-	logger.LogDatabaseConnection(ctx, status, duration, err)
+	if err != nil {
+		Error(ctx, "❌ فشل اتصال قاعدة البيانات",
+			MongoDBConnectionAttr(status, duration, err),
+		)
+	} else {
+		Info(ctx, "✅ اتصال قاعدة البيانات ناجح",
+			MongoDBConnectionAttr(status, duration, nil),
+		)
+	}
+}
+
+// LogServiceOperation تسجيل عملية خدمة
+func LogServiceOperation(ctx context.Context, service, operation string, duration time.Duration, success bool, err error) {
+	attrs := []any{
+		slog.String("service", service),
+		slog.String("operation", operation),
+		slog.Duration("duration", duration),
+		slog.Bool("success", success),
+	}
+
+	if err != nil {
+		attrs = append(attrs, ErrAttr(err))
+		Error(ctx, "❌ فشل عملية الخدمة", attrs...)
+	} else if !success {
+		Warn(ctx, "⚠️ عملية الخدمة لم تنجح", attrs...)
+	} else {
+		Info(ctx, "✅ عملية الخدمة ناجحة", attrs...)
+	}
+}
+
+// LogMongoDBOperation تسجيل عملية MongoDB
+func LogMongoDBOperation(ctx context.Context, operation, collection string, duration time.Duration, documentsAffected int64, err error) {
+	attrs := []any{
+		DatabaseQueryAttr(operation, collection, duration, documentsAffected),
+		slog.String("database", "MongoDB"),
+	}
+
+	if err != nil {
+		attrs = append(attrs, ErrAttr(err))
+		Error(ctx, "❌ فشل عملية قاعدة البيانات", attrs...)
+	} else {
+		Debug(ctx, "عملية قاعدة البيانات ناجحة", attrs...)
+	}
 }
 
 // LogCloudinaryOperation تسجيل عملية Cloudinary
 func LogCloudinaryOperation(ctx context.Context, operation, filename string, duration time.Duration, success bool, err error) {
-	logger.LogCloudinaryOperation(ctx, operation, filename, duration, success, err)
+	attrs := []any{
+		slog.String("service", "cloudinary"),
+		slog.String("operation", operation),
+		slog.String("filename", filename),
+		slog.Duration("duration", duration),
+		slog.Bool("success", success),
+	}
+
+	if err != nil {
+		attrs = append(attrs, ErrAttr(err))
+		Error(ctx, "❌ فشل عملية Cloudinary", attrs...)
+	} else if !success {
+		Warn(ctx, "⚠️ عملية Cloudinary لم تنجح", attrs...)
+	} else {
+		Info(ctx, "✅ عملية Cloudinary ناجحة", attrs...)
+	}
+}
+
+// LogAuthentication تسجيل عملية المصادقة
+func LogAuthentication(ctx context.Context, operation, userID string, success bool, err error) {
+	attrs := []any{
+		slog.String("operation", operation),
+		slog.String("user_id", userID),
+		slog.Bool("success", success),
+	}
+
+	if err != nil {
+		attrs = append(attrs, ErrAttr(err))
+		Warn(ctx, "🔐 فشل عملية المصادقة", attrs...)
+	} else if !success {
+		Warn(ctx, "🔐 عملية المصادقة لم تنجح", attrs...)
+	} else {
+		Info(ctx, "🔐 عملية المصادقة ناجحة", attrs...)
+	}
+}
+
+// LogRequest تسجيل طلب HTTP
+func LogRequest(ctx context.Context, method, path string, statusCode int, duration time.Duration, userID string) {
+	attrs := []any{
+		RequestAttr(method, path, statusCode, duration),
+	}
+
+	if userID != "" {
+		attrs = append(attrs, UserIDAttr(userID))
+	}
+
+	// تسجيل بناءً على حالة الاستجابة
+	if statusCode >= 500 {
+		Error(ctx, "طلب HTTP فاشل", attrs...)
+	} else if statusCode >= 400 {
+		Warn(ctx, "طلب HTTP برفض", attrs...)
+	} else {
+		Info(ctx, "طلب HTTP ناجح", attrs...)
+	}
+}
+
+// LogCORSRequest تسجيل طلب CORS
+func LogCORSRequest(ctx context.Context, origin, method, path string, allowed bool) {
+	attrs := []any{
+		CORSAttr(origin, method, allowed),
+		slog.String("path", path),
+	}
+
+	if !allowed {
+		Warn(ctx, "طلب CORS مرفوض", attrs...)
+	} else {
+		Debug(ctx, "طلب CORS مسموح", attrs...)
+	}
+}
+
+// ========== دوال مساعدة إضافية ==========
+
+// formatMemory تنسيق حجم الذاكرة
+func formatMemory(bytes uint64) string {
+	const unit = 1024
+	if bytes < unit {
+		return string(rune(bytes)) + " B"
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return string(rune(float64(bytes)/float64(div))) + " " + string("KMGTPE"[exp]) + "B"
+}
+
+// GetGlobalLogger الحصول على الـ logger العالمي
+func GetGlobalLogger() Logger {
+	if globalLogger == nil {
+		Init("development")
+	}
+	return globalLogger
+}
+
+// SetGlobalLogger تعيين الـ logger العالمي
+func SetGlobalLogger(logger Logger) {
+	globalLogger = logger
+}
+
+// ========== دوال بادئات الرموز التعبيرية ==========
+
+// WithSuccess إضافة رمز نجاح
+func WithSuccess(logger Logger) Logger {
+	return logger.With(slog.String("status", "✅"))
+}
+
+// WithWarning إضافة رمز تحذير
+func WithWarning(logger Logger) Logger {
+	return logger.With(slog.String("status", "⚠️"))
+}
+
+// WithError إضافة رمز خطأ
+func WithError(logger Logger) Logger {
+	return logger.With(slog.String("status", "❌"))
+}
+
+// WithInfo إضافة رمز معلومات
+func WithInfo(logger Logger) Logger {
+	return logger.With(slog.String("status", "ℹ️"))
+}
+
+// WithDebug إضافة رمز تصحيح
+func WithDebug(logger Logger) Logger {
+	return logger.With(slog.String("status", "🐛"))
 }
