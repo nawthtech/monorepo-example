@@ -18,7 +18,7 @@ import (
 	"unicode"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/nawthtech/backend/internal/logger"
+	"github.com/nawthtech/nawthtech/backend/logger"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -647,7 +647,7 @@ func CalculateOrderTotal(subtotal, tax, shipping, discount float64) float64 {
 func LogOperation(ctx context.Context, operation string, fn func() error) error {
 	start := time.Now()
 	
-	// استخدام الحقول مباشرة بدلاً من دوال المساعدة
+	// استخدام نظام التسجيل الجديد مع الحقول المنظمة
 	logger.Info(ctx, "بدء العملية", 
 		"user_id", GetUserIDFromContext(ctx),
 		"request_id", GetRequestIDFromContext(ctx),
@@ -687,6 +687,21 @@ func MeasureExecutionTime(ctx context.Context, name string, fn func()) time.Dura
 	return duration
 }
 
+// LogServiceOperation تسجيل عملية خدمة باستخدام نظام التسجيل الجديد
+func LogServiceOperation(ctx context.Context, service, operation string, duration time.Duration, success bool, err error) {
+	logger.LogServiceOperation(ctx, service, operation, duration, success, err)
+}
+
+// LogDatabaseOperation تسجيل عملية قاعدة البيانات
+func LogDatabaseOperation(ctx context.Context, operation, collection string, duration time.Duration, documentsAffected int64, err error) {
+	logger.LogMongoDBOperation(ctx, operation, collection, duration, documentsAffected, err)
+}
+
+// LogAuthenticationOperation تسجيل عملية مصادقة
+func LogAuthenticationOperation(ctx context.Context, operation, userID string, success bool, err error) {
+	logger.LogAuthentication(ctx, operation, userID, success, err)
+}
+
 // ========== دوال الشبكة والـ HTTP ==========
 
 // GetClientIP الحصول على IP العميل
@@ -723,6 +738,16 @@ func IsMobileRequest(r *http.Request) bool {
 		}
 	}
 	return false
+}
+
+// LogHTTPRequest تسجيل طلب HTTP باستخدام نظام التسجيل الجديد
+func LogHTTPRequest(ctx context.Context, method, path string, statusCode int, duration time.Duration, userID string) {
+	logger.LogRequest(ctx, method, path, statusCode, duration, userID)
+}
+
+// LogCORSRequest تسجيل طلب CORS
+func LogCORSRequest(ctx context.Context, origin, method, path string, allowed bool) {
+	logger.LogCORSRequest(ctx, origin, method, path, allowed)
 }
 
 // ========== دوال القراءة والكتابة ==========
@@ -790,4 +815,51 @@ func CalculateAge(birthDate time.Time) int {
 	}
 
 	return years
+}
+
+// ========== دوال مساعدة للتسجيل ==========
+
+// GetLogger الحصول على الـ logger العالمي
+func GetLogger() logger.Logger {
+	return logger.GetGlobalLogger()
+}
+
+// WithSuccess إضافة رمز نجاح للسجل
+func WithSuccess() logger.Logger {
+	return logger.WithSuccess(logger.GetGlobalLogger())
+}
+
+// WithError إضافة رمز خطأ للسجل
+func WithError() logger.Logger {
+	return logger.WithError(logger.GetGlobalLogger())
+}
+
+// WithWarning إضافة رمز تحذير للسجل
+func WithWarning() logger.Logger {
+	return logger.WithWarning(logger.GetGlobalLogger())
+}
+
+// LogStartup تسجيل بدء التشغيل
+func LogStartup(ctx context.Context, service, version, environment string) {
+	logger.LogStartup(ctx, service, version, environment)
+}
+
+// LogShutdown تسجيل إيقاف التشغيل
+func LogShutdown(ctx context.Context, service string, reason string) {
+	logger.LogShutdown(ctx, service, reason)
+}
+
+// LogHealthCheck تسجيل فحص الصحة
+func LogHealthCheck(ctx context.Context, service, status string, duration time.Duration, details map[string]interface{}) {
+	logger.LogHealthCheck(ctx, service, status, duration, details)
+}
+
+// LogDatabaseConnection تسجيل اتصال قاعدة البيانات
+func LogDatabaseConnection(ctx context.Context, status string, duration time.Duration, err error) {
+	logger.LogDatabaseConnection(ctx, status, duration, err)
+}
+
+// LogCloudinaryOperation تسجيل عملية Cloudinary
+func LogCloudinaryOperation(ctx context.Context, operation, filename string, duration time.Duration, success bool, err error) {
+	logger.LogCloudinaryOperation(ctx, operation, filename, duration, success, err)
 }
