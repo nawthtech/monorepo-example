@@ -218,20 +218,20 @@ func Load() *Config {
 		},
 	}
 
-	// تعيين القيم الافتراضية من ملف cors.go
+	// تعيين القيم الافتراضية من ملف // من السطر 221 إلى 247 - الملف المصلح:
+
 	setCorsDefaults()
 
 	// التحقق من صحة الإعدادات
-if logger.Stderr != nil {
-    logger.Stderr.Error("Failed to load configuration", "error", err.Error())
-} else {
-    // fallback إذا كان الـ logger غير مهيأ
-    fmt.Printf("ERROR: Failed to load configuration: %v\n", err)
-}
+	// تم إزالة الكود الذي به خطأ لأنه لا يوجد متغير err معرف في هذا السياق
 
 	// تحليل متغيرات البيئة باستخدام env package
 	if err := env.Parse(appConfig); err != nil {
-		logger.Stderr.Error("failed to parse environment variables", logger.ErrAttr(err))
+		if logger.Stderr != nil {
+			logger.Stderr.Error("failed to parse environment variables", logger.ErrAttr(err))
+		} else {
+			fmt.Printf("ERROR: Failed to parse environment variables: %v\n", err)
+		}
 		os.Exit(1)
 	}
 
