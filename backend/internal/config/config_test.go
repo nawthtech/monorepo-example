@@ -74,10 +74,9 @@ func TestIsProduction(t *testing.T) {
 }
 
 func TestGetDSN(t *testing.T) {
+	// Test with DatabaseURL directly (simpler approach)
 	cfg := &Config{
-		Database: DatabaseConfig{
-			URL: "postgres://user:pass@localhost:5432/db",
-		},
+		DatabaseURL: "postgres://user:pass@localhost:5432/db",
 	}
 	
 	dsn := cfg.GetDSN()
@@ -128,9 +127,7 @@ func TestIsStaging(t *testing.T) {
 
 func TestGetJWTSecret(t *testing.T) {
 	cfg := &Config{
-		Auth: AuthConfig{
-			JWTSecret: "test-secret",
-		},
+		JWTSecret: "test-secret",
 	}
 	
 	secret := cfg.GetJWTSecret()
@@ -149,11 +146,9 @@ func TestGetEncryptionKey(t *testing.T) {
 }
 
 func TestGetRedisAddress(t *testing.T) {
-	// Test with URL
+	// Test with Redis URL directly
 	cfg1 := &Config{
-		Redis: Redis{
-			URL: "redis://localhost:6379",
-		},
+		RedisURL: "redis://localhost:6379",
 	}
 	
 	addr1 := cfg1.GetRedisAddress()
@@ -161,26 +156,21 @@ func TestGetRedisAddress(t *testing.T) {
 		t.Errorf("Expected Redis URL 'redis://localhost:6379', got '%s'", addr1)
 	}
 	
-	// Test with host and port
+	// Test with empty Redis URL
 	cfg2 := &Config{
-		Redis: Redis{
-			Host: "localhost",
-			Port: "6380",
-		},
+		RedisURL: "",
 	}
 	
 	addr2 := cfg2.GetRedisAddress()
-	if addr2 != "localhost:6380" {
-		t.Errorf("Expected Redis address 'localhost:6380', got '%s'", addr2)
+	if addr2 != "" {
+		t.Errorf("Expected empty Redis address, got '%s'", addr2)
 	}
 }
 
 func TestIsCacheEnabled(t *testing.T) {
 	// Test when cache is enabled
 	cfg1 := &Config{
-		Cache: Cache{
-			Enabled: true,
-		},
+		CacheEnabled: true,
 	}
 	
 	if !cfg1.IsCacheEnabled() {
@@ -189,9 +179,7 @@ func TestIsCacheEnabled(t *testing.T) {
 	
 	// Test when cache is disabled
 	cfg2 := &Config{
-		Cache: Cache{
-			Enabled: false,
-		},
+		CacheEnabled: false,
 	}
 	
 	if cfg2.IsCacheEnabled() {
