@@ -509,6 +509,20 @@ func CalculateFileSizeMB(size int64) float64 {
 	return float64(size) / 1024 / 1024
 }
 
+// FormatBytes تنسيق حجم الملف إلى صيغة مقروءة
+func FormatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
 // ValidateFileSize التحقق من حجم الملف
 func ValidateFileSize(size int64, maxSizeMB int64) bool {
 	return size <= maxSizeMB*1024*1024
