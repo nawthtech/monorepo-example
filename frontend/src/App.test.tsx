@@ -1,11 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from './App'
 
-// Mock environment variable
-vi.stubEnv('VITE_BACKEND_HOST', 'http://localhost:8080')
-
 describe('App', () => {
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.clearAllMocks()
+  })
+
   it('renders main heading and button', () => {
     render(<App />)
     
@@ -14,13 +16,15 @@ describe('App', () => {
     expect(screen.getByText('Start Quotes')).toBeInTheDocument()
   })
 
-  it('toggles button text when clicked', () => {
+  it('toggles button text when clicked', async () => {
     render(<App />)
     
     const button = screen.getByText('Start Quotes')
     fireEvent.click(button)
     
-    expect(screen.getByText('Stop Quotes')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Stop Quotes')).toBeInTheDocument()
+    })
   })
 
   it('initially shows no messages', () => {
@@ -28,5 +32,24 @@ describe('App', () => {
     
     const messages = screen.queryAllByRole('paragraph')
     expect(messages.length).toBe(0)
+  })
+
+  it('starts and stops connection when button is clicked', async () => {
+    render(<App />)
+    
+    // Start connection
+    const button = screen.getByText('Start Quotes')
+    fireEvent.click(button)
+    
+    await waitFor(() => {
+      expect(screen.getByText('Stop Quotes')).toBeInTheDocument()
+    })
+    
+    // Stop connection
+    fireEvent.click(screen.getByText('Stop Quotes'))
+    
+    await waitFor(() => {
+      expect(screen.getByText('Start Quotes')).toBeInTheDocument()
+    })
   })
 })
