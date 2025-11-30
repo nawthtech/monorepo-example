@@ -196,12 +196,8 @@ func registerAllRoutes(
 
 	// ✅ تهيئة معالج الرفع مع Cloudinary
 	if cloudinaryService != nil {
-		uploadHandler, err := handlers.NewUploadHandlerWithService(cloudinaryService)
-		if err == nil {
-			handlerContainer.Upload = uploadHandler
-		} else {
-			logger.Stderr.Error("❌ فشل في إنشاء معالج الرفع", logger.ErrAttr(err))
-		}
+		uploadHandler := handlers.NewUploadHandlerWithService(cloudinaryService)
+		handlerContainer.Upload = uploadHandler
 	} else {
 		// إنشاء معالج رفع بدون Cloudinary (للحالات الطارئة)
 		uploadHandler, err := handlers.NewUploadHandler()
