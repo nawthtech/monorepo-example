@@ -222,10 +222,12 @@ func Load() *Config {
 	setCorsDefaults()
 
 	// التحقق من صحة الإعدادات
-	if err := validateConfig(); err != nil {
-		logger.Stderr.Error("invalid configuration", logger.ErrAttr(err))
-		os.Exit(1)
-	}
+if logger.Stderr != nil {
+    logger.Stderr.Error("Failed to load configuration", "error", err.Error())
+} else {
+    // fallback إذا كان الـ logger غير مهيأ
+    fmt.Printf("ERROR: Failed to load configuration: %v\n", err)
+}
 
 	// تحليل متغيرات البيئة باستخدام env package
 	if err := env.Parse(appConfig); err != nil {
