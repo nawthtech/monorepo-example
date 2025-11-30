@@ -239,7 +239,8 @@ func (cs *CloudinaryService) UploadImageFromReader(reader io.Reader, publicID st
 }
 
 // UploadImageFromGinFile رفع صورة من ملف Gin
-func (cs *CloudinaryService) UploadImageFromGinFile(c *gin.Context, fieldName string, options ...UploadOptions) (*UploadResult, error) 
+func (cs *CloudinaryService) UploadImageFromGinFile(c *gin.Context, fieldName string, options ...UploadOptions) (*UploadResult, error) {
+	startTime := time.Now()
 
 	// الحصول على الملف من الطلب
 	uploadedFile, err := c.FormFile(fieldName)
