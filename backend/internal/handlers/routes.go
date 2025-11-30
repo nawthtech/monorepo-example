@@ -134,11 +134,12 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected.POST("/payment/confirm", paymentHandler.ConfirmPayment)
 	
 	// معالج الرفع
-	uploadHandler := NewUploadHandler(services.Upload)
-	protected.POST("/upload", uploadHandler.UploadFile)
-	protected.GET("/upload/files", uploadHandler.GetUserFiles)
-	protected.GET("/upload/files/:id", uploadHandler.GetFile)
-	protected.DELETE("/upload/files/:id", uploadHandler.DeleteFile)
+	uploadHandler, _ := NewUploadHandler() // تجاهل الخطأ مؤقتاً
+	protected.POST("/upload/image", uploadHandler.UploadImage)
+	protected.POST("/upload/images", uploadHandler.UploadMultipleImages)
+	protected.GET("/upload/images", uploadHandler.GetUserImages)
+	protected.GET("/upload/images/:public_id", uploadHandler.GetImageInfo)
+	protected.DELETE("/upload/images/:public_id", uploadHandler.DeleteImage)
 	
 	// معالج الإشعارات
 	notificationHandler := NewNotificationHandler(services.Notification)
@@ -198,8 +199,8 @@ func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceConta
 	webhook := api.Group("/webhook")
 	{
 		// ويب هووك الرفع (Cloudinary)
-		uploadHandler := NewUploadHandler(services.Upload)
-		webhook.POST("/upload/cloudinary", uploadHandler.UploadFile) // استخدام UploadFile مؤقتاً
+		uploadHandler, _ := NewUploadHandler() // تجاهل الخطأ مؤقتاً
+		webhook.POST("/upload/cloudinary", uploadHandler.UploadImage)
 	}
 }
 
@@ -246,14 +247,14 @@ func (h *HealthHandler) Ready(c *gin.Context) {
 
 func (h *HealthHandler) Info(c *gin.Context) {
 	response := gin.H{
-		"name":      "NawthTech Backend",
-		"version":   h.config.Version,
+		"name":        "NawthTech Backend",
+		"version":     h.config.Version,
 		"environment": h.config.Environment,
-		"timestamp": time.Now().Format(time.RFC3339),
-		"database":  "MongoDB",
+		"timestamp":   time.Now().Format(time.RFC3339),
+		"database":    "MongoDB",
 		"features": []string{
 			"Authentication",
-			"User Management", 
+			"User Management",
 			"Services",
 			"Categories",
 			"Orders",
