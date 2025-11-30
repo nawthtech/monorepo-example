@@ -8,13 +8,13 @@ import (
 func TestConfigDefaults(t *testing.T) {
 	// حفظ الإعدادات الحالية
 	originalEnv := os.Getenv("ENVIRONMENT")
-	originalDB := os.Getenv("DATABASE_URL")
+	originalDB := os.Getenv("MONGODB_URL")
 	originalJWT := os.Getenv("JWT_SECRET")
 	originalEncryption := os.Getenv("ENCRYPTION_KEY")
 	
 	defer func() {
 		os.Setenv("ENVIRONMENT", originalEnv)
-		os.Setenv("DATABASE_URL", originalDB)
+		os.Setenv("MONGODB_URL", originalDB)
 		os.Setenv("JWT_SECRET", originalJWT)
 		os.Setenv("ENCRYPTION_KEY", originalEncryption)
 	}()
@@ -24,7 +24,7 @@ func TestConfigDefaults(t *testing.T) {
 	
 	// تعيين بيئة اختبار بدون استخدام logger
 	os.Setenv("ENVIRONMENT", "test")
-	os.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
+	os.Setenv("MONGODB_URL", "mongodb://test:test@localhost:5432/test")
 	os.Setenv("JWT_SECRET", "test-jwt-secret")
 	os.Setenv("ENCRYPTION_KEY", "test-encryption-key")
 	
@@ -46,14 +46,19 @@ func TestConfigDefaults(t *testing.T) {
 
 func TestConfigMethods(t *testing.T) {
 	cfg := &Config{
-		Environment:   "development",
-		Port:          "8080",
-		Version:       "1.0.0",
-		DatabaseURL:   "postgres://user:pass@localhost:5432/db",
-		JWTSecret:     "test-secret",
+		Environment: "development",
+		Port:        "8080",
+		Version:     "1.0.0",
+		MongoDB: MongoDB{
+			URL: "mongodb://user:pass@localhost:27017/db",
+		},
+		Auth: AuthConfig{
+			JWTSecret: "test-secret",
+		},
 		EncryptionKey: "test-key",
-		RedisURL:      "redis://localhost:6379",
-		CacheEnabled:  true,
+		Cache: Cache{
+			Enabled: true,
+		},
 	}
 	
 	if !cfg.IsDevelopment() {
@@ -62,11 +67,6 @@ func TestConfigMethods(t *testing.T) {
 	
 	if cfg.IsProduction() {
 		t.Error("Expected IsProduction to return false for development")
-	}
-	
-	dsn := cfg.GetDSN()
-	if dsn != "postgres://user:pass@localhost:5432/db" {
-		t.Errorf("Expected DSN to match, got '%s'", dsn)
 	}
 	
 	port := cfg.GetPort()
@@ -92,11 +92,6 @@ func TestConfigMethods(t *testing.T) {
 	encryptionKey := cfg.GetEncryptionKey()
 	if encryptionKey != "test-key" {
 		t.Errorf("Expected encryption key 'test-key', got '%s'", encryptionKey)
-	}
-	
-	redisAddr := cfg.GetRedisAddress()
-	if redisAddr != "redis://localhost:6379" {
-		t.Errorf("Expected Redis address 'redis://localhost:6379', got '%s'", redisAddr)
 	}
 	
 	if !cfg.IsCacheEnabled() {
@@ -138,10 +133,6 @@ func TestConfigEmptyValues(t *testing.T) {
 	cfg := &Config{}
 	
 	// Test empty values
-	if cfg.GetDSN() != "" {
-		t.Errorf("Expected empty DSN, got '%s'", cfg.GetDSN())
-	}
-	
 	if cfg.GetPort() != "" {
 		t.Errorf("Expected empty port, got '%s'", cfg.GetPort())
 	}
@@ -160,10 +151,6 @@ func TestConfigEmptyValues(t *testing.T) {
 	
 	if cfg.GetEncryptionKey() != "" {
 		t.Errorf("Expected empty encryption key, got '%s'", cfg.GetEncryptionKey())
-	}
-	
-	if cfg.GetRedisAddress() != "" {
-		t.Errorf("Expected empty Redis address, got '%s'", cfg.GetRedisAddress())
 	}
 	
 	if cfg.IsCacheEnabled() {
