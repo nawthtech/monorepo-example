@@ -1,7 +1,8 @@
-package main
+package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,16 +21,15 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/mongodb"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func main() {
+// Run تشغيل خادم API
+func Run() error {
 	// تحميل الإعدادات
 	cfg := config.Load()
 	
 	// تسجيل بدء التشغيل
-	logger.Stdout.Info("🚀 بدء تشغيل تطبيق نوذ تك", 
+	logger.Stdout.Info("🚀 بدء تشغيل خادم نوذ تك", 
 		"environment", cfg.Environment,
 		"version", cfg.Version,
 		"port", cfg.Port,
@@ -63,7 +63,7 @@ func main() {
 	mongoService, err := mongodb.NewMongoDBService()
 	if err != nil {
 		logger.Stderr.Error("❌ فشل في تهيئة قاعدة البيانات", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 	defer mongoService.Close()
 
@@ -93,12 +93,8 @@ func main() {
 	registerAllRoutes(app, serviceContainer, cfg, mongoService, cloudinaryService, cloudflareService, emailService)
 
 	// بدء الخادم
-	startServer(app, cfg)
+	return startServer(app, cfg)
 }
-
-// ================================
-// 🛠️ دوال التهيئة
-// ================================
 
 // initGinApp تهيئة تطبيق Gin
 func initGinApp(cfg *config.Config) *gin.Engine {
@@ -174,10 +170,6 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 		"max_upload_size", "10MB",
 	)
 }
-
-// ================================
-// 🛣️ تسجيل المسارات
-// ================================
 
 // registerAllRoutes تسجيل جميع المسارات
 func registerAllRoutes(
@@ -358,12 +350,8 @@ func registerGeneralRoutes(app *gin.Engine, cfg *config.Config) {
 	})
 }
 
-// ================================
-// 🚀 بدء الخادم
-// ================================
-
 // startServer بدء الخادم
-func startServer(app *gin.Engine, cfg *config.Config) {
+func startServer(app *gin.Engine, cfg *config.Config) error {
 	// إعداد الخادم
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -418,22 +406,12 @@ func startServer(app *gin.Engine, cfg *config.Config) {
 
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Stderr.Error("❌ فشل في إيقاف الخادم بشكل أنيق", logger.ErrAttr(err))
-	} else {
-		logger.Stdout.Info("✅ تم إيقاف الخادم بنجاح",
-			"duration", "أنيق",
-		)
+		return err
 	}
-}
 
-// ================================
-// 🛡️ دوال مساعدة
-// ================================
-
-// maskConnectionString إخفاء كلمة السر في رابط الاتصال للأمان
-func maskConnectionString(connectionString string) string {
-	// إخفاء كلمة السر لعرض آمن في السجلات
-	if len(connectionString) > 50 {
-		return connectionString[:30] + "****" + connectionString[len(connectionString)-20:]
-	}
-	return "****"
+	logger.Stdout.Info("✅ تم إيقاف الخادم بنجاح",
+		"duration", "أنيق",
+	)
+	
+	return nil
 }
