@@ -240,6 +240,11 @@ func AdminMiddleware() gin.HandlerFunc {
 	}
 }
 
+// AdminRequired اسم بديل لـ AdminMiddleware للتوافق مع الشفرة الحالية
+func AdminRequired() gin.HandlerFunc {
+	return AdminMiddleware()
+}
+
 // SellerMiddleware وسيط مصادقة البائعين
 func SellerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
