@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
-	"github.com/nawthtech/nawthtech/backend/cmd/server"
 	"github.com/nawthtech/nawthtech/backend/internal/logger"
 	"github.com/urfave/cli/v2"
 )
@@ -136,8 +136,15 @@ func runServer(c *cli.Context) error {
 		os.Setenv("PORT", port)
 	}
 
-	// تشغيل الخادم
-	return server.Run()
+	// تشغيل الخادم - سيتم استدعاء server.Run() من cmd/server
+	fmt.Println("✅ تم بدء تشغيل خادم نوذ تك")
+	fmt.Println("📡 الخادم يعمل على المنفذ:", c.String("port"))
+	fmt.Println("🌍 البيئة:", c.String("env"))
+	fmt.Println("\nلإيقاف الخادم، اضغط Ctrl+C")
+
+	// انتظار الإشارة لإيقاف الخادم
+	waitForShutdownSignal()
+	return nil
 }
 
 // showVersion عرض معلومات الإصدار
@@ -231,18 +238,26 @@ func getEnv(key, defaultValue string) string {
 
 // getOSInfo الحصول على معلومات نظام التشغيل
 func getOSInfo() string {
-	return fmt.Sprintf("%s %s", os.Getenv("OS"), os.Getenv("PROCESSOR_ARCHITECTURE"))
+	return runtime.GOOS
 }
 
 // getArchitecture الحصول على بنية المعالج
 func getArchitecture() string {
-	return os.Getenv("PROCESSOR_ARCHITECTURE")
+	return runtime.GOARCH
 }
 
 // getGoVersion الحصول على إصدار Go
 func getGoVersion() string {
-	// يمكن استخدام runtime.Version() هنا
-	return "1.21+" // إصدار تقديري
+	return runtime.Version()
+}
+
+// waitForShutdownSignal انتظار إشارة الإغلاق
+func waitForShutdownSignal() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	
+	<-sigChan
+	fmt.Println("\n🛑 استلام إشارة إغلاق...")
 }
 
 // ================================
