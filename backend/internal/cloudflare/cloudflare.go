@@ -2,12 +2,13 @@ package cloudflare
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
- "context"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/nawthtech/nawthtech/backend/internal/logger"
@@ -19,26 +20,27 @@ import (
 
 // CloudflareConfig إعدادات Cloudflare
 type CloudflareConfig struct {
-	ZoneID    string
-	APIKey    string
-	Email     string
-	Enabled   bool
-	CacheEnabled bool
+	ZoneID           string
+	APIKey           string
+	Email            string
+	Enabled          bool
+	CacheEnabled     bool
 	AnalyticsEnabled bool
 }
 
 // PurgeCacheRequest طلب مسح ذاكرة التخزين المؤقت
 type PurgeCacheRequest struct {
-	Files []string `json:"files,omitempty"`
-	Tags  []string `json:"tags,omitempty"`
-	Hosts []string `json:"hosts,omitempty"`
+	Files    []string `json:"files,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+	Hosts    []string `json:"hosts,omitempty"`
 	Prefixes []string `json:"prefixes,omitempty"`
+	PurgeAll bool     `json:"purge_everything,omitempty"`
 }
 
 // PurgeCacheResponse استجابة مسح ذاكرة التخزين المؤقت
 type PurgeCacheResponse struct {
-	Success bool `json:"success"`
-	Errors  []interface{} `json:"errors"`
+	Success  bool          `json:"success"`
+	Errors   []interface{} `json:"errors"`
 	Messages []interface{} `json:"messages"`
 }
 
@@ -57,11 +59,11 @@ type AnalyticsData struct {
 // NewCloudflareConfig إنشاء إعدادات Cloudflare جديدة
 func NewCloudflareConfig() *CloudflareConfig {
 	return &CloudflareConfig{
-		ZoneID:    os.Getenv("CLOUDFLARE_ZONE_ID"),
-		APIKey:    os.Getenv("CLOUDFLARE_API_KEY"),
-		Email:     os.Getenv("CLOUDFLARE_EMAIL"),
-		Enabled:   getEnvBool("CLOUDFLARE_PROTECTION_ENABLED", true),
-		CacheEnabled: getEnvBool("CLOUDFLARE_CACHE_ENABLED", true),
+		ZoneID:           os.Getenv("CLOUDFLARE_ZONE_ID"),
+		APIKey:           os.Getenv("CLOUDFLARE_API_KEY"),
+		Email:            os.Getenv("CLOUDFLARE_EMAIL"),
+		Enabled:          getEnvBool("CLOUDFLARE_PROTECTION_ENABLED", true),
+		CacheEnabled:     getEnvBool("CLOUDFLARE_CACHE_ENABLED", true),
 		AnalyticsEnabled: getEnvBool("CLOUDFLARE_ANALYTICS_ENABLED", true),
 	}
 }
@@ -69,7 +71,7 @@ func NewCloudflareConfig() *CloudflareConfig {
 // InitCloudflareService تهيئة خدمة Cloudflare
 func InitCloudflareService() (*CloudflareConfig, error) {
 	config := NewCloudflareConfig()
-	
+
 	if config.ZoneID == "" || config.APIKey == "" || config.Email == "" {
 		return nil, fmt.Errorf("إعدادات Cloudflare غير مكتملة")
 	}
@@ -111,17 +113,19 @@ func PurgeCache(urls []string) error {
 		return err
 	}
 
-			type CloudflareResponse struct {
-	logger.Info(context.Background(), "✅ تم مسح كل ذاكرة التخزين المؤقت بنجاح",
-		"duration", time.Since(startTime),
-    Success bool `json:"success"`
-}
+	var result PurgeCacheResponse
+	if err := json.Unmarshal(response, &result); err != nil {
+		return err
+	}
 
-var result CloudflareResponse
-json.Unmarshal(response, &result)
-if result.Success {
-    Success bool `json:"success"`
-}
+	if !result.Success {
+		return fmt.Errorf("فشل في مسح الذاكرة المؤقتة: %v", result.Errors)
+	}
+
+	logger.Info(context.Background(), "✅ تم مسح ذاكرة التخزين المؤقت بنجاح",
+		"urls_count", len(urls),
+		"duration", time.Since(startTime),
+	)
 
 	return nil
 }
@@ -148,17 +152,17 @@ func PurgeEverything() error {
 		return err
 	}
 
-		type CloudflareResponse struct {
+	var result PurgeCacheResponse
+	if err := json.Unmarshal(response, &result); err != nil {
+		return err
+	}
+
+	if !result.Success {
+		return fmt.Errorf("فشل في مسح كل الذاكرة المؤقتة: %v", result.Errors)
+	}
+
 	logger.Info(context.Background(), "✅ تم مسح كل ذاكرة التخزين المؤقت بنجاح",
 		"duration", time.Since(startTime),
-    Success bool `json:"success"`
-}
-
-var result CloudflareResponse
-json.Unmarshal(response, &result)
-if result.Success {
-    Success bool `json:"success"`
-}
 	)
 
 	return nil
@@ -187,17 +191,19 @@ func PurgeByTags(tags []string) error {
 		return err
 	}
 
-			type CloudflareResponse struct {
-	logger.Info(context.Background(), "✅ تم مسح كل ذاكرة التخزين المؤقت بنجاح",
-		"duration", time.Since(startTime),
-    Success bool `json:"success"`
-}
+	var result PurgeCacheResponse
+	if err := json.Unmarshal(response, &result); err != nil {
+		return err
+	}
 
-var result CloudflareResponse
-json.Unmarshal(response, &result)
-if result.Success {
-    Success bool `json:"success"`
-}
+	if !result.Success {
+		return fmt.Errorf("فشل في مسح الذاكرة المؤقتة بالوسوم: %v", result.Errors)
+	}
+
+	logger.Info(context.Background(), "✅ تم مسح الذاكرة المؤقتة بالوسوم بنجاح",
+		"tags_count", len(tags),
+		"duration", time.Since(startTime),
+	)
 
 	return nil
 }
@@ -311,9 +317,9 @@ func CreateFirewallRule(rule map[string]interface{}) error {
 // makeCloudflareRequest تنفيذ طلب إلى Cloudflare API
 func makeCloudflareRequest(method, endpoint string, payload interface{}) ([]byte, error) {
 	config := NewCloudflareConfig()
-	
+
 	url := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s%s", config.ZoneID, endpoint)
-	
+
 	var body io.Reader
 	if payload != nil {
 		jsonData, err := json.Marshal(payload)
@@ -323,7 +329,7 @@ func makeCloudflareRequest(method, endpoint string, payload interface{}) ([]byte
 		body = bytes.NewBuffer(jsonData)
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(context.Background(), method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +385,7 @@ func getEnvBool(key string, defaultValue bool) bool {
 // HealthCheck فحص صحة اتصال Cloudflare
 func HealthCheck() map[string]interface{} {
 	config := NewCloudflareConfig()
-	
+
 	if !config.Enabled {
 		return map[string]interface{}{
 			"service": "cloudflare",
