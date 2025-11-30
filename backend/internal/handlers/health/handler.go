@@ -569,18 +569,15 @@ func (h *HealthHandler) checkDatabaseDetailed() HealthCheck {
 		}
 	}
 
-	// الحصول على إحصائيات الخادم
-	serverStatus, err := database.RunCommand(ctx, bson.D{{Key: "serverStatus", Value: 1}}).DecodeBytes()
+	// الحصول على إحصائيات الخادم بشكل مبسط
+	serverStatus := bson.M{}
+	err = database.RunCommand(ctx, bson.D{{Key: "serverStatus", Value: 1}}).Decode(&serverStatus)
+	
 	connections := make(map[string]interface{})
-	if err == nil && serverStatus != nil {
-		if connectionsElem := serverStatus.Lookup("connections"); connectionsElem != nil {
-			// تحقق من نوع connectionsElem قبل التحويل
-			if rawConnections, ok := connectionsElem.Interface().(bson.D); ok {
-				for _, elem := range rawConnections {
-					if key, ok := elem.Key.(string); ok {
-						connections[key] = elem.Value
-					}
-				}
+	if err == nil {
+		if connData, ok := serverStatus["connections"]; ok {
+			if connMap, ok := connData.(map[string]interface{}); ok {
+				connections = connMap
 			}
 		}
 	}
