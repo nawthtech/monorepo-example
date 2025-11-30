@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
- "context"
+	"context"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -122,36 +122,36 @@ func SendEmail(message *EmailMessage) *SendResult {
 
 	m := gomail.NewMessage()
 	
-	//设置发件人
+	// إعداد المرسل
 	m.SetHeader("From", m.FormatAddress(config.FromEmail, config.FromName))
 	
-	//设置收件人
+	// إعداد المستلمين
 	m.SetHeader("To", message.To...)
 	
-	//设置抄送
+	// إعداد نسخة
 	if len(message.Cc) > 0 {
 		m.SetHeader("Cc", message.Cc...)
 	}
 	
-	//设置密送
+	// إعداد نسخة مخفية
 	if len(message.Bcc) > 0 {
 		m.SetHeader("Bcc", message.Bcc...)
 	}
 	
-	//设置主题
+	// إعداد الموضوع
 	m.SetHeader("Subject", message.Subject)
 	
-	//设置回复地址
+	// إعداد عنوان الرد
 	if message.ReplyTo != "" {
 		m.SetHeader("Reply-To", message.ReplyTo)
 	}
 	
-	//设置优先级
+	// إعداد الأولوية
 	if message.Priority != "" {
 		m.SetHeader("X-Priority", getPriorityHeader(message.Priority))
 	}
 	
-	//设置邮件正文
+	// إعداد محتوى البريد
 	if message.HTMLBody != "" {
 		m.SetBody("text/html", message.HTMLBody)
 		if message.Body != "" {
@@ -161,22 +161,18 @@ func SendEmail(message *EmailMessage) *SendResult {
 		m.SetBody("text/plain", message.Body)
 	}
 	
-	//添加附件
+	// إضافة المرفقات
 	for _, attachment := range message.Attachments {
 		m.Attach(attachment)
 	}
 
-	//创建拨号器
+	// إنشاء Dialer مع الإعدادات الصحيحة
 	d := gomail.NewDialer(config.Host, config.Port, config.Username, config.Password)
 	d.TLSConfig = &tls.Config{
 		ServerName: config.Host,
 	}
 
-dialer := gomail.NewDialer("smtp.office365.com", 587, username, password)
-
-// Timeout يتم تعيينه بشكل مختلف
-
-	//发送邮件
+	// إرسال البريد
 	if err := d.DialAndSend(m); err != nil {
 		logger.Error(context.Background(), "❌ فشل في إرسال البريد الإلكتروني",
 			"to", strings.Join(message.To, ", "),
@@ -250,7 +246,6 @@ func LoadTemplate(templateName string, data interface{}) (string, string, error)
 	if err != nil {
 		return "", "", fmt.Errorf("فشل في تحميل قالب HTML: %v", err)
 	}
-
 
 	return subject, htmlBody, nil
 }
@@ -333,7 +328,7 @@ func SendPasswordResetEmail(to, name, resetToken string) error {
 		"Name":      name,
 		"ResetURL":  resetURL,
 		"AppName":   "NawthTech",
-		"ExpiresIn": "30 دقيقة", // يجب أن يتطابق مع PASSWORD_RESET_TOKEN_EXPIRY
+		"ExpiresIn": "30 دقيقة",
 	}
 
 	subject, htmlBody, err := LoadTemplate("password_reset", data)
@@ -383,7 +378,7 @@ func SendVerificationEmail(to, name, verificationToken string) error {
 		"Name":       name,
 		"VerifyURL":  verifyURL,
 		"AppName":    "NawthTech",
-		"ExpiresIn":  "60 دقيقة", // يجب أن يتطابق مع EMAIL_VERIFICATION_TOKEN_EXPIRY
+		"ExpiresIn":  "60 دقيقة",
 	}
 
 	subject, htmlBody, err := LoadTemplate("email_verification", data)
