@@ -172,7 +172,8 @@ func SendEmail(message *EmailMessage) *SendResult {
 		ServerName: config.Host,
 	}
 
-dialer := gomail.NewDialer(host, port, username, password)
+dialer := gomail.NewDialer("smtp.office365.com", 587, username, password)
+
 // Timeout يتم تعيينه بشكل مختلف
 
 	//发送邮件
