@@ -116,7 +116,7 @@ jobs:
 
     - name: Run tests
       run: |
-        npm test -- --passWithNoTests --coverage
+        npm test -- --passWithNoTests
         echo "✅ Frontend tests completed"
 
     - name: Build frontend
