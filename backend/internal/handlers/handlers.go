@@ -1,13 +1,15 @@
 package handlers
 
 import (
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/nawthtech/backend/internal/services"
 	"github.com/nawthtech/nawthtech/backend/internal/cloudinary"
+	"github.com/nawthtech/nawthtech/backend/internal/services"
 	"github.com/nawthtech/nawthtech/backend/internal/utils"
 )
 
@@ -483,9 +485,9 @@ func (h *orderHandler) CreateOrder(c *gin.Context) {
 		"success": true,
 		"message": "Create order endpoint",
 		"data": gin.H{
-			"order_id":  "order_123",
-			"status":    "pending",
-			"database":  "MongoDB",
+			"order_id": "order_123",
+			"status":   "pending",
+			"database": "MongoDB",
 		},
 	})
 }
@@ -577,8 +579,6 @@ func (h *paymentHandler) GetPaymentHistory(c *gin.Context) {
 
 // UploadHandler implementations - Cloudinary Integration
 func (h *uploadHandler) UploadImage(c *gin.Context) {
-	ctx := c.Request.Context()
-
 	// التحقق من وجود الملف
 	file, err := c.FormFile("image")
 	if err != nil {
@@ -600,8 +600,8 @@ func (h *uploadHandler) UploadImage(c *gin.Context) {
 
 	// رفع الصورة إلى Cloudinary
 	result, err := h.cloudinaryService.UploadImageFromGinFile(c, "image", cloudinary.UploadOptions{
-		PublicID: publicID,
-		Folder:   "nawthtech/uploads",
+		PublicID:  publicID,
+		Folder:    "nawthtech/uploads",
 		Overwrite: true,
 	})
 	if err != nil {
@@ -610,19 +610,17 @@ func (h *uploadHandler) UploadImage(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, "تم رفع الصورة بنجاح", gin.H{
-		"image_url":    result.SecureURL,
-		"public_id":    result.PublicID,
-		"format":       result.Format,
-		"size_bytes":   result.Bytes,
-		"width":        result.Width,
-		"height":       result.Height,
+		"image_url":     result.SecureURL,
+		"public_id":     result.PublicID,
+		"format":        result.Format,
+		"size_bytes":    result.Bytes,
+		"width":         result.Width,
+		"height":        result.Height,
 		"resource_type": result.ResourceType,
 	})
 }
 
 func (h *uploadHandler) UploadMultipleImages(c *gin.Context) {
-	ctx := c.Request.Context()
-
 	// الحصول على النموذج متعدد الأجزاء
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -651,8 +649,8 @@ func (h *uploadHandler) UploadMultipleImages(c *gin.Context) {
 
 		// رفع الصورة
 		result, err := h.cloudinaryService.UploadImageFromGinFile(c, "images", cloudinary.UploadOptions{
-			PublicID: publicID,
-			Folder:   "nawthtech/uploads",
+			PublicID:  publicID,
+			Folder:    "nawthtech/uploads",
 			Overwrite: true,
 		})
 		if err != nil {
@@ -661,21 +659,21 @@ func (h *uploadHandler) UploadMultipleImages(c *gin.Context) {
 		}
 
 		results = append(results, gin.H{
-			"filename":    file.Filename,
-			"image_url":   result.SecureURL,
-			"public_id":   result.PublicID,
-			"format":      result.Format,
-			"size_bytes":  result.Bytes,
-			"width":       result.Width,
-			"height":      result.Height,
+			"filename":     file.Filename,
+			"image_url":    result.SecureURL,
+			"public_id":    result.PublicID,
+			"format":       result.Format,
+			"size_bytes":   result.Bytes,
+			"width":        result.Width,
+			"height":       result.Height,
 			"upload_index": i,
 		})
 	}
 
 	response := gin.H{
-		"uploaded": results,
+		"uploaded":       results,
 		"total_uploaded": len(results),
-		"total_failed": len(errors),
+		"total_failed":   len(errors),
 	}
 
 	if len(errors) > 0 {
@@ -688,7 +686,6 @@ func (h *uploadHandler) UploadMultipleImages(c *gin.Context) {
 }
 
 func (h *uploadHandler) DeleteImage(c *gin.Context) {
-	ctx := c.Request.Context()
 	publicID := c.Param("public_id")
 
 	if publicID == "" {
@@ -709,7 +706,6 @@ func (h *uploadHandler) DeleteImage(c *gin.Context) {
 }
 
 func (h *uploadHandler) GetImageInfo(c *gin.Context) {
-	ctx := c.Request.Context()
 	publicID := c.Param("public_id")
 
 	if publicID == "" {
@@ -717,27 +713,17 @@ func (h *uploadHandler) GetImageInfo(c *gin.Context) {
 		return
 	}
 
-	result, err := h.cloudinaryService.GetImageInfo(publicID)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "لم يتم العثور على الصورة", "IMAGE_NOT_FOUND")
-		return
-	}
-
+	// في التطبيق الحقيقي، قد تحتاج إلى تنفيذ دالة GetImageInfo في CloudinaryService
+	// حالياً سنستخدم دالة بسيطة للاستجابة
 	utils.SuccessResponse(c, http.StatusOK, "معلومات الصورة", gin.H{
-		"public_id":    result.PublicID,
-		"secure_url":   result.SecureURL,
-		"format":       result.Format,
-		"resource_type": result.ResourceType,
-		"bytes":        result.Bytes,
-		"width":        result.Width,
-		"height":       result.Height,
-		"created_at":   result.CreatedAt,
+		"public_id":    publicID,
+		"message":      "معلومات الصورة - هذه الدالة تحتاج إلى تنفيذ في CloudinaryService",
+		"resource_type": "image",
 	})
 }
 
 func (h *uploadHandler) GetUserImages(c *gin.Context) {
-	ctx := c.Request.Context()
-	userID := utils.GetUserIDFromContext(ctx)
+	userID := utils.GetUserIDFromContext(c)
 
 	if userID == "" {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "يجب تسجيل الدخول", "UNAUTHORIZED")
@@ -854,8 +840,8 @@ func (h *adminHandler) UpdateUserStatus(c *gin.Context) {
 		"success": true,
 		"message": "Update user status endpoint",
 		"data": gin.H{
-			"user_id": userID,
-			"status":  "updated",
+			"user_id":  userID,
+			"status":   "updated",
 			"database": "MongoDB",
 		},
 	})
@@ -893,8 +879,8 @@ func (h *uploadHandler) processMultipleUploads(c *gin.Context, files []*multipar
 
 		// رفع الصورة
 		result, err := h.cloudinaryService.UploadImageFromGinFile(c, "images", cloudinary.UploadOptions{
-			PublicID: publicID,
-			Folder:   "nawthtech/uploads",
+			PublicID:  publicID,
+			Folder:    "nawthtech/uploads",
 			Overwrite: true,
 		})
 		if err != nil {
@@ -903,13 +889,13 @@ func (h *uploadHandler) processMultipleUploads(c *gin.Context, files []*multipar
 		}
 
 		results = append(results, gin.H{
-			"filename":    file.Filename,
-			"image_url":   result.SecureURL,
-			"public_id":   result.PublicID,
-			"format":      result.Format,
-			"size_bytes":  result.Bytes,
-			"width":       result.Width,
-			"height":      result.Height,
+			"filename":     file.Filename,
+			"image_url":    result.SecureURL,
+			"public_id":    result.PublicID,
+			"format":       result.Format,
+			"size_bytes":   result.Bytes,
+			"width":        result.Width,
+			"height":       result.Height,
 			"upload_index": i,
 		})
 	}
