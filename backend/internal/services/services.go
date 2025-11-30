@@ -422,12 +422,12 @@ type (
 	}
 
 	OrderStats struct {
-		TotalOrders    int     `json:"total_orders"`
-		PendingOrders  int     `json:"pending_orders"`
-		CompletedOrders int    `json:"completed_orders"`
-		CanceledOrders int     `json:"canceled_orders"`
-		TotalRevenue   float64 `json:"total_revenue"`
-		AverageOrderValue float64 `json:"average_order_value"`
+		TotalOrders        int     `json:"total_orders"`
+		PendingOrders      int     `json:"pending_orders"`
+		CompletedOrders    int     `json:"completed_orders"`
+		CanceledOrders     int     `json:"canceled_orders"`
+		TotalRevenue       float64 `json:"total_revenue"`
+		AverageOrderValue  float64 `json:"average_order_value"`
 	}
 
 	UserStats struct {
@@ -499,8 +499,9 @@ type (
 // ================================
 
 func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest) (*AuthResponse, error) {
+	userID := primitive.NewObjectID().Hex()
 	user := &models.User{
-		ID:            primitive.New0bjectID().Hex(),
+		ID:            userID,
 		Email:         req.Email,
 		Username:      req.Username,
 		Password:      "hashed_password", // يجب تشفير كلمة المرور
@@ -522,10 +523,8 @@ func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest)
 
 	return &AuthResponse{
 		User:         user,
-		AccessToken:  "access_token_" + objectID, _ := primitive.ObjectIDFromHex(user.ID)
-objectID.Hex(),
-		RefreshToken: "refresh_token_" + objectID, _ := primitive.ObjectIDFromHex(user.ID)
-objectID.Hex(),
+		AccessToken:  "access_token_" + userID,
+		RefreshToken: "refresh_token_" + userID,
 		ExpiresAt:    time.Now().Add(24 * time.Hour),
 	}, nil
 }
@@ -541,10 +540,8 @@ func (s *authServiceImpl) Login(ctx context.Context, req AuthLoginRequest) (*Aut
 
 	return &AuthResponse{
 		User:         &user,
-		AccessToken:  "access_token_" + objectID, _ := primitive.ObjectIDFromHex(user.ID)
-objectID.Hex(),
-		RefreshToken: "refresh_token_" + objectID, _ := primitive.ObjectIDFromHex(user.ID)
-objectID.Hex(),
+		AccessToken:  "access_token_" + user.ID,
+		RefreshToken: "refresh_token_" + user.ID,
 		ExpiresAt:    time.Now().Add(24 * time.Hour),
 	}, nil
 }
@@ -556,9 +553,10 @@ func (s *authServiceImpl) Logout(ctx context.Context, token string) error {
 
 func (s *authServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error) {
 	// تنفيذ تجديد التوكن
+	userID := primitive.NewObjectID().Hex()
 	return &AuthResponse{
 		User: &models.User{
-			ID:           primitive.New0bjectID().Hex(),
+			ID:            userID,
 			Email:        "user@example.com",
 			Username:     "user123",
 			Role:         "user",
@@ -711,8 +709,9 @@ func (s *userServiceImpl) GetUserStats(ctx context.Context, userID string) (*Use
 // ================================
 
 func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreateRequest) (*models.Service, error) {
+	serviceID := primitive.NewObjectID().Hex()
 	service := &models.Service{
-		ID:          primitive.New0bjectID().Hex(),
+		ID:          serviceID,
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
@@ -941,8 +940,9 @@ func (s *categoryServiceImpl) GetCategoryByID(ctx context.Context, categoryID st
 }
 
 func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCreateRequest) (*models.Category, error) {
+	categoryID := primitive.NewObjectID().Hex()
 	category := &models.Category{
-		ID:          primitive.New0bjectID().Hex(),
+		ID:          categoryID,
 		Name:        req.Name,
 		Description: req.Description,
 		ParentID:    req.ParentID,
@@ -1022,8 +1022,9 @@ func (s *categoryServiceImpl) GetCategoryTree(ctx context.Context) ([]CategoryNo
 // ================================
 
 func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateRequest) (*models.Order, error) {
+	orderID := primitive.NewObjectID().Hex()
 	order := &models.Order{
-		ID:           primitive.New0bjectID().Hex(),
+		ID:            orderID,
 		UserID:       "user_id_from_context", // سيتم تعيينه من السياق
 		Items:        []models.OrderItem{},
 		Status:       "pending",
@@ -1043,7 +1044,7 @@ func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateReque
 	for _, item := range req.Items {
 		order.TotalAmount += item.Price * float64(item.Quantity)
 		order.Items = append(order.Items, models.OrderItem{
-			ID:          primitive.New0bjectID().Hex(),
+			ID:          primitive.NewObjectID().Hex(),
 			ServiceID:   item.ServiceID,
 			ServiceName: item.ServiceName,
 			Quantity:    item.Quantity,
@@ -1126,12 +1127,12 @@ func (s *orderServiceImpl) CancelOrder(ctx context.Context, orderID string, reas
 
 func (s *orderServiceImpl) GetOrderStats(ctx context.Context, timeframe string) (*OrderStats, error) {
 	return &OrderStats{
-		TotalOrders:    50,
-		PendingOrders:  5,
-		CompletedOrders: 40,
-		CanceledOrders: 5,
-		TotalRevenue:   15000,
-		AverageOrderValue: 300,
+		TotalOrders:        50,
+		PendingOrders:      5,
+		CompletedOrders:    40,
+		CanceledOrders:     5,
+		TotalRevenue:       15000,
+		AverageOrderValue:  300,
 	}, nil
 }
 
@@ -1173,8 +1174,9 @@ func (s *paymentServiceImpl) ValidatePayment(ctx context.Context, paymentData ma
 }
 
 func (s *uploadServiceImpl) UploadFile(ctx context.Context, req UploadRequest) (*UploadResult, error) {
+	fileID := primitive.NewObjectID().Hex()
 	return &UploadResult{
-		ID:          primitive.NewObjectID().Hex(),
+		ID:          fileID,
 		URL:         "https://res.cloudinary.com/nawthtech/image/upload/v123/example.jpg",
 		Filename:    req.Filename,
 		Size:        req.Size,
@@ -1227,8 +1229,9 @@ func (s *uploadServiceImpl) GetUploadQuota(ctx context.Context, userID string) (
 }
 
 func (s *notificationServiceImpl) CreateNotification(ctx context.Context, req NotificationCreateRequest) (*models.Notification, error) {
+	notificationID := primitive.NewObjectID().Hex()
 	return &models.Notification{
-		ID:        primitive.New0bjectID().Hex(),
+		ID:        notificationID,
 		UserID:    req.UserID,
 		Title:     req.Title,
 		Message:   req.Message,
