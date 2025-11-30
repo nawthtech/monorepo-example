@@ -261,17 +261,17 @@ func (h *HealthHandler) Detailed(c *gin.Context) {
 	analysis := h.analyzeHealth(checks)
 
 	response := gin.H{
-		"status":           analysis.Overall,
-		"timestamp":        time.Now(),
-		"version":          h.version,
-		"environment":      h.environment,
-		"uptime":           time.Since(h.startTime).String(),
-		"response_time":    time.Since(start).String(),
-		"checks":           checks,
-		"issues":           analysis.Issues,
-		"recommendations":  analysis.Recommendations,
-		"summary":          analysis.Summary,
-		"database":         "MongoDB",
+		"status":          analysis.Overall,
+		"timestamp":       time.Now(),
+		"version":         h.version,
+		"environment":     h.environment,
+		"uptime":          time.Since(h.startTime).String(),
+		"response_time":   time.Since(start).String(),
+		"checks":          checks,
+		"issues":          analysis.Issues,
+		"recommendations": analysis.Recommendations,
+		"summary":         analysis.Summary,
+		"database":        "MongoDB",
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -350,8 +350,8 @@ func (h *HealthHandler) checkDatabase() HealthCheck {
 
 	if h.mongoClient == nil {
 		return HealthCheck{
-			Status: "unhealthy",
-			Error:  "قاعدة البيانات غير مهيئة",
+			Status:  "unhealthy",
+			Error:   "قاعدة البيانات غير مهيئة",
 			Details: "الاتصال بقاعدة البيانات غير متوفر",
 		}
 	}
@@ -380,7 +380,7 @@ func (h *HealthHandler) checkDatabase() HealthCheck {
 
 func (h *HealthHandler) checkMemory() HealthCheck {
 	memStats := h.getMemoryUsage()
-	
+
 	status := "healthy"
 	if memStats.UsedMB > 500 { // مثال: إذا تجاوزت 500MB
 		status = "degraded"
@@ -401,10 +401,10 @@ func (h *HealthHandler) checkDisk() HealthCheck {
 	return HealthCheck{
 		Status: "healthy",
 		Details: gin.H{
-			"available_space":   "15GB",
-			"total_space":       "50GB",
-			"usage_percentage":  "30%",
-			"status":            "طبيعي",
+			"available_space":  "15GB",
+			"total_space":      "50GB",
+			"usage_percentage": "30%",
+			"status":           "طبيعي",
 		},
 	}
 }
@@ -452,7 +452,7 @@ func (h *HealthHandler) checkCache() HealthCheck {
 
 func (h *HealthHandler) checkCPU() HealthCheck {
 	goroutines := runtime.NumGoroutine()
-	
+
 	status := "healthy"
 	if goroutines > 1000 { // مثال: إذا تجاوزت 1000 goroutine
 		status = "degraded"
@@ -477,7 +477,7 @@ func (h *HealthHandler) checkNetwork() HealthCheck {
 func (h *HealthHandler) checkServices() HealthCheck {
 	services := []string{
 		"AuthService",
-		"UserService", 
+		"UserService",
 		"OrderService",
 		"PaymentService",
 		"NotificationService",
@@ -487,10 +487,10 @@ func (h *HealthHandler) checkServices() HealthCheck {
 	return HealthCheck{
 		Status: "healthy",
 		Details: gin.H{
-			"total_services":   len(services),
-			"active_services":  len(services),
-			"services_list":    services,
-			"database":         "MongoDB",
+			"total_services":  len(services),
+			"active_services": len(services),
+			"services_list":   services,
+			"database":        "MongoDB",
 		},
 	}
 }
@@ -499,7 +499,7 @@ func (h *HealthHandler) checkExternalServices() HealthCheck {
 	// فحص الخدمات الخارجية مثل البريد، الدفع، إلخ
 	externalServices := []string{
 		"Email Service",
-		"Payment Gateway", 
+		"Payment Gateway",
 		"SMS Gateway",
 		"Cloudinary", // إضافة Cloudinary
 	}
@@ -526,9 +526,9 @@ func (h *HealthHandler) checkAPIEndpoints() HealthCheck {
 	return HealthCheck{
 		Status: "healthy",
 		Details: gin.H{
-			"total_endpoints":   len(endpoints),
-			"tested_endpoints":  len(endpoints),
-			"success_rate":      "100%",
+			"total_endpoints":  len(endpoints),
+			"tested_endpoints": len(endpoints),
+			"success_rate":     "100%",
 		},
 	}
 }
@@ -537,11 +537,11 @@ func (h *HealthHandler) checkPerformance() HealthCheck {
 	return HealthCheck{
 		Status: "healthy",
 		Details: gin.H{
-			"response_time":     "ممتاز",
-			"throughput":        "عالٍ",
-			"error_rate":        "منخفض",
-			"concurrent_users":  "150",
-			"database":          "MongoDB",
+			"response_time":    "ممتاز",
+			"throughput":       "عالٍ",
+			"error_rate":       "منخفض",
+			"concurrent_users": "150",
+			"database":         "MongoDB",
 		},
 	}
 }
@@ -563,8 +563,8 @@ func (h *HealthHandler) checkDatabaseDetailed() HealthCheck {
 	collections, err := database.ListCollectionNames(ctx, nil)
 	if err != nil {
 		return HealthCheck{
-			Status: "degraded",
-			Error:  err.Error(),
+			Status:  "degraded",
+			Error:   err.Error(),
 			Details: "فشل في جلب معلومات المجموعات",
 		}
 	}
@@ -572,7 +572,7 @@ func (h *HealthHandler) checkDatabaseDetailed() HealthCheck {
 	// الحصول على إحصائيات الخادم بشكل مبسط
 	serverStatus := bson.M{}
 	err = database.RunCommand(ctx, bson.D{{Key: "serverStatus", Value: 1}}).Decode(&serverStatus)
-	
+
 	connections := make(map[string]interface{})
 	if err == nil {
 		if connData, ok := serverStatus["connections"]; ok {
@@ -614,12 +614,12 @@ func (h *HealthHandler) checkSecurity() HealthCheck {
 	return HealthCheck{
 		Status: "healthy",
 		Details: gin.H{
-			"ssl_enabled":     h.config.Environment == "production",
-			"cors_enabled":    true,
-			"rate_limiting":   true,
-			"authentication":  true,
-			"environment":     h.config.Environment,
-			"database":        "MongoDB",
+			"ssl_enabled":    h.config.Environment == "production",
+			"cors_enabled":   true,
+			"rate_limiting":  true,
+			"authentication": true,
+			"environment":    h.config.Environment,
+			"database":       "MongoDB",
 		},
 	}
 }
@@ -643,12 +643,12 @@ func (h *HealthHandler) checkServicesStatus() HealthCheck {
 
 func (h *HealthHandler) checkConfiguration() HealthCheck {
 	configStatus := gin.H{
-		"environment":           h.config.Environment,
-		"debug_mode":            h.config.Environment == "development",
-		"port":                  h.config.Port,
-		"database_configured":   h.mongoClient != nil,
-		"cache_configured":      h.cacheService != nil,
-		"database_type":         "MongoDB",
+		"environment":         h.config.Environment,
+		"debug_mode":          h.config.Environment == "development",
+		"port":                h.config.Port,
+		"database_configured": h.mongoClient != nil,
+		"cache_configured":    h.cacheService != nil,
+		"database_type":       "MongoDB",
 	}
 
 	return HealthCheck{
@@ -659,7 +659,7 @@ func (h *HealthHandler) checkConfiguration() HealthCheck {
 
 func (h *HealthHandler) getSystemMetrics() gin.H {
 	memStats := h.getMemoryUsage()
-	
+
 	return gin.H{
 		"memory": gin.H{
 			"used_mb":       memStats.UsedMB,
@@ -667,10 +667,10 @@ func (h *HealthHandler) getSystemMetrics() gin.H {
 			"usage_percent": memStats.UsagePercentage,
 		},
 		"performance": gin.H{
-			"goroutines":        runtime.NumGoroutine(),
-			"uptime":            time.Since(h.startTime).String(),
+			"goroutines":         runtime.NumGoroutine(),
+			"uptime":             time.Since(h.startTime).String(),
 			"requests_processed": 1250,
-			"database":          "MongoDB",
+			"database":           "MongoDB",
 		},
 		"services": gin.H{
 			"active_services": 8,
@@ -764,7 +764,7 @@ func (h *HealthHandler) getMaintenanceInfo() gin.H {
 func (h *HealthHandler) getMemoryUsage() MemoryStats {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	// تحويل البايت إلى ميجابايت
 	usedMB := float64(m.Alloc) / 1024 / 1024
 	totalMB := float64(m.Sys) / 1024 / 1024

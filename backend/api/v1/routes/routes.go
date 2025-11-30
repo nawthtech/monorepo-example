@@ -24,7 +24,7 @@ type HandlerContainer struct {
 
 // RegisterV1Routes تسجيل جميع مسارات الإصدار 1 في ملف واحد
 func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authMiddleware gin.HandlerFunc) {
-	
+
 	// ================================
 	// ✅ المسارات العامة (بدون مصادقة)
 	// ================================
@@ -232,7 +232,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 	// ================================
 	// ✅ المسارات العامة الإضافية
 	// ================================
-	
+
 	// 🏠 الصفحة الرئيسية للـ API
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -244,7 +244,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			"status":         "running",
 			"endpoints": gin.H{
 				"auth":       "/api/v1/auth",
-				"services":   "/api/v1/services", 
+				"services":   "/api/v1/services",
 				"categories": "/api/v1/categories",
 				"users":      "/api/v1/users",
 				"orders":     "/api/v1/orders",
@@ -293,11 +293,11 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 // GetRoutesInfo معلومات عن المسارات المسجلة
 func GetRoutesInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"total_endpoints":      45,
-		"public_endpoints":     15,
-		"protected_endpoints":  25,
-		"admin_endpoints":      5,
-		"version":              "v1.0.0",
+		"total_endpoints":     45,
+		"public_endpoints":    15,
+		"protected_endpoints": 25,
+		"admin_endpoints":     5,
+		"version":             "v1.0.0",
 		"categories": []string{
 			"المصادقة", "المستخدمين", "الخدمات", "الفئات",
 			"الطلبات", "الدفع", "الرفع", "الإشعارات", "الإدارة",

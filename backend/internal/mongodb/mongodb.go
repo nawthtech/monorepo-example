@@ -22,17 +22,17 @@ import (
 
 // MongoDBConfig إعدادات MongoDB
 type MongoDBConfig struct {
-	URI               string
-	DatabaseName      string
-	TestDatabaseName  string
-	ConnectTimeout    time.Duration
-	OperationTimeout  time.Duration
-	MaxPoolSize       uint64
-	MinPoolSize       uint64
-	SocketTimeout     time.Duration
+	URI                    string
+	DatabaseName           string
+	TestDatabaseName       string
+	ConnectTimeout         time.Duration
+	OperationTimeout       time.Duration
+	MaxPoolSize            uint64
+	MinPoolSize            uint64
+	SocketTimeout          time.Duration
 	ServerSelectionTimeout time.Duration
-	ReplicaSet        string
-	SSL               bool
+	ReplicaSet             string
+	SSL                    bool
 }
 
 // MongoDBService خدمة MongoDB
@@ -45,23 +45,23 @@ type MongoDBService struct {
 
 // CollectionStats إحصائيات المجموعة
 type CollectionStats struct {
-	Name        string `bson:"ns" json:"name"`
-	Count       int64  `bson:"count" json:"count"`
-	Size        int64  `bson:"size" json:"size"`
-	AvgObjSize  int64  `bson:"avgObjSize" json:"avg_obj_size"`
-	StorageSize int64  `bson:"storageSize" json:"storage_size"`
-	TotalIndexSize int64 `bson:"totalIndexSize" json:"total_index_size"`
+	Name           string `bson:"ns" json:"name"`
+	Count          int64  `bson:"count" json:"count"`
+	Size           int64  `bson:"size" json:"size"`
+	AvgObjSize     int64  `bson:"avgObjSize" json:"avg_obj_size"`
+	StorageSize    int64  `bson:"storageSize" json:"storage_size"`
+	TotalIndexSize int64  `bson:"totalIndexSize" json:"total_index_size"`
 }
 
 // DatabaseStats إحصائيات قاعدة البيانات
 type DatabaseStats struct {
-	DB          string    `bson:"db" json:"db"`
-	Collections int64     `bson:"collections" json:"collections"`
-	Objects     int64     `bson:"objects" json:"objects"`
-	DataSize    int64     `bson:"dataSize" json:"data_size"`
-	StorageSize int64     `bson:"storageSize" json:"storage_size"`
-	IndexSize   int64     `bson:"indexSize" json:"index_size"`
-	IndexCount  int64     `bson:"indexes" json:"index_count"`
+	DB          string `bson:"db" json:"db"`
+	Collections int64  `bson:"collections" json:"collections"`
+	Objects     int64  `bson:"objects" json:"objects"`
+	DataSize    int64  `bson:"dataSize" json:"data_size"`
+	StorageSize int64  `bson:"storageSize" json:"storage_size"`
+	IndexSize   int64  `bson:"indexSize" json:"index_size"`
+	IndexCount  int64  `bson:"indexes" json:"index_count"`
 }
 
 // QueryResult نتيجة الاستعلام
@@ -79,23 +79,23 @@ type QueryResult struct {
 // NewMongoDBConfig إنشاء إعدادات MongoDB جديدة
 func NewMongoDBConfig() *MongoDBConfig {
 	return &MongoDBConfig{
-		URI:               getEnv("MONGODB_URI", "mongodb://localhost:27017/nawthtech"),
-		DatabaseName:      getEnv("MONGODB_DB_NAME", "nawthtech"),
-		TestDatabaseName:  getEnv("MONGODB_TEST_DB_NAME", "nawthtech_test"),
-		ConnectTimeout:    time.Duration(getEnvInt("MONGODB_CONNECT_TIMEOUT", 10)) * time.Second,
-		OperationTimeout:  time.Duration(getEnvInt("MONGODB_OPERATION_TIMEOUT", 30)) * time.Second,
-		MaxPoolSize:       uint64(getEnvInt("MONGODB_MAX_POOL_SIZE", 100)),
-		MinPoolSize:       uint64(getEnvInt("MONGODB_MIN_POOL_SIZE", 10)),
-		SocketTimeout:     time.Duration(getEnvInt("MONGODB_SOCKET_TIMEOUT", 30)) * time.Second,
+		URI:                    getEnv("MONGODB_URI", "mongodb://localhost:27017/nawthtech"),
+		DatabaseName:           getEnv("MONGODB_DB_NAME", "nawthtech"),
+		TestDatabaseName:       getEnv("MONGODB_TEST_DB_NAME", "nawthtech_test"),
+		ConnectTimeout:         time.Duration(getEnvInt("MONGODB_CONNECT_TIMEOUT", 10)) * time.Second,
+		OperationTimeout:       time.Duration(getEnvInt("MONGODB_OPERATION_TIMEOUT", 30)) * time.Second,
+		MaxPoolSize:            uint64(getEnvInt("MONGODB_MAX_POOL_SIZE", 100)),
+		MinPoolSize:            uint64(getEnvInt("MONGODB_MIN_POOL_SIZE", 10)),
+		SocketTimeout:          time.Duration(getEnvInt("MONGODB_SOCKET_TIMEOUT", 30)) * time.Second,
 		ServerSelectionTimeout: time.Duration(getEnvInt("MONGODB_SERVER_SELECTION_TIMEOUT", 10)) * time.Second,
-		SSL:               getEnvBool("MONGODB_SSL", false),
+		SSL:                    getEnvBool("MONGODB_SSL", false),
 	}
 }
 
 // NewMongoDBService إنشاء خدمة MongoDB جديدة
 func NewMongoDBService() (*MongoDBService, error) {
 	config := NewMongoDBConfig()
-	
+
 	// استخدام قاعدة بيانات الاختبار في بيئة التطوير
 	if os.Getenv("APP_ENV") == "test" {
 		config.DatabaseName = config.TestDatabaseName
@@ -219,7 +219,7 @@ func (s *MongoDBService) FindOne(ctx context.Context, collectionName string, fil
 			)
 			return err
 		}
-		
+
 		logger.Error(ctx, "❌ فشل في البحث عن وثيقة",
 			"collection", collectionName,
 			"duration", time.Since(startTime),

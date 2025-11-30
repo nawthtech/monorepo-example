@@ -324,20 +324,20 @@ type Setting struct {
 
 // Coupon نموذج الكوبون
 type Coupon struct {
-	ID           string    `json:"id" gorm:"primaryKey"`
-	Code         string    `json:"code" gorm:"not null;uniqueIndex"`
-	Description  string    `json:"description,omitempty"`
-	DiscountType string    `json:"discount_type" gorm:"not null"` // percentage, fixed
-	DiscountValue float64  `json:"discount_value" gorm:"not null"`
-	MinAmount    float64   `json:"min_amount,omitempty"`
-	MaxDiscount  float64   `json:"max_discount,omitempty"`
-	UsageLimit   int       `json:"usage_limit,omitempty"`
-	UsedCount    int       `json:"used_count" gorm:"default:0"`
-	StartDate    time.Time `json:"start_date"`
-	EndDate      time.Time `json:"end_date"`
-	IsActive     bool      `json:"is_active" gorm:"default:true"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID            string    `json:"id" gorm:"primaryKey"`
+	Code          string    `json:"code" gorm:"not null;uniqueIndex"`
+	Description   string    `json:"description,omitempty"`
+	DiscountType  string    `json:"discount_type" gorm:"not null"` // percentage, fixed
+	DiscountValue float64   `json:"discount_value" gorm:"not null"`
+	MinAmount     float64   `json:"min_amount,omitempty"`
+	MaxDiscount   float64   `json:"max_discount,omitempty"`
+	UsageLimit    int       `json:"usage_limit,omitempty"`
+	UsedCount     int       `json:"used_count" gorm:"default:0"`
+	StartDate     time.Time `json:"start_date"`
+	EndDate       time.Time `json:"end_date"`
+	IsActive      bool      `json:"is_active" gorm:"default:true"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // Wishlist قائمة الرغبات

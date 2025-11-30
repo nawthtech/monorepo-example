@@ -1,11 +1,11 @@
 package email
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"html/template"
 	"os"
-	"context"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,16 +21,16 @@ import (
 
 // Office365Config إعدادات Office 365
 type Office365Config struct {
-	Host        string
-	Port        int
-	Username    string
-	Password    string
-	FromEmail   string
-	FromName    string
-	UseTLS      bool
-	Timeout     time.Duration
-	OutlookURL  string
-	Enabled     bool
+	Host       string
+	Port       int
+	Username   string
+	Password   string
+	FromEmail  string
+	FromName   string
+	UseTLS     bool
+	Timeout    time.Duration
+	OutlookURL string
+	Enabled    bool
 }
 
 // EmailMessage رسالة البريد الإلكتروني
@@ -110,7 +110,7 @@ func NewEmailService() (*Office365Config, error) {
 // SendEmail إرسال بريد إلكتروني
 func SendEmail(message *EmailMessage) *SendResult {
 	config := NewOffice365Config()
-	
+
 	if !config.Enabled {
 		return &SendResult{
 			Success: false,
@@ -121,36 +121,36 @@ func SendEmail(message *EmailMessage) *SendResult {
 	startTime := time.Now()
 
 	m := gomail.NewMessage()
-	
+
 	// إعداد المرسل
 	m.SetHeader("From", m.FormatAddress(config.FromEmail, config.FromName))
-	
+
 	// إعداد المستلمين
 	m.SetHeader("To", message.To...)
-	
+
 	// إعداد نسخة
 	if len(message.Cc) > 0 {
 		m.SetHeader("Cc", message.Cc...)
 	}
-	
+
 	// إعداد نسخة مخفية
 	if len(message.Bcc) > 0 {
 		m.SetHeader("Bcc", message.Bcc...)
 	}
-	
+
 	// إعداد الموضوع
 	m.SetHeader("Subject", message.Subject)
-	
+
 	// إعداد عنوان الرد
 	if message.ReplyTo != "" {
 		m.SetHeader("Reply-To", message.ReplyTo)
 	}
-	
+
 	// إعداد الأولوية
 	if message.Priority != "" {
 		m.SetHeader("X-Priority", getPriorityHeader(message.Priority))
 	}
-	
+
 	// إعداد محتوى البريد
 	if message.HTMLBody != "" {
 		m.SetBody("text/html", message.HTMLBody)
@@ -160,7 +160,7 @@ func SendEmail(message *EmailMessage) *SendResult {
 	} else {
 		m.SetBody("text/plain", message.Body)
 	}
-	
+
 	// إضافة المرفقات
 	for _, attachment := range message.Attachments {
 		m.Attach(attachment)
@@ -180,7 +180,7 @@ func SendEmail(message *EmailMessage) *SendResult {
 			"duration", time.Since(startTime),
 			"error", err.Error(),
 		)
-		
+
 		return &SendResult{
 			Success: false,
 			Message: "فشل في إرسال البريد الإلكتروني",
@@ -231,7 +231,7 @@ func SendHTMLEmail(to, subject, htmlBody string) error {
 // LoadTemplate تحميل قالب البريد الإلكتروني
 func LoadTemplate(templateName string, data interface{}) (string, string, error) {
 	templatesDir := getEnv("EMAIL_TEMPLATES_DIR", "./templates/email")
-	
+
 	htmlPath := filepath.Join(templatesDir, templateName, "template.html")
 	subjectPath := filepath.Join(templatesDir, templateName, "subject.txt")
 
@@ -277,11 +277,11 @@ func loadTemplateFile(filePath string, data interface{}) (string, error) {
 // SendWelcomeEmail إرسال بريد ترحيبي
 func SendWelcomeEmail(to, name string) error {
 	data := map[string]interface{}{
-		"Name":          name,
-		"AppName":       "NawthTech",
-		"SupportEmail":  "support@nawthtech.com",
-		"CurrentYear":   time.Now().Year(),
-		"LoginURL":      getEnv("FRONTEND_URL", "https://nawthtech.com") + "/login",
+		"Name":         name,
+		"AppName":      "NawthTech",
+		"SupportEmail": "support@nawthtech.com",
+		"CurrentYear":  time.Now().Year(),
+		"LoginURL":     getEnv("FRONTEND_URL", "https://nawthtech.com") + "/login",
 	}
 
 	subject, htmlBody, err := LoadTemplate("welcome", data)
@@ -319,8 +319,8 @@ func SendWelcomeEmail(to, name string) error {
 
 // SendPasswordResetEmail إرسال بريد إعادة تعيين كلمة المرور
 func SendPasswordResetEmail(to, name, resetToken string) error {
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", 
-		getEnv("FRONTEND_URL", "https://nawthtech.com"), 
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s",
+		getEnv("FRONTEND_URL", "https://nawthtech.com"),
 		resetToken,
 	)
 
@@ -369,16 +369,16 @@ func SendPasswordResetEmail(to, name, resetToken string) error {
 
 // SendVerificationEmail إرسال بريد التحقق
 func SendVerificationEmail(to, name, verificationToken string) error {
-	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", 
-		getEnv("FRONTEND_URL", "https://nawthtech.com"), 
+	verifyURL := fmt.Sprintf("%s/verify-email?token=%s",
+		getEnv("FRONTEND_URL", "https://nawthtech.com"),
 		verificationToken,
 	)
 
 	data := map[string]interface{}{
-		"Name":       name,
-		"VerifyURL":  verifyURL,
-		"AppName":    "NawthTech",
-		"ExpiresIn":  "60 دقيقة",
+		"Name":      name,
+		"VerifyURL": verifyURL,
+		"AppName":   "NawthTech",
+		"ExpiresIn": "60 دقيقة",
 	}
 
 	subject, htmlBody, err := LoadTemplate("email_verification", data)
@@ -486,7 +486,7 @@ func getPriorityHeader(priority string) string {
 // HealthCheck فحص صحة خدمة البريد الإلكتروني
 func HealthCheck() map[string]interface{} {
 	config := NewOffice365Config()
-	
+
 	if !config.Enabled {
 		return map[string]interface{}{
 			"service": "email",
@@ -511,11 +511,11 @@ func HealthCheck() map[string]interface{} {
 	defer conn.Close()
 
 	return map[string]interface{}{
-		"service":   "email",
-		"status":    "healthy",
-		"enabled":   true,
-		"host":      config.Host,
-		"port":      config.Port,
+		"service":    "email",
+		"status":     "healthy",
+		"enabled":    true,
+		"host":       config.Host,
+		"port":       config.Port,
 		"from_email": config.FromEmail,
 	}
 }

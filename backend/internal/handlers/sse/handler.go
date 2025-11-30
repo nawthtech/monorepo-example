@@ -220,9 +220,9 @@ func Handler(c *gin.Context) {
 	eventLogger := logger.Stdout.With(slog.String("request_id", requestID))
 
 	// تسجيل طلب SSE
-	eventLogger.Info("عميل SSE متصل", 
-		"user_id", userID, 
-		"client_id", client.ID, 
+	eventLogger.Info("عميل SSE متصل",
+		"user_id", userID,
+		"client_id", client.ID,
 		"channels", channels)
 
 	// إرسال حدث الاتصال
@@ -253,8 +253,8 @@ func Handler(c *gin.Context) {
 			eventLogger.Debug("تم إرسال حدث SSE", "client_id", client.ID)
 
 		case <-c.Request.Context().Done():
-			eventLogger.Info("عميل SSE انقطع", 
-				"client_id", client.ID, 
+			eventLogger.Info("عميل SSE انقطع",
+				"client_id", client.ID,
 				"user_id", userID)
 			return
 
@@ -286,7 +286,7 @@ func AdminHandler(c *gin.Context) {
 			userRole = role
 		}
 	}
-	
+
 	if userRole != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{
 			"error":   "غير مصرح",
@@ -305,7 +305,7 @@ func AdminHandler(c *gin.Context) {
 		}
 		c.Request.URL.RawQuery += channel
 	}
-	
+
 	Handler(c)
 }
 
@@ -401,8 +401,8 @@ func BroadcastAdminStats(stats DashboardStats) {
 func BroadcastUserStatus(userID string, status string) {
 	manager := GetManager()
 	manager.Broadcast([]string{"users", "status"}, []string{userID}, gin.H{
-		"user_id": userID,
-		"status":  status,
+		"user_id":   userID,
+		"status":    status,
 		"timestamp": time.Now(),
 	}, "user_status")
 }
@@ -446,10 +446,10 @@ type DashboardStats struct {
 
 // ConnectionInfo معلومات الاتصال
 type ConnectionInfo struct {
-	ClientID  string   `json:"client_id"`
-	UserID    string   `json:"user_id"`
-	Channels  []string `json:"channels"`
-	Connected bool     `json:"connected"`
+	ClientID  string    `json:"client_id"`
+	UserID    string    `json:"user_id"`
+	Channels  []string  `json:"channels"`
+	Connected bool      `json:"connected"`
 	Timestamp time.Time `json:"timestamp"`
 }
 

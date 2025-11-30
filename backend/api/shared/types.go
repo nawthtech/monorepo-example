@@ -4,9 +4,9 @@ import "time"
 
 // BaseModel النموذج الأساسي لجميع الكيانات
 type BaseModel struct {
-	ID        string    `json:"id" bson:"_id"`
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
+	ID        string     `json:"id" bson:"_id"`
+	CreatedAt time.Time  `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" bson:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
 }
 
@@ -18,7 +18,7 @@ type User struct {
 	Email     string    `json:"email" bson:"email"`
 	Phone     string    `json:"phone" bson:"phone"`
 	Avatar    string    `json:"avatar,omitempty" bson:"avatar,omitempty"`
-	Role      string    `json:"role" bson:"role"` // user, admin
+	Role      string    `json:"role" bson:"role"`     // user, admin
 	Status    string    `json:"status" bson:"status"` // active, suspended
 	LastLogin time.Time `json:"last_login,omitempty" bson:"last_login,omitempty"`
 }
@@ -41,11 +41,11 @@ type Service struct {
 // Category الفئة
 type Category struct {
 	BaseModel
-	Name        string `json:"name" bson:"name"`
-	Description string `json:"description,omitempty" bson:"description,omitempty"`
-	Icon        string `json:"icon,omitempty" bson:"icon,omitempty"`
-	Color       string `json:"color,omitempty" bson:"color,omitempty"`
-	ServiceCount int   `json:"service_count" bson:"service_count"`
+	Name         string `json:"name" bson:"name"`
+	Description  string `json:"description,omitempty" bson:"description,omitempty"`
+	Icon         string `json:"icon,omitempty" bson:"icon,omitempty"`
+	Color        string `json:"color,omitempty" bson:"color,omitempty"`
+	ServiceCount int    `json:"service_count" bson:"service_count"`
 }
 
 // Order الطلب
@@ -63,48 +63,48 @@ type Order struct {
 // Payment الدفع
 type Payment struct {
 	BaseModel
-	OrderID     string    `json:"order_id" bson:"order_id"`
-	UserID      string    `json:"user_id" bson:"user_id"`
-	Amount      float64   `json:"amount" bson:"amount"`
-	Currency    string    `json:"currency" bson:"currency"`
-	Status      string    `json:"status" bson:"status"` // pending, completed, failed, refunded
-	PaymentMethod string  `json:"payment_method" bson:"payment_method"`
-	TransactionID string  `json:"transaction_id,omitempty" bson:"transaction_id,omitempty"`
-	PaidAt      *time.Time `json:"paid_at,omitempty" bson:"paid_at,omitempty"`
+	OrderID       string     `json:"order_id" bson:"order_id"`
+	UserID        string     `json:"user_id" bson:"user_id"`
+	Amount        float64    `json:"amount" bson:"amount"`
+	Currency      string     `json:"currency" bson:"currency"`
+	Status        string     `json:"status" bson:"status"` // pending, completed, failed, refunded
+	PaymentMethod string     `json:"payment_method" bson:"payment_method"`
+	TransactionID string     `json:"transaction_id,omitempty" bson:"transaction_id,omitempty"`
+	PaidAt        *time.Time `json:"paid_at,omitempty" bson:"paid_at,omitempty"`
 }
 
 // Notification الإشعار
 type Notification struct {
 	BaseModel
-	UserID  string `json:"user_id" bson:"user_id"`
-	Title   string `json:"title" bson:"title"`
-	Message string `json:"message" bson:"message"`
-	Type    string `json:"type" bson:"type"` // info, success, warning, error
-	Read    bool   `json:"read" bson:"read"`
+	UserID  string                 `json:"user_id" bson:"user_id"`
+	Title   string                 `json:"title" bson:"title"`
+	Message string                 `json:"message" bson:"message"`
+	Type    string                 `json:"type" bson:"type"` // info, success, warning, error
+	Read    bool                   `json:"read" bson:"read"`
 	Data    map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
 }
 
 // UploadedFile الملف المرفوع
 type UploadedFile struct {
 	BaseModel
-	UserID      string `json:"user_id" bson:"user_id"`
-	PublicID    string `json:"public_id" bson:"public_id"`
-	SecureURL   string `json:"secure_url" bson:"secure_url"`
-	Format      string `json:"format" bson:"format"`
-	Bytes       int    `json:"bytes" bson:"bytes"`
-	Width       int    `json:"width,omitempty" bson:"width,omitempty"`
-	Height      int    `json:"height,omitempty" bson:"height,omitempty"`
+	UserID       string `json:"user_id" bson:"user_id"`
+	PublicID     string `json:"public_id" bson:"public_id"`
+	SecureURL    string `json:"secure_url" bson:"secure_url"`
+	Format       string `json:"format" bson:"format"`
+	Bytes        int    `json:"bytes" bson:"bytes"`
+	Width        int    `json:"width,omitempty" bson:"width,omitempty"`
+	Height       int    `json:"height,omitempty" bson:"height,omitempty"`
 	ResourceType string `json:"resource_type" bson:"resource_type"`
-	Folder      string `json:"folder" bson:"folder"`
+	Folder       string `json:"folder" bson:"folder"`
 }
 
 // SystemStats إحصائيات النظام
 type SystemStats struct {
-	TotalUsers     int64   `json:"total_users"`
-	TotalServices  int64   `json:"total_services"`
-	TotalOrders    int64   `json:"total_orders"`
-	TotalRevenue   float64 `json:"total_revenue"`
-	ActiveUsers    int64   `json:"active_users"`
-	PendingOrders  int64   `json:"pending_orders"`
-	CompletedOrders int64  `json:"completed_orders"`
+	TotalUsers      int64   `json:"total_users"`
+	TotalServices   int64   `json:"total_services"`
+	TotalOrders     int64   `json:"total_orders"`
+	TotalRevenue    float64 `json:"total_revenue"`
+	ActiveUsers     int64   `json:"active_users"`
+	PendingOrders   int64   `json:"pending_orders"`
+	CompletedOrders int64   `json:"completed_orders"`
 }

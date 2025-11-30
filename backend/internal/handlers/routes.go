@@ -14,28 +14,28 @@ import (
 func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceContainer, config *config.Config, mongoClient *mongo.Client) {
 	// تطبيق middleware العام على مستوى التطبيق
 	applyGlobalMiddleware(router, config)
-	
+
 	// إنشاء حاوية الوسائط
 	middlewares := initializeMiddlewares(serviceContainer, config)
-	
+
 	// مجموعة API الرئيسية
 	api := router.Group("/api/v1")
-	
+
 	// ========== مسارات الصحة ==========
 	registerHealthRoutes(router, config, mongoClient)
-	
+
 	// ========== المسارات العامة (لا تتطلب مصادقة) ==========
 	registerPublicRoutes(api, serviceContainer, middlewares)
-	
+
 	// ========== المسارات المحمية (تتطلب مصادقة) ==========
 	registerProtectedRoutes(api, serviceContainer, middlewares)
-	
+
 	// ========== مسارات المسؤولين ==========
 	registerAdminRoutes(api, serviceContainer, middlewares)
-	
+
 	// ========== مسارات البائعين ==========
 	registerSellerRoutes(api, serviceContainer, middlewares)
-	
+
 	// ========== مسارات الويب هووك ==========
 	registerWebhookRoutes(api, serviceContainer, middlewares)
 }
@@ -44,10 +44,10 @@ func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceCon
 func applyGlobalMiddleware(router *gin.Engine, config *config.Config) {
 	// CORS middleware - يتم تطبيقه على مستوى التطبيق بالكامل
 	router.Use(middleware.CORS())
-	
+
 	// Security headers middleware
 	router.Use(middleware.SecurityHeaders())
-	
+
 	// Rate limiting middleware
 	router.Use(middleware.RateLimit())
 }
@@ -67,13 +67,13 @@ func initializeMiddlewares(services *services.ServiceContainer, config *config.C
 func registerHealthRoutes(router *gin.Engine, config *config.Config, mongoClient *mongo.Client) {
 	// إنشاء معالج الصحة
 	healthHandler := NewHealthHandler(config)
-	
+
 	// مسارات الصحة العامة (بدون بادئة api/v1)
 	router.GET("/health", healthHandler.Check)
 	router.GET("/health/live", healthHandler.Live)
 	router.GET("/health/ready", healthHandler.Ready)
 	router.GET("/health/info", healthHandler.Info)
-	
+
 	// مسارات الصحة للمسؤولين (مع المصادقة)
 	adminHealth := router.Group("/health")
 	// ملاحظة: سيتم تفعيل المصادقة لاحقاً
@@ -91,7 +91,7 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	api.POST("/auth/forgot-password", authHandler.ForgotPassword)
 	api.POST("/auth/reset-password", authHandler.ResetPassword)
 	api.POST("/auth/verify-token", authHandler.VerifyToken)
-	
+
 	// معالج الخدمات (العامة)
 	serviceHandler := NewServiceHandler(services.Service)
 	api.GET("/services", serviceHandler.GetServices)
@@ -99,7 +99,7 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	api.GET("/services/featured", serviceHandler.GetFeaturedServices)
 	api.GET("/services/categories", serviceHandler.GetCategories)
 	api.GET("/services/:id", serviceHandler.GetServiceByID)
-	
+
 	// معالج الفئات
 	categoryHandler := NewCategoryHandler(services.Category)
 	api.GET("/categories", categoryHandler.GetCategories)
@@ -111,14 +111,14 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected := api.Group("")
 	// ملاحظة: سيتم تفعيل المصادقة لاحقاً
 	// protected.Use(middlewares.AuthMiddleware)
-	
+
 	// معالج المستخدم
 	userHandler := NewUserHandler(services.User)
 	protected.GET("/user/profile", userHandler.GetProfile)
 	protected.PUT("/user/profile", userHandler.UpdateProfile)
 	protected.PUT("/user/password", userHandler.ChangePassword)
 	protected.GET("/user/stats", userHandler.GetUserStats)
-	
+
 	// معالج الطلبات
 	orderHandler := NewOrderHandler(services.Order)
 	protected.GET("/orders", orderHandler.GetUserOrders)
@@ -126,13 +126,13 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected.POST("/orders", orderHandler.CreateOrder)
 	protected.PUT("/orders/:id/cancel", orderHandler.CancelOrder)
 	protected.PUT("/orders/:id/status", orderHandler.UpdateOrderStatus)
-	
+
 	// معالج الدفع
 	paymentHandler := NewPaymentHandler(services.Payment)
 	protected.GET("/payment/history", paymentHandler.GetPaymentHistory)
 	protected.POST("/payment/intent", paymentHandler.CreatePaymentIntent)
 	protected.POST("/payment/confirm", paymentHandler.ConfirmPayment)
-	
+
 	// معالج الرفع
 	uploadHandler, _ := NewUploadHandler() // تجاهل الخطأ مؤقتاً
 	protected.POST("/upload/image", uploadHandler.UploadImage)
@@ -140,7 +140,7 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected.GET("/upload/images", uploadHandler.GetUserImages)
 	protected.GET("/upload/images/:public_id", uploadHandler.GetImageInfo)
 	protected.DELETE("/upload/images/:public_id", uploadHandler.DeleteImage)
-	
+
 	// معالج الإشعارات
 	notificationHandler := NewNotificationHandler(services.Notification)
 	protected.GET("/notifications", notificationHandler.GetUserNotifications)
@@ -154,7 +154,7 @@ func registerAdminRoutes(api *gin.RouterGroup, services *services.ServiceContain
 	admin := api.Group("/admin")
 	// ملاحظة: سيتم تفعيل المصادقة لاحقاً
 	// admin.Use(middlewares.AuthMiddleware, middlewares.AdminMiddleware)
-	
+
 	// معالج الإدارة
 	adminHandler := NewAdminHandler(services.Admin)
 	admin.GET("/dashboard", adminHandler.GetDashboard)
@@ -162,13 +162,13 @@ func registerAdminRoutes(api *gin.RouterGroup, services *services.ServiceContain
 	admin.GET("/users", adminHandler.GetUsers)
 	admin.PUT("/users/:id/status", adminHandler.UpdateUserStatus)
 	admin.GET("/system/logs", adminHandler.GetSystemLogs)
-	
+
 	// معالج الفئات (الإدارة)
 	categoryHandler := NewCategoryHandler(services.Category)
 	admin.POST("/categories", categoryHandler.CreateCategory)
 	admin.PUT("/categories/:id", categoryHandler.UpdateCategory)
 	admin.DELETE("/categories/:id", categoryHandler.DeleteCategory)
-	
+
 	// معالج الطلبات (الإدارة)
 	orderHandler := NewOrderHandler(services.Order)
 	admin.GET("/orders", orderHandler.GetUserOrders) // سيتم تحديثها لاحقاً
@@ -180,14 +180,14 @@ func registerSellerRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	seller := api.Group("/seller")
 	// ملاحظة: سيتم تفعيل المصادقة لاحقاً
 	// seller.Use(middlewares.AuthMiddleware, middleware.SellerMiddleware())
-	
+
 	// معالج الخدمات (البائعين)
 	serviceHandler := NewServiceHandler(services.Service)
 	seller.POST("/services", serviceHandler.CreateService)
 	seller.PUT("/services/:id", serviceHandler.UpdateService)
 	seller.DELETE("/services/:id", serviceHandler.DeleteService)
 	seller.GET("/services/my", serviceHandler.GetMyServices)
-	
+
 	// معالج الطلبات (البائعين)
 	orderHandler := NewOrderHandler(services.Order)
 	seller.GET("/orders", orderHandler.GetUserOrders) // سيتم تحديثها لاحقاً

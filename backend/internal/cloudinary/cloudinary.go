@@ -58,7 +58,7 @@ func NewCloudinaryService() (*CloudinaryService, error) {
 
 	// إنشاء connection string
 	connStr := fmt.Sprintf("cloudinary://%s:%s@%s", apiKey, apiSecret, cloudName)
-	
+
 	cld, err := cloudinary.NewFromURL(connStr)
 	if err != nil {
 		return nil, fmt.Errorf("فشل في تهيئة Cloudinary: %v", err)
@@ -88,7 +88,7 @@ func NewCloudinaryServiceWithContext(ctx context.Context) (*CloudinaryService, e
 	}
 
 	connStr := fmt.Sprintf("cloudinary://%s:%s@%s", apiKey, apiSecret, cloudName)
-	
+
 	cld, err := cloudinary.NewFromURL(connStr)
 	if err != nil {
 		return nil, fmt.Errorf("فشل في تهيئة Cloudinary: %v", err)
@@ -123,7 +123,7 @@ func (cs *CloudinaryService) GetContext() context.Context {
 // UploadImage رفع صورة إلى Cloudinary
 func (cs *CloudinaryService) UploadImage(file interface{}, options ...UploadOptions) (*UploadResult, error) {
 	startTime := time.Now()
-	
+
 	// معالجة الخيارات
 	uploadParams := uploader.UploadParams{}
 	if len(options) > 0 {
@@ -192,7 +192,7 @@ func (cs *CloudinaryService) UploadImageFromFile(filePath string, options ...Upl
 		fileName := filepath.Base(filePath)
 		fileExt := filepath.Ext(fileName)
 		publicID := strings.TrimSuffix(fileName, fileExt)
-		
+
 		options = []UploadOptions{{
 			PublicID: publicID,
 			Folder:   "nawthtech",
@@ -396,7 +396,7 @@ func (cs *CloudinaryService) ValidateImage(fileHeader *multipart.FileHeader) err
 	// التحقق من نوع الملف
 	allowedTypes := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
 	fileExt := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	
+
 	allowed := false
 	for _, allowedType := range allowedTypes {
 		if fileExt == allowedType {
@@ -481,12 +481,12 @@ func (cs *CloudinaryService) HealthCheck() map[string]interface{} {
 	startTime := time.Now()
 	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
 	apiKey := os.Getenv("CLOUDINARY_API_KEY")
-	
+
 	if cloudName == "" || apiKey == "" {
 		result := map[string]interface{}{
-			"service": "cloudinary",
-			"status":  "error",
-			"error":   "بيانات الاعتماد غير مكتملة",
+			"service":  "cloudinary",
+			"status":   "error",
+			"error":    "بيانات الاعتماد غير مكتملة",
 			"duration": time.Since(startTime).String(),
 		}
 		logger.Error(cs.ctx, "❌ فحص الصحة فشل - بيانات الاعتماد غير مكتملة",
@@ -504,9 +504,9 @@ func (cs *CloudinaryService) HealthCheck() map[string]interface{} {
 
 	if err != nil {
 		result := map[string]interface{}{
-			"service": "cloudinary",
-			"status":  "error",
-			"error":   err.Error(),
+			"service":  "cloudinary",
+			"status":   "error",
+			"error":    err.Error(),
 			"duration": time.Since(startTime).String(),
 		}
 		logger.Error(cs.ctx, "❌ فحص الصحة فشل",
@@ -525,7 +525,7 @@ func (cs *CloudinaryService) HealthCheck() map[string]interface{} {
 		"cloud_name": cloudName,
 		"duration":   time.Since(startTime).String(),
 	}
-	
+
 	logger.Info(cs.ctx, "✅ فحص الصحة تم بنجاح",
 		"cloud_name", cloudName,
 		"duration", time.Since(startTime).String(),

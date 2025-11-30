@@ -168,13 +168,13 @@ func ApplyPagination(query interface{}, page, limit int) (interface{}, *Paginati
 	// في GORM يمكن استخدام: db.Offset((page - 1) * limit).Limit(limit)
 	offset := (page - 1) * limit
 	return map[string]interface{}{
-		"query":  query,
-		"offset": offset,
-		"limit":  limit,
-	}, &Pagination{
-		Page:  page,
-		Limit: limit,
-	}
+			"query":  query,
+			"offset": offset,
+			"limit":  limit,
+		}, &Pagination{
+			Page:  page,
+			Limit: limit,
+		}
 }
 
 // ========== دوال التحقق والتحقق من الصحة ==========
@@ -660,9 +660,9 @@ func CalculateOrderTotal(subtotal, tax, shipping, discount float64) float64 {
 // LogOperation تسجيل عملية مع الوقت
 func LogOperation(ctx context.Context, operation string, fn func() error) error {
 	start := time.Now()
-	
+
 	// استخدام نظام التسجيل الجديد مع الحقول المنظمة
-	logger.Info(ctx, "بدء العملية", 
+	logger.Info(ctx, "بدء العملية",
 		"user_id", GetUserIDFromContext(ctx),
 		"request_id", GetRequestIDFromContext(ctx),
 		"operation", operation,

@@ -714,8 +714,8 @@ func (h *uploadHandler) GetImageInfo(c *gin.Context) {
 	// في التطبيق الحقيقي، قد تحتاج إلى تنفيذ دالة GetImageInfo في CloudinaryService
 	// حالياً سنستخدم دالة بسيطة للاستجابة
 	utils.SuccessResponse(c, http.StatusOK, "معلومات الصورة", gin.H{
-		"public_id":    publicID,
-		"message":      "معلومات الصورة - هذه الدالة تحتاج إلى تنفيذ في CloudinaryService",
+		"public_id":     publicID,
+		"message":       "معلومات الصورة - هذه الدالة تحتاج إلى تنفيذ في CloudinaryService",
 		"resource_type": "image",
 	})
 }
@@ -791,10 +791,10 @@ func (h *adminHandler) GetDashboard(c *gin.Context) {
 		"message": "Get dashboard endpoint",
 		"data": gin.H{
 			"stats": gin.H{
-				"total_users":     150,
-				"total_services":  89,
-				"total_orders":    234,
-				"revenue":         15499.99,
+				"total_users":    150,
+				"total_services": 89,
+				"total_orders":   234,
+				"revenue":        15499.99,
 			},
 			"database": "MongoDB",
 		},

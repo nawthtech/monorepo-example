@@ -155,13 +155,13 @@ func showVersion(c *cli.Context) error {
 	fmt.Printf("وقت البناء: %s\n", date)
 	fmt.Printf("بيئة التشغيل: %s\n", getEnv("APP_ENV", "development"))
 	fmt.Printf("وقت التشغيل: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	
+
 	// معلومات النظام
 	fmt.Printf("\nمعلومات النظام:\n")
 	fmt.Printf("نظام التشغيل: %s\n", getOSInfo())
 	fmt.Printf("المعالج:      %s\n", getArchitecture())
 	fmt.Printf("لغة Go:       %s\n", getGoVersion())
-	
+
 	return nil
 }
 
@@ -266,7 +266,7 @@ func getGoVersion() string {
 func waitForShutdownSignal() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	
+
 	<-sigChan
 	fmt.Println("\n🛑 استلام إشارة إغلاق...")
 }

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/nawthtech/backend/internal/utils"
 	"github.com/nawthtech/nawthtech/backend/internal/logger"
+	"github.com/nawthtech/nawthtech/backend/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

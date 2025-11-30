@@ -194,11 +194,11 @@ type (
 
 	// Order Structures
 	OrderCreateRequest struct {
-		Items         []OrderItem   `json:"items" binding:"required"`
-		ShippingInfo  ShippingInfo  `json:"shipping_info"`
-		PaymentMethod string        `json:"payment_method" binding:"required"`
-		CustomerNotes string        `json:"customer_notes"`
-		CouponCode    string        `json:"coupon_code,omitempty"`
+		Items         []OrderItem  `json:"items" binding:"required"`
+		ShippingInfo  ShippingInfo `json:"shipping_info"`
+		PaymentMethod string       `json:"payment_method" binding:"required"`
+		CustomerNotes string       `json:"customer_notes"`
+		CouponCode    string       `json:"coupon_code,omitempty"`
 	}
 
 	OrderQueryParams struct {
@@ -380,11 +380,11 @@ type (
 	}
 
 	PaymentResult struct {
-		ID        string    `json:"id"`
-		Status    string    `json:"status"`
-		Amount    float64   `json:"amount"`
-		Currency  string    `json:"currency"`
-		PaidAt    time.Time `json:"paid_at"`
+		ID       string    `json:"id"`
+		Status   string    `json:"status"`
+		Amount   float64   `json:"amount"`
+		Currency string    `json:"currency"`
+		PaidAt   time.Time `json:"paid_at"`
 	}
 
 	PaymentValidation struct {
@@ -404,9 +404,9 @@ type (
 	}
 
 	PresignedURL struct {
-		URL         string    `json:"url"`
-		Method      string    `json:"method"`
-		ExpiresAt   time.Time `json:"expires_at"`
+		URL       string    `json:"url"`
+		Method    string    `json:"method"`
+		ExpiresAt time.Time `json:"expires_at"`
 	}
 
 	FileValidation struct {
@@ -422,29 +422,29 @@ type (
 	}
 
 	OrderStats struct {
-		TotalOrders        int     `json:"total_orders"`
-		PendingOrders      int     `json:"pending_orders"`
-		CompletedOrders    int     `json:"completed_orders"`
-		CanceledOrders     int     `json:"canceled_orders"`
-		TotalRevenue       float64 `json:"total_revenue"`
-		AverageOrderValue  float64 `json:"average_order_value"`
+		TotalOrders       int     `json:"total_orders"`
+		PendingOrders     int     `json:"pending_orders"`
+		CompletedOrders   int     `json:"completed_orders"`
+		CanceledOrders    int     `json:"canceled_orders"`
+		TotalRevenue      float64 `json:"total_revenue"`
+		AverageOrderValue float64 `json:"average_order_value"`
 	}
 
 	UserStats struct {
-		TotalOrders    int       `json:"total_orders"`
-		TotalSpent     float64   `json:"total_spent"`
-		JoinedDate     time.Time `json:"joined_date"`
-		LastOrderDate  time.Time `json:"last_order_date"`
-		WishlistCount  int       `json:"wishlist_count"`
+		TotalOrders   int       `json:"total_orders"`
+		TotalSpent    float64   `json:"total_spent"`
+		JoinedDate    time.Time `json:"joined_date"`
+		LastOrderDate time.Time `json:"last_order_date"`
+		WishlistCount int       `json:"wishlist_count"`
 	}
 
 	DashboardStats struct {
-		TotalUsers      int     `json:"total_users"`
-		TotalServices   int     `json:"total_services"`
-		TotalOrders     int     `json:"total_orders"`
-		TotalRevenue    float64 `json:"total_revenue"`
-		PendingOrders   int     `json:"pending_orders"`
-		ActiveStores    int     `json:"active_stores"`
+		TotalUsers    int     `json:"total_users"`
+		TotalServices int     `json:"total_services"`
+		TotalOrders   int     `json:"total_orders"`
+		TotalRevenue  float64 `json:"total_revenue"`
+		PendingOrders int     `json:"pending_orders"`
+		ActiveStores  int     `json:"active_stores"`
 	}
 )
 
@@ -557,10 +557,10 @@ func (s *authServiceImpl) RefreshToken(ctx context.Context, refreshToken string)
 	return &AuthResponse{
 		User: &models.User{
 			ID:            userID,
-			Email:        "user@example.com",
-			Username:     "user123",
-			Role:         "user",
-			Status:       "active",
+			Email:         "user@example.com",
+			Username:      "user123",
+			Role:          "user",
+			Status:        "active",
 			EmailVerified: true,
 		},
 		AccessToken:  "new_access_token_123",
@@ -696,11 +696,11 @@ func (s *userServiceImpl) SearchUsers(ctx context.Context, query string, params 
 
 func (s *userServiceImpl) GetUserStats(ctx context.Context, userID string) (*UserStats, error) {
 	return &UserStats{
-		TotalOrders:    5,
-		TotalSpent:     1500.0,
-		JoinedDate:     time.Now().AddDate(0, -6, 0),
-		LastOrderDate:  time.Now().AddDate(0, 0, -5),
-		WishlistCount:  3,
+		TotalOrders:   5,
+		TotalSpent:    1500.0,
+		JoinedDate:    time.Now().AddDate(0, -6, 0),
+		LastOrderDate: time.Now().AddDate(0, 0, -5),
+		WishlistCount: 3,
 	}, nil
 }
 
@@ -858,7 +858,7 @@ func (s *serviceServiceImpl) SearchServices(ctx context.Context, query string, p
 
 func (s *serviceServiceImpl) GetFeaturedServices(ctx context.Context) ([]models.Service, error) {
 	cursor, err := s.db.Collection("services").Find(ctx, bson.M{
-		"is_active":  true,
+		"is_active":   true,
 		"is_featured": true,
 	})
 	if err != nil {
@@ -1025,19 +1025,19 @@ func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateReque
 	orderID := primitive.NewObjectID().Hex()
 	order := &models.Order{
 		ID:            orderID,
-		UserID:       "user_id_from_context", // سيتم تعيينه من السياق
-		Items:        []models.OrderItem{},
-		Status:       "pending",
-		TotalAmount:  0,
-		Discount:     0,
-		Tax:          0,
-		Shipping:     0,
-		FinalAmount:  0,
+		UserID:        "user_id_from_context", // سيتم تعيينه من السياق
+		Items:         []models.OrderItem{},
+		Status:        "pending",
+		TotalAmount:   0,
+		Discount:      0,
+		Tax:           0,
+		Shipping:      0,
+		FinalAmount:   0,
 		PaymentStatus: "pending",
 		PaymentMethod: req.PaymentMethod,
 		CustomerNotes: req.CustomerNotes,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	// حساب المبلغ الإجمالي
@@ -1127,12 +1127,12 @@ func (s *orderServiceImpl) CancelOrder(ctx context.Context, orderID string, reas
 
 func (s *orderServiceImpl) GetOrderStats(ctx context.Context, timeframe string) (*OrderStats, error) {
 	return &OrderStats{
-		TotalOrders:        50,
-		PendingOrders:      5,
-		CompletedOrders:    40,
-		CanceledOrders:     5,
-		TotalRevenue:       15000,
-		AverageOrderValue:  300,
+		TotalOrders:       50,
+		PendingOrders:     5,
+		CompletedOrders:   40,
+		CanceledOrders:    5,
+		TotalRevenue:      15000,
+		AverageOrderValue: 300,
 	}, nil
 }
 
@@ -1379,7 +1379,7 @@ type ServiceContainer struct {
 
 func NewServiceContainer(mongoClient *mongo.Client, databaseName string) *ServiceContainer {
 	db := mongoClient.Database(databaseName)
-	
+
 	return &ServiceContainer{
 		Auth:         NewAuthService(db),
 		User:         NewUserService(db),

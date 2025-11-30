@@ -70,11 +70,11 @@ type ServicesConfig struct {
 
 // Cloudinary تكوين Cloudinary
 type Cloudinary struct {
-	CloudName   string `env:"CLOUDINARY_CLOUD_NAME"`
-	APIKey      string `env:"CLOUDINARY_API_KEY"`
-	APISecret   string `env:"CLOUDINARY_API_SECRET"`
+	CloudName    string `env:"CLOUDINARY_CLOUD_NAME"`
+	APIKey       string `env:"CLOUDINARY_API_KEY"`
+	APISecret    string `env:"CLOUDINARY_API_SECRET"`
 	UploadPreset string `env:"CLOUDINARY_UPLOAD_PRESET"`
-	Folder      string `env:"CLOUDINARY_FOLDER"`
+	Folder       string `env:"CLOUDINARY_FOLDER"`
 }
 
 // Upload تكوين الرفع

@@ -31,7 +31,7 @@ type MiddlewareContainer struct {
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		
+
 		// في الإنتاج، يمكن تحديد النطاقات المسموحة بدقة
 		allowedOrigin := "*"
 		if origin != "" {
@@ -60,7 +60,7 @@ func SecurityHeaders() gin.HandlerFunc {
 		c.Writer.Header().Set("X-Frame-Options", "DENY")
 		c.Writer.Header().Set("X-XSS-Protection", "1; mode=block")
 		c.Writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// CSP مبسطة
 		if c.Request.URL.Path == "/" || strings.HasPrefix(c.Request.URL.Path, "/api/") {
 			c.Writer.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
@@ -410,9 +410,9 @@ func Recovery() gin.HandlerFunc {
 
 				// إرسال استجابة خطأ
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"success": false,
-					"error":   "خطأ داخلي في الخادم",
-					"message": "حدث خطأ غير متوقع",
+					"success":    false,
+					"error":      "خطأ داخلي في الخادم",
+					"message":    "حدث خطأ غير متوقع",
 					"request_id": requestID,
 				})
 
@@ -432,17 +432,17 @@ func Timeout(timeout time.Duration) gin.HandlerFunc {
 		// إعداد مهلة للطلب
 		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
-		
+
 		c.Request = c.Request.WithContext(ctx)
-		
+
 		// قناة للإشارة بانتهاء المعالجة
 		done := make(chan bool, 1)
-		
+
 		go func() {
 			c.Next()
 			done <- true
 		}()
-		
+
 		select {
 		case <-ctx.Done():
 			if ctx.Err() == context.DeadlineExceeded {

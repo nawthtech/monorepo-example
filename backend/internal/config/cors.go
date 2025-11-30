@@ -36,7 +36,7 @@ func getAllowedOrigins() []string {
 		"http://127.0.0.1:5173",
 		"http://localhost:8080",
 		"http://127.0.0.1:8080",
-		
+
 		// نطاقات البيئات الأخرى
 		"https://staging.nawthtech.com",
 		"https://dev.nawthtech.com",
@@ -54,15 +54,15 @@ func getAllowedOrigins() []string {
 		"https://app.fathom-analytics.com",
 
 		// نطاقات الخدمات الأخرى المستخدمة
-		"https://cloudinary.com",       // Cloudinary
+		"https://cloudinary.com", // Cloudinary
 		"https://api.cloudinary.com",
 		"https://res.cloudinary.com",
-		"https://stripe.com",           // Stripe Payments
+		"https://stripe.com", // Stripe Payments
 		"https://api.stripe.com",
 		"https://js.stripe.com",
-		"https://github.com",           // GitHub
+		"https://github.com", // GitHub
 		"https://api.github.com",
-		"https://railway.app",          // Railway
+		"https://railway.app", // Railway
 		"https://up.railway.app",
 	}
 
@@ -113,14 +113,14 @@ func isOriginAllowed(origin string, allowedOrigins []string) bool {
 	if origin == "" {
 		return true // طلبات بدون origin (تطبيقات محمولة، إلخ)
 	}
-	
+
 	// التحقق المباشر
 	for _, allowed := range allowedOrigins {
 		if origin == allowed {
 			return true
 		}
 	}
-	
+
 	// التحقق باستخدام patterns
 	for _, pattern := range allowedOrigins {
 		if strings.HasPrefix(pattern, ".") && strings.HasSuffix(origin, pattern) {
@@ -134,19 +134,19 @@ func isOriginAllowed(origin string, allowedOrigins []string) bool {
 			}
 		}
 	}
-	
+
 	return false
 }
 
 // GetCORSConfig الحصول على إعدادات CORS بناءً على المسار
 func GetCORSConfig(path string) CORSOptions {
 	allowedOrigins := getAllowedOrigins()
-	
+
 	// مسارات التحليلات البديلة
-	if strings.HasPrefix(path, "/api/analytics") || 
-	   strings.HasPrefix(path, "/analytics") ||
-	   strings.Contains(path, "/plausible") || 
-	   strings.Contains(path, "/matomo") {
+	if strings.HasPrefix(path, "/api/analytics") ||
+		strings.HasPrefix(path, "/analytics") ||
+		strings.Contains(path, "/plausible") ||
+		strings.Contains(path, "/matomo") {
 		return CORSOptions{
 			AllowedOrigins: []string{
 				"https://plausible.io",
@@ -160,11 +160,11 @@ func GetCORSConfig(path string) CORSOptions {
 			MaxAge:           3600,
 		}
 	}
-	
+
 	// مسارات ويب هووكs للخدمات الخارجية
-	if strings.HasPrefix(path, "/webhook/stripe") || 
-	   strings.HasPrefix(path, "/webhook/cloudinary") ||
-	   strings.HasPrefix(path, "/api/webhooks") {
+	if strings.HasPrefix(path, "/webhook/stripe") ||
+		strings.HasPrefix(path, "/webhook/cloudinary") ||
+		strings.HasPrefix(path, "/api/webhooks") {
 		return CORSOptions{
 			AllowedOrigins: []string{
 				"https://stripe.com",
@@ -184,7 +184,7 @@ func GetCORSConfig(path string) CORSOptions {
 			MaxAge:           7200,
 		}
 	}
-	
+
 	// المسارات الإدارية
 	if strings.HasPrefix(path, "/admin") || strings.HasPrefix(path, "/api/admin") {
 		return CORSOptions{
@@ -207,7 +207,7 @@ func GetCORSConfig(path string) CORSOptions {
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
 			"Content-Type",
-			"Authorization", 
+			"Authorization",
 			"X-Requested-With",
 			"X-API-Key",
 			"Accept",
@@ -238,7 +238,7 @@ func GetCORSConfig(path string) CORSOptions {
 // ValidateOrigin التحقق من النطاق المسموح به
 func ValidateOrigin(origin string) bool {
 	allowedOrigins := getAllowedOrigins()
-	
+
 	// في بيئة التطوير، السماح مع تسجيل التحذيرات
 	if os.Getenv("ENVIRONMENT") == "development" || os.Getenv("ENVIRONMENT") == "" {
 		if origin != "" && !isOriginAllowed(origin, allowedOrigins) {
@@ -254,14 +254,14 @@ func ValidateOrigin(origin string) bool {
 // GetCORSStats إحصائيات CORS
 func GetCORSStats() map[string]interface{} {
 	allowedOrigins := getAllowedOrigins()
-	
+
 	analyticsCount := 0
 	microsoftCount := 0
 	storageCount := 0
 	paymentsCount := 0
 	localCount := 0
 	productionCount := 0
-	
+
 	for _, origin := range allowedOrigins {
 		switch {
 		case strings.Contains(origin, "plausible") || strings.Contains(origin, "matomo") || strings.Contains(origin, "fathom"):
@@ -278,12 +278,12 @@ func GetCORSStats() map[string]interface{} {
 			productionCount++
 		}
 	}
-	
+
 	environment := os.Getenv("ENVIRONMENT")
 	if environment == "" {
 		environment = "development"
 	}
-	
+
 	return map[string]interface{}{
 		"totalAllowedOrigins": len(allowedOrigins),
 		"services": map[string]int{
@@ -301,13 +301,13 @@ func GetCORSStats() map[string]interface{} {
 // GetDefaultCORSConfig الحصول على إعدادات CORS الافتراضية
 func GetDefaultCORSConfig() CORSOptions {
 	allowedOrigins := getAllowedOrigins()
-	
+
 	return CORSOptions{
 		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{
 			"Content-Type",
-			"Authorization", 
+			"Authorization",
 			"X-Requested-With",
 			"X-API-Key",
 			"Accept",

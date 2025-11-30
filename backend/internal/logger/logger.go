@@ -30,7 +30,7 @@ var (
 	// Loggers الرئيسية
 	Stdout *slog.Logger
 	Stderr *slog.Logger
-	
+
 	// Global logger instance
 	globalLogger Logger
 )
@@ -195,11 +195,11 @@ func MongoDBConnectionAttr(status string, duration time.Duration, err error) slo
 		slog.Duration("duration", duration),
 		slog.String("database", "MongoDB"),
 	}
-	
+
 	if err != nil {
 		attrs = append(attrs, slog.String("error", err.Error()))
 	}
-	
+
 	return slog.Group("mongodb", attrs...)
 }
 
@@ -258,11 +258,11 @@ func LogHealthCheck(ctx context.Context, service, status string, duration time.D
 		slog.String("status", status),
 		slog.Duration("duration", duration),
 	)
-	
+
 	for k, v := range details {
 		attrs = append(attrs, slog.Any(k, v))
 	}
-	
+
 	Info(ctx, "فحص صحة الخدمة", attrs...)
 }
 

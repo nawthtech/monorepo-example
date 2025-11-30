@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/nawthtech/backend/api/v1/routes"
 	v1shared "github.com/nawthtech/nawthtech/backend/api/v1"
+	"github.com/nawthtech/nawthtech/backend/api/v1/routes"
 	"github.com/nawthtech/nawthtech/backend/internal/cloudflare"
 	"github.com/nawthtech/nawthtech/backend/internal/cloudinary"
 	"github.com/nawthtech/nawthtech/backend/internal/config"
@@ -26,9 +26,9 @@ import (
 func Run() error {
 	// تحميل الإعدادات
 	cfg := config.Load()
-	
+
 	// تسجيل بدء التشغيل
-	logger.Stdout.Info("🚀 بدء تشغيل خادم نوذ تك", 
+	logger.Stdout.Info("🚀 بدء تشغيل خادم نوذ تك",
 		"environment", cfg.Environment,
 		"version", cfg.Version,
 		"port", cfg.Port,
@@ -108,14 +108,14 @@ func initGinApp(cfg *config.Config) *gin.Engine {
 
 	// إعدادات Gin الأساسية
 	app.ForwardedByClientIP = true
-	
+
 	// تعيين الوكائل الموثوق بها بناءً على البيئة
 	if cfg.IsProduction() {
 		app.SetTrustedProxies([]string{
 			"127.0.0.1",
 			"::1",
 			"10.0.0.0/8",
-			"172.16.0.0/12", 
+			"172.16.0.0/12",
 			"192.168.0.0/16",
 		})
 	} else {
@@ -172,9 +172,9 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 
 // registerAllRoutes تسجيل جميع المسارات
 func registerAllRoutes(
-	app *gin.Engine, 
-	serviceContainer *services.ServiceContainer, 
-	cfg *config.Config, 
+	app *gin.Engine,
+	serviceContainer *services.ServiceContainer,
+	cfg *config.Config,
 	mongoService *mongodb.MongoDBService,
 	cloudinaryService *cloudinary.CloudinaryService,
 	cloudflareService *cloudflare.CloudflareConfig,
@@ -251,13 +251,13 @@ func registerHealthRoutes(
 		emailStatus := email.HealthCheck()
 
 		response := gin.H{
-			"status":    "healthy",
-			"timestamp": time.Now().UTC(),
-			"version":   cfg.Version,
+			"status":      "healthy",
+			"timestamp":   time.Now().UTC(),
+			"version":     cfg.Version,
 			"environment": cfg.Environment,
 			"services": gin.H{
 				"mongodb": gin.H{
-					"status": mongoStatus["status"],
+					"status":   mongoStatus["status"],
 					"database": mongoService.Config.DatabaseName,
 				},
 				"cloudinary": gin.H{
@@ -314,17 +314,17 @@ func registerGeneralRoutes(app *gin.Engine, cfg *config.Config) {
 	// ✅ مسار الصفحة الرئيسية
 	app.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message":        "مرحباً بك في نوذ تك - منصة الخدمات الإلكترونية",
-			"version":        cfg.Version,
-			"environment":    cfg.Environment,
-			"timestamp":      time.Now().UTC(),
-			"documentation":  "/api/v1/docs",
-			"health_check":   "/health",
+			"message":       "مرحباً بك في نوذ تك - منصة الخدمات الإلكترونية",
+			"version":       cfg.Version,
+			"environment":   cfg.Environment,
+			"timestamp":     time.Now().UTC(),
+			"documentation": "/api/v1/docs",
+			"health_check":  "/health",
 			"services": gin.H{
 				"database":       "MongoDB",
 				"upload_service": "Cloudinary",
-				"cdn":           "Cloudflare",
-				"email":         "Office 365",
+				"cdn":            "Cloudflare",
+				"email":          "Office 365",
 			},
 		})
 	})
@@ -338,8 +338,8 @@ func registerGeneralRoutes(app *gin.Engine, cfg *config.Config) {
 			"status":      "running",
 			"timestamp":   time.Now().UTC(),
 			"endpoints": gin.H{
-				"api_v1":       "/api/v1",
-				"health":       "/health",
+				"api_v1":        "/api/v1",
+				"health":        "/health",
 				"documentation": "/api/v1/docs",
 			},
 			"features": []string{
@@ -381,7 +381,7 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 			"services", []string{
 				"MongoDB",
 				"Cloudinary",
-				"Cloudflare", 
+				"Cloudflare",
 				"Office 365",
 			},
 			"read_timeout", "30s",
@@ -397,7 +397,7 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 
 	// انتظار إشارة الإغلاق
 	sig := <-sigChan
-	logger.Stdout.Info("🛑 استلام إشارة إغلاق", 
+	logger.Stdout.Info("🛑 استلام إشارة إغلاق",
 		"signal", sig.String(),
 	)
 
@@ -417,7 +417,7 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 	logger.Stdout.Info("✅ تم إيقاف الخادم بنجاح",
 		"duration", "أنيق",
 	)
-	
+
 	return nil
 }
 

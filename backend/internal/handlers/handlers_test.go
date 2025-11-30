@@ -7,7 +7,7 @@ import (
 func TestHandlerCreation(t *testing.T) {
 	// Test basic handler creation
 	// This is a smoke test to ensure interfaces are properly implemented
-	
+
 	// Test that we can create handlers without panicking
 	_ = NewAuthHandler(nil)
 	_ = NewUserHandler(nil)
