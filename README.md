@@ -178,7 +178,7 @@ Website: www.nawthtech.com
 Instagram: @nawthtech
 Twitter: @nawthtech
 LinkedIn: NawthTech
-</div>
+
 <div align="center">
 
 Start Your Smart Digital
@@ -186,7 +186,7 @@ Growth Journey
 We're here to help you achieve your digital
 goals and turn ideas into reality
 <img src="/assets/logo.png"
-alt="NawthTech Logo" width="150" /›
+alt="NawthTech Logo" width="150" />
 Thank you for choosing NawthTech as your digital growth partner
 +
 </div>
