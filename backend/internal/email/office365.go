@@ -252,11 +252,6 @@ func LoadTemplate(templateName string, data interface{}) (string, string, error)
 		return "", "", fmt.Errorf("فشل في تحميل قالب HTML: %v", err)
 	}
 
-	// تحميل النص العادي
-	textBody, err := loadTemplateFile(textPath, data)
-	if err != nil {
-		textBody = "" // النص العادي اختياري
-	}
 
 	return subject, htmlBody, nil
 }
