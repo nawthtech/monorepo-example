@@ -724,7 +724,6 @@ func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreat
 		IsActive:    true,
 		IsFeatured:  false,
 		Rating:      0,
-		ReviewCount: 0,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
