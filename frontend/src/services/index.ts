@@ -1,13 +1,21 @@
 /**
- * Services Export - Simple index file
+ * Services Module - Main Export File
  */
 
-// Export everything from api
-export * from './api';
+// Export API
+export { api, apiHelpers } from './api';
+export type { 
+  ApiResponse, 
+  ErrorResponse, 
+  RequestConfig, 
+  PaginationParams,
+  UploadProgressEvent,
+  UploadProgressCallback 
+} from './api';
 
-// Export admin API
+// Export Admin API
 export { adminAPI, adminHelpers } from './admin';
+export type * from './admin';
 
-// Default exports
-export { api } from './api';
-export { default as adminAPI } from './admin';
+// Re-export everything for convenience
+export * from './api';
