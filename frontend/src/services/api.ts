@@ -305,10 +305,12 @@ class APIClient {
     }
 
     // Apply request interceptor if exists
-    let finalConfig = { ...requestConfig };
-    if (this.requestInterceptor) {
-      finalConfig = this.requestInterceptor(finalConfig);
-    }
+    let finalConfig: RequestInit = { ...requestConfig };
+if (this. requestInterceptor) {
+const interceptorResult =
+this.requestInterceptor(finalConfig as RequestConfig) ;
+finalConfig = interceptorResult as RequestInit;
+}
 
     // Create abort controller for timeout
     const controller = new AbortController();
