@@ -5,14 +5,13 @@ import {
   LogIn, 
   Mail, 
   Lock, 
-  AlertCircle,
-  User,
-  Smartphone
+  AlertCircle
+  // إزالة User و Smartphone لأنهم غير مستخدمين
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
-import { settings, getApiEndpoint } from '../../config';
-import { isFeatureEnabled } from '../../config/settings';
+import { settings, isFeatureEnabled } from '../../config';
+// إزالة getApiEndpoint لأنه غير مستخدم
 import './AuthForms.css';
 
 // Types
@@ -190,7 +189,7 @@ const LoginForm: React.FC = () => {
       // Redirect to OAuth provider
       window.location.href = response.data.url;
       
-    } catch (error) {
+    } catch (error: any) {
       setErrors({ 
         submit: `تعذر الاتصال بخدمة ${provider}. يرجى المحاولة لاحقاً` 
       });
@@ -216,11 +215,14 @@ const LoginForm: React.FC = () => {
 
       handleLoginSuccess(response);
       
-    } catch (error) {
+    } catch (error: any) {
       setErrors({ submit: 'تعذر تسجيل الدخول التجريبي' });
       setLoading(false);
     }
   };
+
+  // حل مشكلة social platforms
+  const socialPlatforms = settings.social.platforms as any;
 
   return (
     <div className="auth-form-container">
@@ -232,8 +234,8 @@ const LoginForm: React.FC = () => {
           <img 
             src="/assets/logo.png" 
             alt={settings.app.name} 
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/assets/logo-default.png';
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+              e.currentTarget.src = '/assets/logo-default.png';
             }}
           />
           <h2>{settings.app.name}</h2>
@@ -321,7 +323,7 @@ const LoginForm: React.FC = () => {
           <Link 
             to="/auth/forgot-password" 
             className="forgot-password"
-            onClick={(e) => loading && e.preventDefault()}
+            onClick={(e: React.MouseEvent) => loading && e.preventDefault()}
           >
             نسيت كلمة المرور؟
           </Link>
@@ -349,7 +351,7 @@ const LoginForm: React.FC = () => {
             </div>
 
             <div className="social-login">
-              {settings.social.platforms.google?.enabled && (
+              {socialPlatforms.google?.enabled && (
                 <button 
                   type="button" 
                   className="social-button google"
@@ -359,15 +361,15 @@ const LoginForm: React.FC = () => {
                   <img 
                     src="/assets/icons/google.svg" 
                     alt="Google"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/assets/icons/default.svg';
+                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                      e.currentTarget.src = '/assets/icons/default.svg';
                     }}
                   />
                   متابعة مع جوجل
                 </button>
               )}
 
-              {settings.social.platforms.apple?.enabled && (
+              {socialPlatforms.apple?.enabled && (
                 <button 
                   type="button" 
                   className="social-button apple"
@@ -377,8 +379,8 @@ const LoginForm: React.FC = () => {
                   <img 
                     src="/assets/icons/apple.svg" 
                     alt="Apple"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/assets/icons/default.svg';
+                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                      e.currentTarget.src = '/assets/icons/default.svg';
                     }}
                   />
                   متابعة مع آبل
@@ -394,7 +396,7 @@ const LoginForm: React.FC = () => {
             <Link 
               to="/auth/register" 
               className="auth-link"
-              onClick={(e) => loading && e.preventDefault()}
+              onClick={(e: React.MouseEvent) => loading && e.preventDefault()}
             >
               إنشاء حساب جديد
             </Link>
