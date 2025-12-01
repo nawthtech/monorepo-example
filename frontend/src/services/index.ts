@@ -1,14 +1,13 @@
 /**
- * Services Export
+ * Services Export - Simple index file
  */
 
-// Export API
-export { api, apiHelpers } from './api';
-export type { PaginationParams } from './api';
+// Export everything from api
+export * from './api';
 
-// Export Admin API
+// Export admin API
 export { adminAPI, adminHelpers } from './admin';
-export type * from './admin';
 
-// Export Types
-export type { ApiResponse, ErrorResponse, RequestConfig } from './types';
+// Default exports
+export { api } from './api';
+export { default as adminAPI } from './admin';
