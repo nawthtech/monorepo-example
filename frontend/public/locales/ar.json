@@ -1,0 +1,19 @@
+{
+  "ai": {
+    "title": "استوديو الذكاء الاصطناعي",
+    "subtitle": "منصة النمو الرقمي المتكاملة",
+    "content_generation": "توليد المحتوى",
+    "media_generation": "توليد الوسائط",
+    "analysis": "التحليلات",
+    "strategy": "التخطيط",
+    "generate": "توليد",
+    "save": "حفظ",
+    "export": "تصدير",
+    "copy": "نسخ",
+    "clear": "مسح",
+    "history": "السجل",
+    "usage": "الاستخدام",
+    "models": "النماذج",
+    "settings": "الإعدادات"
+  }
+}
