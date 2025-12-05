@@ -52,7 +52,7 @@ class AIService {
     });
     
     // إضافة interceptor للـ JWT token
-    this.axiosInstance.interceptors.request.use((config) => {
+    this.axiosInstance.interceptors.request.use((config: AxiosRequestConfig)) => {
       const token = localStorage.getItem('access_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
