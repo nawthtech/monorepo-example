@@ -1,8 +1,8 @@
-import & useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { aiService, type AIRequest, type AIResponse } from '../services/api'; 
-import { contentService } from '../ services/content';
-import { analysisService } from'../ services/analysis';
-import { mediaService } from '../ services/media';
+import { contentService } from '../services/content';
+import { analysisService } from '../services/analysis';
+import { mediaService } from '../services/media';
 
 interface UseAIOptions {
   onSuccess?: (data: any) => void;
@@ -11,15 +11,15 @@ interface UseAIOptions {
 }
 
 export const useAI = (options: UseAIOptions = {}) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState<number>(0);
   
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // توليد محتوى نصي عام
-  const generateContent = useCallback(async (request: AIRequest) => {
+  const generateContent = useCallback(async (request: AIRequest): Promise<AIResponse> => {
     setLoading(true);
     setError(null);
     setProgress(0);
@@ -56,8 +56,13 @@ export const useAI = (options: UseAIOptions = {}) => {
   }, [options]);
   
   // توليد مقال
-  const generateBlogPost = useCallback(async (topic: string, language: string = 'ar') => {
-    return await contentService.generateBlogPost(topic, { language });
+  const generateBlogPost = useCallback(async (topic: string, language: string = 'ar'): Promise<any> => {
+    try {
+      return await contentService.generateBlogPost(topic, { language });
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
   }, []);
   
   // توليد منشور وسائط اجتماعية
@@ -65,17 +70,27 @@ export const useAI = (options: UseAIOptions = {}) => {
     platform: 'twitter' | 'linkedin' | 'instagram' | 'facebook',
     topic: string,
     language: string = 'ar'
-  ) => {
-    return await contentService.generateSocialMediaPost(platform, topic, { language });
+  ): Promise<any> => {
+    try {
+      return await contentService.generateSocialMediaPost(platform, topic, { language });
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
   }, []);
   
   // تحليل اتجاهات السوق
-  const analyzeMarketTrends = useCallback(async (industry: string, timeframe: string) => {
-    return await analysisService.analyzeMarketTrends(industry, timeframe);
+  const analyzeMarketTrends = useCallback(async (industry: string, timeframe: string): Promise<any> => {
+    try {
+      return await analysisService.analyzeMarketTrends(industry, timeframe);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
   }, []);
   
   // توليد صورة
-  const generateImage = useCallback(async (prompt: string, style: string = 'realistic') => {
+  const generateImage = useCallback(async (prompt: string, style: string = 'realistic'): Promise<any> => {
     setLoading(true);
     setError(null);
     
@@ -112,7 +127,7 @@ export const useAI = (options: UseAIOptions = {}) => {
   }, []);
   
   // الحصول على النماذج المتاحة
-  const getAvailableModels = useCallback(async () => {
+  const getAvailableModels = useCallback(async (): Promise<any> => {
     try {
       return await aiService.getAvailableModels();
     } catch (err: any) {
@@ -122,7 +137,7 @@ export const useAI = (options: UseAIOptions = {}) => {
   }, []);
   
   // الحصول على الاستخدام
-  const getUsage = useCallback(async () => {
+  const getUsage = useCallback(async (): Promise<any> => {
     try {
       return await aiService.getUsage();
     } catch (err: any) {
