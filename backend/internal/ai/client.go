@@ -99,4 +99,69 @@ func (c *Client) GetTextProvider(name string) providers.TextProvider {
     return c.textProviders[name]
 }
 
-// دوال مشابهة للصور والفيديو...
+package ai
+
+import (
+    "fmt"
+    "os"
+    "sync"
+)
+
+// Client عميل AI محدث
+type Client struct {
+    providers    map[string]Provider
+    videoService *VideoService
+    mu           sync.RWMutex
+}
+
+// NewClient إنشاء عميل AI جديد مع دعم الفيديوهات
+func NewClient() (*Client, error) {
+    c := &Client{
+        providers: make(map[string]Provider),
+    }
+    
+    // إضافة مزود Gemini للنصوص والصور
+    gemini, err := NewGeminiProvider()
+    if err == nil {
+        c.providers["gemini"] = gemini
+        fmt.Println("✅ Gemini provider initialized")
+    }
+    
+    // إضافة مزود خاص للفيديوهات
+    videoProvider, err := NewVideoProvider()
+    if err == nil {
+        c.providers["video"] = videoProvider
+        fmt.Println("✅ Video provider initialized")
+    } else {
+        fmt.Printf("⚠️ Video provider unavailable: %v\n", err)
+    }
+    
+    // إنشاء VideoService
+    c.videoService = NewVideoService(videoProvider)
+    
+    if len(c.providers) == 0 {
+        return nil, fmt.Errorf("no AI providers available")
+    }
+    
+    return c, nil
+}
+
+// GenerateVideo توليد فيديو
+func (c *Client) GenerateVideo(req VideoRequest) (*VideoResponse, error) {
+    c.mu.RLock()
+    defer c.mu.RUnlock()
+    
+    if videoProvider, ok := c.providers["video"]; ok && videoProvider.IsAvailable() {
+        return videoProvider.GenerateVideo(req)
+    }
+    
+    return nil, fmt.Errorf("video generation not available")
+}
+
+// GetVideoStatus الحصول على حالة فيديو
+func (c *Client) GetVideoStatus(operationID string) (*VideoResponse, error) {
+    if c.videoService != nil {
+        return c.videoService.GetStatus(operationID)
+    }
+    return nil, fmt.Errorf("video service not available")
+}
