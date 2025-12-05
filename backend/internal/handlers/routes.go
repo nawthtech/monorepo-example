@@ -7,7 +7,7 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
-	"github.com/nawthtech/nawthtech/backend/internal/ai
+	"github.com/nawthtech/nawthtech/backend/internal/ai"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
