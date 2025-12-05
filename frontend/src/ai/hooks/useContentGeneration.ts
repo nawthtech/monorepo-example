@@ -6,7 +6,7 @@ interface UseContentGenerationOptions {
   saveInterval?: number;
 }
 
-export const useContentGeneration = (options: UseContentGenerationOptions = {}) => {
+export const UseContentGenerationOptions = () => {
   const [generatedContent, setGeneratedContent] = useState<string>('');
   const [history, setHistory] = useState<Array<{
     id: string;
