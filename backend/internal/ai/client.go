@@ -99,14 +99,6 @@ func (c *Client) GetTextProvider(name string) providers.TextProvider {
     return c.textProviders[name]
 }
 
-package ai
-
-import (
-    "fmt"
-    "os"
-    "sync"
-)
-
 // Client عميل AI محدث
 type Client struct {
     providers    map[string]Provider
