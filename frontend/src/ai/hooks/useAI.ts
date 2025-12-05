@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { aiService, AIRequest, AIResponse } from '../services/api';
-import { contentService } from '../services/content';
+import { contentService, type ContentGenerationOptions } from '../ services/content';
 import { analysisService } from '../services/analysis';
 import { mediaService } from '../services/media';
 
