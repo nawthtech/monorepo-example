@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { aiService } from '../ai/services/api';
 import { AIModel, AIUsage, ContentHistoryItem, MediaItem } from '../ai/types/ai';
 
