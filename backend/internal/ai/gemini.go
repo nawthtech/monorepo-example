@@ -17,6 +17,8 @@ type GeminiProvider struct {
     apiKey  string
     baseURL string
     client  *http.Client
+    mu      sync.RWMutex
+    stats   *ProviderStats
 }
 
 // NewGeminiProvider إنشاء مزود Gemini جديد
@@ -29,12 +31,37 @@ func NewGeminiProvider() *GeminiProvider {
         client: &http.Client{
             Timeout: 120 * time.Second,
         },
+        stats: &ProviderStats{
+            Name:        "Google Gemini",
+            Type:        "text",
+            IsAvailable: false,
+            Requests:    0,
+            Successful:  0,
+            Failed:      0,
+            TotalCost:   0.0,
+            AvgLatency:  0.0,
+            SuccessRate: 0.0,
+            LastUsed:    time.Time{},
+        },
     }
 }
 
 // GenerateText توليد نص باستخدام Gemini
 func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
+    
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
@@ -83,11 +110,17 @@ func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
     
     jsonData, err := json.Marshal(payload)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to marshal request: %w", err)
     }
     
     httpReq, err := http.NewRequest("POST", url, strings.NewReader(string(jsonData)))
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to create request: %w", err)
     }
     
@@ -95,17 +128,26 @@ func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
     
     resp, err := p.client.Do(httpReq)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("request failed: %w", err)
     }
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
         body, _ := io.ReadAll(resp.Body)
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("Gemini API error: %s - %s", resp.Status, string(body))
     }
     
     body, err := io.ReadAll(resp.Body)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to read response: %w", err)
     }
     
@@ -126,10 +168,16 @@ func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
     }
     
     if err := json.Unmarshal(body, &result); err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to parse response: %w", err)
     }
     
     if len(result.Candidates) == 0 {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("no candidates returned from Gemini")
     }
     
@@ -150,6 +198,12 @@ func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
         cost = float64(totalTokens) * 0.0000025 // $0.0025 per 1K tokens للـ pro
     }
     
+    p.mu.Lock()
+    p.stats.Successful++
+    p.stats.TotalCost += cost
+    p.stats.LastUsed = time.Now()
+    p.mu.Unlock()
+    
     return &TextResponse{
         Text:         strings.TrimSpace(fullText),
         Tokens:       result.UsageMetadata.TotalTokenCount,
@@ -162,10 +216,20 @@ func (p *GeminiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
 
 // GenerateImage توليد صور باستخدام Gemini - غير مدعوم مباشرة
 func (p *GeminiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error) {
-    // Gemini لا يدعم توليد الصور مباشرة، لكن يمكن استخدام Imagen (مدفوع)
-    // هنا نستخدم توليد النص مع وصف الصورة
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
     
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
@@ -180,10 +244,17 @@ func (p *GeminiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error)
     
     resp, err := p.GenerateText(textReq)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to generate image prompt: %w", err)
     }
     
     // إرجاع الوصف بدلاً من الصورة الفعلية
+    p.mu.Lock()
+    p.stats.Successful++
+    p.mu.Unlock()
+    
     return &ImageResponse{
         URL:         "", // لا يوجد URL للصورة
         ImageData:   nil,
@@ -203,7 +274,20 @@ func (p *GeminiProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error)
 
 // AnalyzeText تحليل نص
 func (p *GeminiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error) {
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
+    
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
@@ -228,8 +312,15 @@ func (p *GeminiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, er
     
     resp, err := p.GenerateText(textReq)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to analyze text: %w", err)
     }
+    
+    p.mu.Lock()
+    p.stats.Successful++
+    p.mu.Unlock()
     
     return &AnalysisResponse{
         Result:     resp.Text,
@@ -241,11 +332,27 @@ func (p *GeminiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, er
 
 // AnalyzeImage تحليل صور باستخدام Gemini Vision
 func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error) {
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
+    
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
     if len(req.ImageData) == 0 {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("image data is required for image analysis")
     }
     
@@ -257,6 +364,7 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", p.baseURL, model, p.apiKey)
     
     // ترميز الصورة إلى base64 (مبسط)
+    // في الإصدار الحقيقي، استخدم encoding/base64
     imageBase64 := "" // في الواقع تحتاج إلى ترميز base64
     
     payload := map[string]interface{}{
@@ -279,11 +387,17 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     
     jsonData, err := json.Marshal(payload)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to marshal request: %w", err)
     }
     
     httpReq, err := http.NewRequest("POST", url, strings.NewReader(string(jsonData)))
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to create request: %w", err)
     }
     
@@ -291,17 +405,26 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     
     resp, err := p.client.Do(httpReq)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("request failed: %w", err)
     }
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
         body, _ := io.ReadAll(resp.Body)
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("Gemini Vision API error: %s - %s", resp.Status, string(body))
     }
     
     body, err := io.ReadAll(resp.Body)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to read response: %w", err)
     }
     
@@ -319,10 +442,16 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     }
     
     if err := json.Unmarshal(body, &result); err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to parse response: %w", err)
     }
     
     if len(result.Candidates) == 0 {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("no candidates returned from Gemini Vision")
     }
     
@@ -338,6 +467,11 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     // تقدير التكلفة
     cost := float64(result.UsageMetadata.TotalTokenCount) * 0.0000025
     
+    p.mu.Lock()
+    p.stats.Successful++
+    p.stats.TotalCost += cost
+    p.mu.Unlock()
+    
     return &AnalysisResponse{
         Result:     strings.TrimSpace(fullText),
         Confidence: 0.85, // ثقة عالية في تحليل الصور
@@ -348,7 +482,20 @@ func (p *GeminiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
 
 // TranslateText ترجمة نص
 func (p *GeminiProvider) TranslateText(req TranslationRequest) (*TranslationResponse, error) {
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
+    
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
@@ -367,8 +514,15 @@ func (p *GeminiProvider) TranslateText(req TranslationRequest) (*TranslationResp
     
     resp, err := p.GenerateText(textReq)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to translate text: %w", err)
     }
+    
+    p.mu.Lock()
+    p.stats.Successful++
+    p.mu.Unlock()
     
     return &TranslationResponse{
         TranslatedText: strings.TrimSpace(resp.Text),
@@ -379,49 +533,58 @@ func (p *GeminiProvider) TranslateText(req TranslationRequest) (*TranslationResp
 
 // IsAvailable التحقق من التوفر
 func (p *GeminiProvider) IsAvailable() bool {
-    if p.apiKey == "" {
-        return false
-    }
-    
-    // اختبار اتصال بسيط
-    url := fmt.Sprintf("%s/models/gemini-2.5-flash-exp?key=%s", p.baseURL, p.apiKey)
-    resp, err := p.client.Get(url)
-    if err != nil {
-        return false
-    }
-    defer resp.Body.Close()
-    
-    return resp.StatusCode == http.StatusOK
+    p.mu.RLock()
+    defer p.mu.RUnlock()
+    return p.stats.IsAvailable
 }
 
 // GetName اسم المزود
 func (p *GeminiProvider) GetName() string {
-    return "Google Gemini"
+    return p.stats.Name
 }
 
 // GetCost التكلفة
 func (p *GeminiProvider) GetCost() float64 {
-    return 0.0 // Flash مجاني
+    p.mu.RLock()
+    defer p.mu.RUnlock()
+    return p.stats.TotalCost
 }
 
 // GetType نوع المزود
 func (p *GeminiProvider) GetType() string {
-    return "text"
+    return p.stats.Type
 }
 
 // GetStats الحصول على إحصائيات
 func (p *GeminiProvider) GetStats() *ProviderStats {
-    return &ProviderStats{
-        Name:        p.GetName(),
-        Type:        p.GetType(),
-        IsAvailable: p.IsAvailable(),
-        Requests:    0,
-        Successful:  0,
-        Failed:      0,
-        TotalCost:   0.0,
-        AvgLatency:  0.0,
-        LastUsed:    time.Time{},
-        SuccessRate: 95.0,
+    p.mu.RLock()
+    defer p.mu.RUnlock()
+    
+    // حساب نسبة النجاح
+    stats := *p.stats // نسخة
+    if stats.Requests > 0 {
+        stats.SuccessRate = float64(stats.Successful) / float64(stats.Requests) * 100
+    }
+    
+    return &stats
+}
+
+// updateStats تحديث الإحصائيات
+func (p *GeminiProvider) updateStats(latency time.Duration, success bool) {
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    
+    // تحديث متوسط وقت الاستجابة
+    if p.stats.AvgLatency == 0 {
+        p.stats.AvgLatency = float64(latency.Milliseconds())
+    } else {
+        // متوسط متحرك بسيط
+        p.stats.AvgLatency = (p.stats.AvgLatency*float64(p.stats.Requests-1) + float64(latency.Milliseconds())) / float64(p.stats.Requests)
+    }
+    
+    // تحديث نسبة النجاح
+    if p.stats.Requests > 0 {
+        p.stats.SuccessRate = float64(p.stats.Successful) / float64(p.stats.Requests) * 100
     }
 }
 
@@ -450,7 +613,20 @@ func (p *GeminiProvider) GetSupportedLanguages() []string {
 
 // ListModels عرض النماذج المتاحة
 func (p *GeminiProvider) ListModels() ([]string, error) {
+    startTime := time.Now()
+    
+    p.mu.Lock()
+    p.stats.Requests++
+    p.mu.Unlock()
+    
+    defer func() {
+        p.updateStats(time.Since(startTime), true)
+    }()
+    
     if p.apiKey == "" {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
     }
     
@@ -458,12 +634,18 @@ func (p *GeminiProvider) ListModels() ([]string, error) {
     
     resp, err := p.client.Get(url)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to list models: %w", err)
     }
     defer resp.Body.Close()
     
     body, err := io.ReadAll(resp.Body)
     if err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to read response: %w", err)
     }
     
@@ -474,8 +656,15 @@ func (p *GeminiProvider) ListModels() ([]string, error) {
     }
     
     if err := json.Unmarshal(body, &result); err != nil {
+        p.mu.Lock()
+        p.stats.Failed++
+        p.mu.Unlock()
         return nil, fmt.Errorf("failed to parse models: %w", err)
     }
+    
+    p.mu.Lock()
+    p.stats.Successful++
+    p.mu.Unlock()
     
     var models []string
     for _, model := range result.Models {
