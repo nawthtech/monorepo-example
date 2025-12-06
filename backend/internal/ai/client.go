@@ -5,6 +5,7 @@ import (
     "log"
     "os"
     "sync"
+    "time"
 )
 
 // Client عميل AI متكامل
@@ -223,7 +224,7 @@ func (c *Client) GenerateImageWithOptions(req ImageRequest) (*ImageResponse, err
                         Cost:       resp.Cost,
                         Quantity:   1,
                         Success:    true,
-                        Timestamp:  resp.CreatedAt,
+                        Timestamp:  time.Now(),
                     }
                     c.costManager.RecordUsage(record)
                 }
