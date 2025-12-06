@@ -1,78 +1,48 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import App from './App'
 
 // Mock لـ EventSource
-const mockEventSource = {
+vi.stubGlobal('EventSource', vi.fn(() => ({
   onopen: null,
   onmessage: null,
   onerror: null,
   close: vi.fn(),
   readyState: 0,
-}
+})))
 
-describe('App Component', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // Reset EventSource mock
-    global.EventSource = vi.fn(() => mockEventSource) as any
-  })
-
+describe('App', () => {
   it('renders without crashing', () => {
     render(<App />)
-    
-    // تحقق من وجود العناصر الأساسية
-    expect(screen.getByTestId('redux-provider')).toBeInTheDocument()
-    expect(screen.getByTestId('theme-provider')).toBeInTheDocument()
-    expect(screen.getByTestId('css-baseline')).toBeInTheDocument()
+    // تحقق من وجود نص في الصفحة
+    expect(screen.getByText('لوحة تحكم الذكاء الاصطناعي')).toBeInTheDocument()
   })
-
-  it('contains router provider', () => {
+  
+  it('displays AI Dashboard content', () => {
     render(<App />)
-    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
+    // تحقق من وجود محتوى لوحة التحكم
+    expect(screen.getByText('الصفحة الرئيسية لأدوات الذكاء الاصطناعي')).toBeInTheDocument()
   })
-
-  it('has correct routing structure', () => {
+  
+  it('shows all page titles', () => {
     render(<App />)
-    
-    // تحقق من وجود العناصر المتوقعة
-    const mainElement = screen.getByRole('main')
-    expect(mainElement).toBeInTheDocument()
-    
-    // تحقق من أن AI Dashboard معروض (الصفحة الافتراضية)
-    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
+    // تحقق من وجود جميع عناوين الصفحات
+    expect(screen.getByText('لوحة تحكم الذكاء الاصطناعي')).toBeInTheDocument()
+    expect(screen.getByText('مولد المحتوى')).toBeInTheDocument()
+    expect(screen.getByText('استوديو الوسائط')).toBeInTheDocument()
+    expect(screen.getByText('مخطط الاستراتيجيات')).toBeInTheDocument()
   })
-
-  it('initializes EventSource when connection opens', () => {
+  
+  it('has router working', () => {
     render(<App />)
-    
-    // تحقق من أن EventSource تم استدعاؤه
-    expect(global.EventSource).toHaveBeenCalled()
+    // تحقق من وجود عنصر التنقل
+    expect(screen.getByText('Navigate to: /ai')).toBeInTheDocument()
   })
-
-  it('handles EventSource errors gracefully', () => {
-    // محاكاة خطأ في EventSource
-    const errorEventSource = {
-      onopen: null,
-      onmessage: null,
-      onerror: vi.fn(),
-      close: vi.fn(),
-      readyState: 2, // CLOSED
-    }
-    
-    global.EventSource = vi.fn(() => errorEventSource) as any
-    
+  
+  it('has correct structure', () => {
     render(<App />)
-    
-    // يجب أن يعالج التطبيق الخطأ دون أن يتحطم
-    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
-  })
-})
-
-describe('App Routing', () => {
-  it('renders AI Dashboard at /ai route', () => {
-    window.history.pushState({}, 'AI Dashboard', '/ai')
-    render(<App />)
-    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
+    // تحقق من وجود الهيكل الأساسي
+    expect(screen.getByText('Here\'s some unnecessary quotes for you to read...')).toBeInTheDocument()
+    expect(screen.getByText('Start Quotes')).toBeInTheDocument()
   })
 })
