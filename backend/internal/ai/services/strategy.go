@@ -1,10 +1,16 @@
 package services
 
+import (
+	"context"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/types"
+)
+package services
+
 type StrategyService struct {
-    textProvider TextProvider
+    textProvider types.TextProvider
 }
 
-func NewStrategyService(provider TextProvider) *StrategyService {
+func NewStrategyService(provider types.TextProvider) *StrategyService {
     return &StrategyService{textProvider: provider}
 }
 

@@ -1,29 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { aiService, type AIRequest, type AIResponse } from '../services/api'; 
-import { contentService } from '../services/content';
-import { analysisService } from '../services/analysis';
-import { mediaService } from '../services/media';
 
-// تعريف أنواع اللغة
 type Language = 'ar' | 'en' | 'fr' | 'es';
 
 interface UseAIOptions {
   onSuccess?: (data: any) => void;
   onError?: (error: Error) => void;
   showNotifications?: boolean;
-}
-
-// تعريف أنواع الدوال المساعدة
-interface BlogPostOptions {
-  language?: Language;
-  length?: number;
-  tone?: string;
-}
-
-interface SocialMediaOptions {
-  language?: Language;
-  hashtags?: boolean;
-  emojis?: boolean;
 }
 
 export const useAI = (options: UseAIOptions = {}) => {
@@ -34,7 +17,6 @@ export const useAI = (options: UseAIOptions = {}) => {
   
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  // توليد محتوى نصي عام
   const generateContent = useCallback(async (request: AIRequest): Promise<AIResponse> => {
     setLoading(true);
     setError(null);
@@ -43,7 +25,6 @@ export const useAI = (options: UseAIOptions = {}) => {
     abortControllerRef.current = new AbortController();
     
     try {
-      // محاكاة التقدم
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 500);
@@ -71,31 +52,19 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, [options]);
   
-  // توليد مقال
-  const generateBlogPost = useCallback(async (
-    topic: string, 
-    options: BlogPostOptions = {}
-  ): Promise<any> => {
-    const { language = 'ar', length = 500, tone = 'professional' } = options;
-    
+  const generateBlogPost = useCallback(async (topic: string, language: string = 'ar'): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
-      // تحويل language إلى النوع الصحيح
-      const lang = language as Language;
-      const result = await contentService.generateBlogPost(topic, { 
-        language: lang, 
-        length, 
-        tone 
-      });
+      const request: AIRequest = {
+        prompt: `Write a blog post about: ${topic}`,
+        model: 'blog-writer',
+        options: { language }
+      };
       
-      setResult(result);
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
+      const response = await generateContent(request);
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to generate blog post');
       if (options.onError) {
@@ -105,34 +74,25 @@ export const useAI = (options: UseAIOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [options.onSuccess, options.onError]);
+  }, [generateContent, options.onError]);
   
-  // توليد منشور وسائط اجتماعية
   const generateSocialMediaPost = useCallback(async (
     platform: 'twitter' | 'linkedin' | 'instagram' | 'facebook',
     topic: string,
-    options: SocialMediaOptions = {}
+    language: string = 'ar'
   ): Promise<any> => {
-    const { language = 'ar', hashtags = true, emojis = true } = options;
-    
     setLoading(true);
     setError(null);
     
     try {
-      // تحويل language إلى النوع الصحيح
-      const lang = language as Language;
-      const result = await contentService.generateSocialMediaPost(platform, topic, { 
-        language: lang, 
-        hashtags, 
-        emojis 
-      });
+      const request: AIRequest = {
+        prompt: `Write a ${platform} post about: ${topic}`,
+        model: 'social-media',
+        options: { language }
+      };
       
-      setResult(result);
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
+      const response = await generateContent(request);
+      return response;
     } catch (err: any) {
       setError(err.message || `Failed to generate ${platform} post`);
       if (options.onError) {
@@ -142,25 +102,21 @@ export const useAI = (options: UseAIOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [options.onSuccess, options.onError]);
+  }, [generateContent, options.onError]);
   
-  // تحليل اتجاهات السوق
-  const analyzeMarketTrends = useCallback(async (
-    industry: string, 
-    timeframe: string
-  ): Promise<any> => {
+  const analyzeMarketTrends = useCallback(async (industry: string, timeframe: string): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
-      const result = await analysisService.analyzeMarketTrends(industry, timeframe);
+      const request: AIRequest = {
+        prompt: `Analyze market trends for ${industry} industry for ${timeframe}`,
+        model: 'analysis',
+        options: {}
+      };
       
-      setResult(result);
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
+      const response = await generateContent(request);
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to analyze market trends');
       if (options.onError) {
@@ -170,38 +126,32 @@ export const useAI = (options: UseAIOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [options.onSuccess, options.onError]);
+  }, [generateContent, options.onError]);
   
-  // توليد صورة
-  const generateImage = useCallback(async (
-    prompt: string, 
-    style: string = 'realistic',
-    options?: { aspectRatio?: string; size?: string }
-  ): Promise<any> => {
+  const generateImage = useCallback(async (prompt: string, style: string = 'realistic'): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
-      const result = await mediaService.generateSocialMediaImage('instagram', prompt, style, options);
-      setResult(result);
+      const request: AIRequest = {
+        prompt: `Generate an image: ${prompt} in ${style} style`,
+        model: 'image-generator',
+        options: { style }
+      };
       
-      if (options?.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
+      const response = await generateContent(request);
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to generate image');
-      if (options?.onError) {
+      if (options.onError) {
         options.onError(err);
       }
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [generateContent, options.onError]);
   
-  // إلغاء العملية الجارية
   const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -210,7 +160,6 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, []);
   
-  // إعادة التعيين
   const reset = useCallback(() => {
     setLoading(false);
     setError(null);
@@ -221,14 +170,13 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, []);
   
-  // الحصول على النماذج المتاحة
   const getAvailableModels = useCallback(async (): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
-      const result = await aiService.getAvailableModels();
-      return result;
+      const response = await aiService.getAvailableModels();
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to get available models');
       throw err;
@@ -237,14 +185,13 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, []);
   
-  // الحصول على الاستخدام
   const getUsage = useCallback(async (): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
-      const result = await aiService.getUsage();
-      return result;
+      const response = await aiService.getUsage();
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to get usage data');
       throw err;
@@ -253,49 +200,6 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, []);
   
-  // توليد نص مع نموذج ولغة محددة (لإصلاح الخطأ السابق)
-  const generateText = useCallback(async (
-    prompt: string, 
-    model?: string, 
-    language?: string
-  ): Promise<any> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // تحويل language إلى النوع الصحيح إذا كانت معطاة
-      const lang = language ? language as Language : undefined;
-      
-      // هنا يمكنك استدعاء خدمة النص المناسبة
-      const request: AIRequest = {
-        prompt,
-        type: 'text',
-        options: {
-          model,
-          language: lang,
-        }
-      };
-      
-      const result = await aiService.generateContent(request);
-      setResult(result);
-      
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate text');
-      if (options.onError) {
-        options.onError(err);
-      }
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [options.onSuccess, options.onError]);
-  
-  // ترجمة نص
   const translateText = useCallback(async (
     text: string,
     targetLanguage: Language,
@@ -305,18 +209,14 @@ export const useAI = (options: UseAIOptions = {}) => {
     setError(null);
     
     try {
-      // تحويل اللغات إلى النوع الصحيح
-      const targetLang = targetLanguage as Language;
-      const sourceLang = sourceLanguage as Language | undefined;
+      const request: AIRequest = {
+        prompt: `Translate: ${text}`,
+        model: 'translator',
+        options: { targetLanguage, sourceLanguage }
+      };
       
-      const result = await contentService.translateText(text, targetLang, sourceLang);
-      setResult(result);
-      
-      if (options.onSuccess) {
-        options.onSuccess(result);
-      }
-      
-      return result;
+      const response = await generateContent(request);
+      return response;
     } catch (err: any) {
       setError(err.message || 'Failed to translate text');
       if (options.onError) {
@@ -326,33 +226,22 @@ export const useAI = (options: UseAIOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [options.onSuccess, options.onError]);
+  }, [generateContent, options.onError]);
   
   return {
-    // State
     loading,
     error,
     result,
     progress,
-    
-    // Actions
     generateContent,
     generateBlogPost,
     generateSocialMediaPost,
     analyzeMarketTrends,
     generateImage,
-    generateText,
     translateText,
     getAvailableModels,
     getUsage,
-    
-    // Control
     cancel,
     reset,
-    
-    // Services
-    contentService,
-    analysisService,
-    mediaService,
   };
 };

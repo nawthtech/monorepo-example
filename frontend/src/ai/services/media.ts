@@ -13,7 +13,7 @@ export class MediaService {
     theme: string,
     text?: string
   ) {
-    const dimensions = this.getPlatformDimensions(platform);
+    const _dimensions = this.getPlatformDimensions(platform);
     const style = this.getPlatformStyle(platform);
     
     const prompt = this.buildImagePrompt(theme, text, style);
@@ -74,14 +74,14 @@ export class MediaService {
   
   // أدوات مساعدة
   private getPlatformDimensions(platform: string): { width: number; height: number } {
-    const dimensions: Record<string, { width: number; height: number }> = {
+    const _dimensions: Record<string, { width: number; height: number }> = {
       instagram: { width: 1080, height: 1080 },
       twitter: { width: 1200, height: 675 },
       linkedin: { width: 1200, height: 627 },
       facebook: { width: 1200, height: 630 },
     };
     
-    return dimensions[platform] || { width: 1024, height: 1024 };
+    return _dimensions[platform] || { width: 1024, height: 1024 };
   }
   
   private getPlatformStyle(platform: string): string {

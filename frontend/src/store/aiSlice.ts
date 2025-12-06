@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { aiService } from '../ai/services/api';
-import { AIModel, AIUsage, ContentHistoryItem, MediaItem } from '../ai/types/ai';
+import type { AIModel, AIUsage, ContentHistoryItem, MediaItem } from '../ai/types/ai';
 
 interface AIState {
   models: AIModel[];

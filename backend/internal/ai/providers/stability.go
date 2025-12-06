@@ -1,6 +1,11 @@
 package providers
 
 import (
+	"context"
+)
+package providers
+
+import (
     "bytes"
     "encoding/base64"
     "encoding/json"

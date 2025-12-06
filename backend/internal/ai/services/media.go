@@ -1,6 +1,12 @@
 package services
 
 import (
+	"context"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/types"
+)
+package services
+
+import (
     "bytes"
     "encoding/base64"
     "fmt"
@@ -10,11 +16,11 @@ import (
 )
 
 type MediaService struct {
-    imageProvider ImageProvider
-    videoProvider VideoProvider
+    imageProvider types.ImageProvider
+    videoProvider types.VideoProvider
 }
 
-func NewMediaService(imageProv ImageProvider, videoProv VideoProvider) *MediaService {
+func NewMediaService(imageProv types.ImageProvider, videoProv types.VideoProvider) *MediaService {
     return &MediaService{
         imageProvider: imageProv,
         videoProvider: videoProv,

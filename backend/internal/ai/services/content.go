@@ -1,15 +1,21 @@
 package services
 
 import (
+	"context"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/types"
+)
+package services
+
+import (
     "fmt"
     "strings"
 )
 
 type ContentService struct {
-    textProvider TextProvider
+    textProvider types.TextProvider
 }
 
-func NewContentService(provider TextProvider) *ContentService {
+func NewContentService(provider types.TextProvider) *ContentService {
     return &ContentService{textProvider: provider}
 }
 

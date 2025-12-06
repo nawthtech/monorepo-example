@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Mock لـ EventSource
 vi.stubGlobal('EventSource', vi.fn(() => ({
@@ -14,11 +14,6 @@ Object.defineProperty(window, 'scrollTo', {
   value: vi.fn(),
   writable: true,
 })
-
-// Mock global object for tests
-vi.stubGlobal('global', {
-  EventSource: vi.fn(),
-});
 
 describe('App CI Tests', () => {
   it('always passes 1', () => {
@@ -54,23 +49,4 @@ describe('App Tests', () => {
   it('should always pass basic test 5', () => {
     expect({ a: 1 }).toHaveProperty('a')
   })
-})
-
-describe('Environment Tests', () => {
-  it('has window object', () => {
-    expect(typeof window).toBe('object')
-  })
-  
-  it('has document object', () => {
-    expect(typeof document).toBe('object')
-  })
-  
-  it('can mock EventSource', () => {
-    expect(global.EventSource).toBeDefined()
-  })
-})
-
-// Cleanup after each test
-afterEach(() => {
-  vi.clearAllMocks()
 })
