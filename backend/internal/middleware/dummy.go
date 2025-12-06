@@ -37,10 +37,10 @@ func DummyLogger() gin.HandlerFunc {
 		
 		// تسجيل بسيط في وضع التطوير
 		duration := time.Since(start)
-		fmt.Printf("[Dummy Logger] %s %s - %s - %v\n",
+		fmt.Printf("[Dummy Logger] %s %s - %d - %v\n",
 			c.Request.Method,
 			c.Request.URL.Path,
-			c.Writer.Status(),
+			c.Writer.Status(), // تغيير %s إلى %d لأن Status() ترجع int
 			duration,
 		)
 	}
@@ -144,6 +144,7 @@ func DummySecurityHeaders() gin.HandlerFunc {
 // IsDummyMode التحقق إذا كان النظام يعمل في الوضع الوهمي
 func IsDummyMode() bool {
 	// يمكن تغيير هذا بناءً على متغير بيئة
+	// مثلاً: return os.Getenv("APP_ENV") == "development"
 	return true // مؤقتاً، نعتبر أننا في وضع التطوير
 }
 
@@ -306,6 +307,16 @@ func MockRateLimit(limit, remaining int) gin.HandlerFunc {
 	}
 }
 
+// ==================== دوال التوافق مع الكود القديم ====================
+
+// Logger دالة توافقية للكود القديم
+func Logger() gin.HandlerFunc {
+	if IsDummyMode() {
+		return DummyLogger()
+	}
+	// في الوضع الحقيقي، نستخدم الدالة من middleware.go
+	return DummyLogger() // مؤقتاً للتوافق
+}
 
 // ==================== وظائف المساعدة للوضع الوهمي ====================
 
@@ -342,11 +353,11 @@ func setupDummyRoutes(router *gin.Engine) {
 		userRole, _ := c.Get("userRole")
 		
 		c.JSON(200, gin.H{
-			"success":  true,
-			"message":  "Dummy auth test successful",
-			"user_id":  userID,
+			"success":   true,
+			"message":   "Dummy auth test successful",
+			"user_id":   userID,
 			"user_role": userRole,
-			"mode":     "dummy",
+			"mode":      "dummy",
 		})
 	})
 	
@@ -359,4 +370,73 @@ func setupDummyRoutes(router *gin.Engine) {
 			"mode":    "dummy",
 		})
 	})
+}
+
+// SimpleMiddleware وسيط بسيط للاستخدام العام
+func SimpleMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// تسجيل وقت البدء
+		start := time.Now()
+		
+		// إضافة رؤوس أمان بسيطة
+		c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+		c.Writer.Header().Set("X-Frame-Options", "DENY")
+		
+		// معالجة الطلب
+		c.Next()
+		
+		// تسجيل وقت الانتهاء
+		duration := time.Since(start)
+		c.Writer.Header().Set("X-Response-Time", duration.String())
+	}
+}
+
+// JSONMiddleware وسيط للتحقق من JSON
+func JSONMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// فقط للطلبات التي لديها جسم
+		if c.Request.ContentLength > 0 {
+			contentType := c.GetHeader("Content-Type")
+			if contentType != "application/json" {
+				c.JSON(400, gin.H{
+					"success": false,
+					"error":   "Invalid content type",
+					"message": "Content-Type must be application/json",
+				})
+				c.Abort()
+				return
+			}
+		}
+		c.Next()
+	}
+}
+
+// TimeoutMiddleware وسيط للتحكم في المهلة
+func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// إنشاء قناة للإشارة بانتهاء المعالجة
+		done := make(chan bool, 1)
+		
+		// تشغيل معالجة الطلب في goroutine
+		go func() {
+			c.Next()
+			done <- true
+		}()
+		
+		// انتظار انتهاء المعالجة أو انتهاء المهلة
+		select {
+		case <-done:
+			// الطلب اكتمل بنجاح
+			return
+		case <-time.After(timeout):
+			// انتهت المهلة
+			c.JSON(504, gin.H{
+				"success": false,
+				"error":   "Gateway Timeout",
+				"message": fmt.Sprintf("Request timed out after %v", timeout),
+			})
+			c.Abort()
+			return
+		}
+	}
 }
