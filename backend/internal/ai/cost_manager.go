@@ -9,6 +9,19 @@ import (
     "time"
 )
 
+// UsageRecord سجل استخدام
+type UsageRecord struct {
+    UserID     string  `json:"user_id"`
+    UserTier   string  `json:"user_tier"`
+    Provider   string  `json:"provider"`
+    Type       string  `json:"type"` // text, image, video, audio
+    Cost       float64 `json:"cost"`
+    Quantity   int64   `json:"quantity"`
+    Latency    float64 `json:"latency"`
+    Success    bool    `json:"success"`
+    Timestamp  time.Time `json:"timestamp"`
+}
+
 // CostManager مدير التكاليف والحصص
 type CostManager struct {
     mu           sync.RWMutex
@@ -88,6 +101,42 @@ func NewCostManager() (*CostManager, error) {
     return cm, nil
 }
 
+// load تحميل البيانات المحفوظة
+func (cm *CostManager) load() error {
+    dataFile := filepath.Join(cm.dataPath, "cost_data.json")
+    if _, err := os.Stat(dataFile); os.IsNotExist(err) {
+        return nil
+    }
+    
+    data, err := os.ReadFile(dataFile)
+    if err != nil {
+        return err
+    }
+    
+    cm.mu.Lock()
+    defer cm.mu.Unlock()
+    
+    return json.Unmarshal(data, &cm.Usage)
+}
+
+// save حفظ البيانات
+func (cm *CostManager) save() error {
+    cm.mu.RLock()
+    defer cm.mu.RUnlock()
+    
+    if err := os.MkdirAll(cm.dataPath, 0755); err != nil {
+        return err
+    }
+    
+    dataFile := filepath.Join(cm.dataPath, "cost_data.json")
+    data, err := json.MarshalIndent(cm.Usage, "", "  ")
+    if err != nil {
+        return err
+    }
+    
+    return os.WriteFile(dataFile, data, 0644)
+}
+
 // startAutoReset بدء إعادة التعيين التلقائي
 func (cm *CostManager) startAutoReset() {
     // إعادة تعيين يومية في منتصف الليل
@@ -113,6 +162,121 @@ func (cm *CostManager) startAutoReset() {
             cm.resetMonthlyQuotas()
         }
     }()
+}
+
+// resetDailyQuotas إعادة تعيين الحصص اليومية
+func (cm *CostManager) resetDailyQuotas() {
+    cm.mu.Lock()
+    defer cm.mu.Unlock()
+    
+    now := time.Now()
+    today := now.Format("2006-01-02")
+    
+    // إعادة تعيين التكلفة اليومية
+    cm.Usage.DailyCost[today] = 0
+    
+    // إعادة تعيين حصص المستخدمين اليومية
+    for _, userStats := range cm.Usage.UserUsage {
+        userStats.DailyCost[today] = 0
+        for _, quota := range userStats.Quotas {
+            if quota.ResetPeriod == "daily" {
+                quota.Used = 0
+                quota.LastReset = now
+            }
+        }
+    }
+    
+    cm.Usage.LastReset = now
+    go cm.save()
+}
+
+// resetMonthlyQuotas إعادة تعيين الحصص الشهرية
+func (cm *CostManager) resetMonthlyQuotas() {
+    cm.mu.Lock()
+    defer cm.mu.Unlock()
+    
+    now := time.Now()
+    monthKey := now.Format("2006-01")
+    
+    // إعادة تعيين التكلفة الشهرية
+    cm.Usage.MonthlyCost[monthKey] = 0
+    
+    // إعادة تعيين حصص المستخدمين الشهرية
+    for _, userStats := range cm.Usage.UserUsage {
+        userStats.MonthlyCost[monthKey] = 0
+        for _, quota := range userStats.Quotas {
+            if quota.ResetPeriod == "monthly" {
+                quota.Used = 0
+                quota.LastReset = now
+            }
+        }
+    }
+    
+    cm.Usage.LastReset = now
+    go cm.save()
+}
+
+// getDefaultQuotas الحصول على الحصص الافتراضية حسب الطبقة
+func (cm *CostManager) getDefaultQuotas(tier string) map[string]*Quota {
+    quotas := make(map[string]*Quota)
+    now := time.Now()
+    
+    switch tier {
+    case "premium":
+        quotas["text"] = &Quota{
+            Type:        "text",
+            Used:        0,
+            Limit:       100000,
+            ResetPeriod: "monthly",
+            LastReset:   now,
+        }
+        quotas["image"] = &Quota{
+            Type:        "image",
+            Used:        0,
+            Limit:       1000,
+            ResetPeriod: "monthly",
+            LastReset:   now,
+        }
+        quotas["video"] = &Quota{
+            Type:        "video",
+            Used:        0,
+            Limit:       100,
+            ResetPeriod: "monthly",
+            LastReset:   now,
+        }
+    case "basic":
+        quotas["text"] = &Quota{
+            Type:        "text",
+            Used:        0,
+            Limit:       10000,
+            ResetPeriod: "monthly",
+            LastReset:   now,
+        }
+        quotas["image"] = &Quota{
+            Type:        "image",
+            Used:        0,
+            Limit:       100,
+            ResetPeriod: "monthly",
+            LastReset:   now,
+        }
+    default: // free
+        quotas["text"] = &Quota{
+            Type:        "text",
+            Used:        0,
+            Limit:       1000,
+            ResetPeriod: "daily",
+            LastReset:   now,
+        }
+        quotas["image"] = &Quota{
+            Type:        "image",
+            Used:        0,
+            Limit:       10,
+            ResetPeriod: "daily",
+            LastReset:   now,
+        }
+    }
+    
+    return quotas
 }
 
 // RecordUsage تسجيل استخدام
@@ -214,4 +378,102 @@ func (cm *CostManager) CanUseAI(userID, requestType string) (bool, string) {
     
     // التحقق من الحدود العامة
     if cm.monthlyLimit > 0 && cm.Usage.MonthlyCost[monthKey] >= cm.monthlyLimit {
-        return false, "تم تجاوز الحد الشهري للت
+        return false, "تم تجاوز الحد الشهري للتكاليف"
+    }
+    
+    if cm.dailyLimit > 0 && cm.Usage.DailyCost[dayKey] >= cm.dailyLimit {
+        return false, "تم تجاوز الحد اليومي للتكاليف"
+    }
+    
+    // التحقق من حصص المستخدم
+    if userID != "" {
+        if userStats, exists := cm.Usage.UserUsage[userID]; exists {
+            // التحقق من التكلفة الشهرية للمستخدم
+            if monthlyCost, ok := userStats.MonthlyCost[monthKey]; ok {
+                // حساب الحد الشهري حسب الطبقة
+                var userMonthlyLimit float64
+                switch userStats.Tier {
+                case "premium":
+                    userMonthlyLimit = 100.0 // 100 دولار
+                case "basic":
+                    userMonthlyLimit = 10.0  // 10 دولار
+                default:
+                    userMonthlyLimit = 1.0   // 1 دولار
+                }
+                
+                if monthlyCost >= userMonthlyLimit {
+                    return false, "تم تجاوز حد التكلفة الشهرية للمستخدم"
+                }
+            }
+            
+            // التحقق من حصص النوع المحدد
+            if quota, exists := userStats.Quotas[requestType]; exists {
+                if quota.Used >= quota.Limit {
+                    return false, fmt.Sprintf("تم تجاوز حصة %s لهذا المستخدم", requestType)
+                }
+            }
+        }
+    }
+    
+    return true, ""
+}
+
+// GetUsageStatistics الحصول على إحصائيات الاستخدام
+func (cm *CostManager) GetUsageStatistics() map[string]interface{} {
+    cm.mu.RLock()
+    defer cm.mu.RUnlock()
+    
+    stats := make(map[string]interface{})
+    stats["total_cost"] = cm.Usage.TotalCost
+    stats["monthly_cost"] = cm.Usage.MonthlyCost
+    stats["daily_cost"] = cm.Usage.DailyCost
+    stats["total_users"] = len(cm.Usage.UserUsage)
+    stats["providers"] = len(cm.Usage.ProviderUsage)
+    stats["last_reset"] = cm.Usage.LastReset
+    
+    // حساب التكلفة الشهرية الحالية
+    monthKey := time.Now().Format("2006-01")
+    if monthly, ok := cm.Usage.MonthlyCost[monthKey]; ok {
+        stats["current_month_cost"] = monthly
+        if cm.monthlyLimit > 0 {
+            stats["monthly_usage_percentage"] = (monthly / cm.monthlyLimit) * 100
+        }
+    }
+    
+    // حساب التكلفة اليومية الحالية
+    dayKey := time.Now().Format("2006-01-02")
+    if daily, ok := cm.Usage.DailyCost[dayKey]; ok {
+        stats["current_day_cost"] = daily
+        if cm.dailyLimit > 0 {
+            stats["daily_usage_percentage"] = (daily / cm.dailyLimit) * 100
+        }
+    }
+    
+    return stats
+}
+
+// SetLimits تعيين الحدود
+func (cm *CostManager) SetLimits(monthly, daily float64) {
+    cm.mu.Lock()
+    defer cm.mu.Unlock()
+    
+    cm.monthlyLimit = monthly
+    cm.dailyLimit = daily
+    
+    go cm.save()
+}
+
+// ResetUsage إعادة تعيين جميع الإحصائيات
+func (cm *CostManager) ResetUsage() error {
+    cm.mu.Lock()
+    defer cm.mu.Unlock()
+    
+    cm.Usage.TotalCost = 0
+    cm.Usage.MonthlyCost = make(map[string]float64)
+    cm.Usage.DailyCost = make(map[string]float64)
+    cm.Usage.UserUsage = make(map[string]*UserUsageStats)
+    cm.Usage.ProviderUsage = make(map[string]*ProviderStats)
+    cm.Usage.LastReset = time.Now()
+    
+    return cm.save()
+}
