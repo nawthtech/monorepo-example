@@ -6,51 +6,16 @@ import (
     "github.com/nawthtech/nawthtech/backend/internal/middleware"
 )
 
-func SetupRouter(aiHandler *handlers.AIHandler) *gin.Engine {
-    r := gin.Default()
+func NewRouter() *gin.Engine {
+    // Create router with default middleware
+    router := gin.Default()
     
-    // Middleware
-    r.Use(middleware.CORS())
-    r.Use(middleware.Logger())
-    r.Use(middleware.Auth()) // JWT authentication
+    // Add middleware
+    router.Use(middleware.CORS())
+    router.Use(middleware.Logger())
     
-    // API routes
-    api := r.Group("/api")
-    {
-        // AI Routes
-        ai := api.Group("/ai")
-        {
-            // توليد محتوى نصي
-            ai.POST("/generate", aiHandler.GenerateContentHandler)
-            
-            // تحليل الصور
-            ai.POST("/analyze-image", aiHandler.AnalyzeImageHandler)
-            
-            // تحليل الاتجاهات
-            ai.POST("/analyze-trends", aiHandler.AnalyzeTrendsHandler)
-            
-            // إنشاء استراتيجية
-            ai.POST("/strategy", aiHandler.GenerateStrategyHandler)
-            
-            // الحصول على providers المتاحة
-            ai.GET("/providers", aiHandler.GetProvidersHandler)
-        }
-        
-        // User routes
-        users := api.Group("/users")
-        {
-            users.POST("/register", handlers.RegisterHandler)
-            users.POST("/login", handlers.LoginHandler)
-            users.GET("/profile", handlers.GetProfileHandler)
-        }
-        
-        // Dashboard routes
-        dashboard := api.Group("/dashboard")
-        {
-            dashboard.GET("/metrics", handlers.GetMetricsHandler)
-            dashboard.GET("/activities", handlers.GetActivitiesHandler)
-        }
-    }
+    // Setup routes
+    handlers.SetupRoutes(router)
     
-    return r
+    return router
 }

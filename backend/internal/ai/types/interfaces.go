@@ -19,17 +19,3 @@ type VideoProvider interface {
     GenerateVideo(ctx context.Context, prompt string, options map[string]interface{}) ([]byte, error)
     Name() string
 }
-
-// AIRequest طلب AI عام
-type AIRequest struct {
-    Prompt  string                 `json:"prompt"`
-    Type    string                 `json:"type"`
-    Options map[string]interface{} `json:"options"`
-}
-
-// AIResponse استجابة AI عامة
-type AIResponse struct {
-    Success bool        `json:"success"`
-    Data    interface{} `json:"data"`
-    Error   string      `json:"error,omitempty"`
-}
