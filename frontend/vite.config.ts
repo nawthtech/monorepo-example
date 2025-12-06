@@ -26,7 +26,7 @@ export default defineConfig({
       '@ai': path.resolve(__dirname, './src/ai'),
       '@store': path.resolve(__dirname, './src/store'),
       '@services': path.resolve(__dirname, './src/services'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@hooks': path.resolve(__dirname, './src/ai/hooks'),
       '@utils': path.resolve(__dirname, './src/utils'),
       '@assets': path.resolve(__dirname, './src/assets'),
     },
