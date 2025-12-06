@@ -17,25 +17,10 @@ const (
     ProviderOpenAI      ProviderType = "openai"
     ProviderOllama      ProviderType = "ollama"
     ProviderHuggingFace ProviderType = "huggingface"
-    ProviderClaude      ProviderType = "claude"
-    ProviderCohere      ProviderType = "cohere"
     ProviderLuma        ProviderType = "luma"
     ProviderRunway      ProviderType = "runway"
     ProviderPika        ProviderType = "pika"
 )
-
-// MultiProvider مزود متعدد يدعم عدة مزودين AI
-type MultiProvider struct {
-    mu          sync.RWMutex
-    providers   map[ProviderType]ProviderInterface
-    textProviders map[string]ProviderInterface
-    imageProviders map[string]ProviderInterface
-    videoProviders map[string]ProviderInterface
-    strategy    RoutingStrategy
-    costManager *CostManager
-    failover    *FailoverManager
-    stats       *MultiProviderStats
-}
 
 // MultiProviderStats إحصائيات المزود المتعدد
 type MultiProviderStats struct {
@@ -50,23 +35,31 @@ type MultiProviderStats struct {
 
 // RoutingStrategy واجهة إستراتيجية التوجيه
 type RoutingStrategy interface {
-    SelectProvider(userTier, promptType, providerType string, providers map[ProviderType]ProviderInterface) ProviderType
+    SelectProvider(userTier, promptType, providerType string) ProviderType
     GetFallbackChain(primary ProviderType, providerType string) []ProviderType
 }
 
-// TieredStrategy إستراتيجية التوجيه حسب خطة المستخدم
-type TieredStrategy struct {
-    providerConfigs map[ProviderType]ProviderConfig
-}
-
-// ProviderConfig تكوين المزود
-type ProviderConfig struct {
+// MPProviderConfig تكوين المزود للمزود المتعدد
+type MPProviderConfig struct {
     Priority    int
     CostPerToken float64
     MaxTokens   int
     Speed       float64 // 0-1
     Quality     float64 // 0-1
     Availability float64 // 0-1
+}
+
+// MultiProvider مزود متعدد يدعم عدة مزودين AI
+type MultiProvider struct {
+    mu          sync.RWMutex
+    providers   map[ProviderType]ProviderInterface
+    textProviders map[string]ProviderInterface
+    imageProviders map[string]ProviderInterface
+    videoProviders map[string]ProviderInterface
+    strategy    RoutingStrategy
+    costManager *CostManager
+    failover    *FailoverManager
+    stats       *MultiProviderStats
 }
 
 // NewMultiProvider إنشاء مزود متعدد جديد
@@ -112,74 +105,14 @@ func (mp *MultiProvider) initProviders() error {
     mp.mu.Lock()
     defer mp.mu.Unlock()
     
-    // 1. Gemini Provider
-    if apiKey := getEnvWithFallback("GEMINI_API_KEY", ""); apiKey != "" {
-        gemini, err := NewGeminiProvider()
-        if err == nil {
-            mp.providers[ProviderGemini] = gemini
-            mp.textProviders["gemini"] = gemini
-            mp.imageProviders["gemini"] = gemini
-            log.Println("✅ Gemini provider initialized")
-        } else {
-            log.Printf("⚠️ Gemini provider failed: %v", err)
-        }
-    }
-    
-    // 2. Ollama Provider (دائمًا متاح محليًا)
+    // 1. Ollama Provider (دائمًا متاح محليًا)
     ollama := NewOllamaProvider()
     mp.providers[ProviderOllama] = ollama
     mp.textProviders["ollama"] = ollama
     log.Println("✅ Ollama provider initialized")
     
-    // 3. Hugging Face Provider
-    if token := getEnvWithFallback("HUGGINGFACE_TOKEN", ""); token != "" {
-        hf := NewHuggingFaceProvider()
-        mp.providers[ProviderHuggingFace] = hf
-        mp.textProviders["huggingface"] = hf
-        mp.imageProviders["huggingface"] = hf
-        log.Println("✅ Hugging Face provider initialized")
-    }
-    
-    // 4. OpenAI Provider (Claude يعتبر كبديل)
-    if apiKey := getEnvWithFallback("OPENAI_API_KEY", ""); apiKey != "" {
-        openai, err := NewOpenAIProvider()
-        if err == nil {
-            mp.providers[ProviderOpenAI] = openai
-            mp.textProviders["openai"] = openai
-            mp.imageProviders["openai"] = openai
-            log.Println("✅ OpenAI provider initialized")
-        }
-    }
-    
-    // 5. Luma Video Provider
-    if apiKey := getEnvWithFallback("LUMA_API_KEY", ""); apiKey != "" {
-        luma, err := NewVideoProvider("luma")
-        if err == nil {
-            mp.providers[ProviderLuma] = luma
-            mp.videoProviders["luma"] = luma
-            log.Println("✅ Luma video provider initialized")
-        }
-    }
-    
-    // 6. Runway Video Provider
-    if apiKey := getEnvWithFallback("RUNWAY_API_KEY", ""); apiKey != "" {
-        runway, err := NewVideoProvider("runway")
-        if err == nil {
-            mp.providers[ProviderRunway] = runway
-            mp.videoProviders["runway"] = runway
-            log.Println("✅ Runway video provider initialized")
-        }
-    }
-    
-    // 7. Pika Video Provider
-    if apiKey := getEnvWithFallback("PIKA_API_KEY", ""); apiKey != "" {
-        pika, err := NewVideoProvider("pika")
-        if err == nil {
-            mp.providers[ProviderPika] = pika
-            mp.videoProviders["pika"] = pika
-            log.Println("✅ Pika video provider initialized")
-        }
-    }
+    // المزودين الآخرين يحتاجون إلى API keys
+    // يمكن إضافتهم لاحقًا
     
     if len(mp.providers) == 0 {
         return fmt.Errorf("no AI providers available")
@@ -190,404 +123,164 @@ func (mp *MultiProvider) initProviders() error {
 
 // GenerateText توليد نص
 func (mp *MultiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
-    startTime := time.Now()
-    
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    // تحديد المزود المناسب
-    providerType := mp.strategy.SelectProvider(req.UserTier, "text", "text", mp.providers)
-    provider, exists := mp.textProviders[string(providerType)]
-    
-    // إذا لم يكن المزود متوفراً، استخدم التسلسل الاحتياطي
-    if !exists || !provider.IsAvailable() {
-        fallbackChain := mp.strategy.GetFallbackChain(providerType, "text")
-        for _, fbType := range fallbackChain {
-            if fbProvider, fbExists := mp.textProviders[string(fbType)]; fbExists && fbProvider.IsAvailable() {
-                provider = fbProvider
-                mp.stats.FallbackCount[fbType]++
-                log.Printf("🔄 Fallback from %s to %s", providerType, fbType)
-                break
-            }
+    // البحث عن مزود نصوص
+    for _, provider := range mp.textProviders {
+        if provider.IsAvailable() {
+            return provider.GenerateText(req)
         }
     }
-    
-    if provider == nil {
-        return nil, fmt.Errorf("no available text provider")
-    }
-    
-    // توليد النص
-    response, err := provider.GenerateText(req)
-    
-    // تسجيل الاستخدام
-    if mp.costManager != nil {
-        record := &UsageRecord{
-            UserID:     req.UserID,
-            UserTier:   req.UserTier,
-            Provider:   provider.GetName(),
-            Type:       "text",
-            Cost:       provider.GetCost() * float64(len(req.Prompt)/4), // تقدير تقريبي
-            Quantity:   int64(len(req.Prompt)),
-            Latency:    float64(time.Since(startTime).Milliseconds()),
-            Success:    err == nil,
-            Timestamp:  time.Now(),
-            Metadata: map[string]interface{}{
-                "model": req.Model,
-                "tokens": len(req.Prompt),
-            },
-        }
-        mp.costManager.RecordUsage(record)
-    }
-    
-    // تحديث الإحصائيات
-    mp.updateRequestStats(providerType, err == nil, provider.GetCost())
-    
-    return response, err
+    return nil, fmt.Errorf("no available text provider")
 }
 
 // GenerateImage توليد صورة
 func (mp *MultiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error) {
-    startTime := time.Now()
-    
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    // تحديد المزود المناسب
-    providerType := mp.strategy.SelectProvider(req.UserTier, "image", "image", mp.providers)
-    provider, exists := mp.imageProviders[string(providerType)]
-    
-    // التسلسل الاحتياطي
-    if !exists || !provider.IsAvailable() {
-        fallbackChain := mp.strategy.GetFallbackChain(providerType, "image")
-        for _, fbType := range fallbackChain {
-            if fbProvider, fbExists := mp.imageProviders[string(fbType)]; fbExists && fbProvider.IsAvailable() {
-                provider = fbProvider
-                mp.stats.FallbackCount[fbType]++
-                break
-            }
+    // البحث عن مزود صور
+    for _, provider := range mp.imageProviders {
+        if provider.IsAvailable() {
+            return provider.GenerateImage(req)
         }
     }
-    
-    if provider == nil {
-        return nil, fmt.Errorf("no available image provider")
-    }
-    
-    // توليد الصورة
-    response, err := provider.GenerateImage(req)
-    
-    // تسجيل الاستخدام
-    if mp.costManager != nil {
-        record := &UsageRecord{
-            UserID:     req.UserID,
-            UserTier:   req.UserTier,
-            Provider:   provider.GetName(),
-            Type:       "image",
-            Cost:       provider.GetCost(),
-            Quantity:   1,
-            Latency:    float64(time.Since(startTime).Milliseconds()),
-            Success:    err == nil,
-            Timestamp:  time.Now(),
-        }
-        mp.costManager.RecordUsage(record)
-    }
-    
-    // تحديث الإحصائيات
-    mp.updateRequestStats(providerType, err == nil, provider.GetCost())
-    
-    return response, err
+    return nil, fmt.Errorf("no available image provider")
 }
 
 // GenerateVideo توليد فيديو
 func (mp *MultiProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error) {
-    startTime := time.Now()
-    
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    // تحديد المزود المناسب
-    providerType := mp.strategy.SelectProvider(req.UserTier, "video", "video", mp.providers)
-    provider, exists := mp.videoProviders[string(providerType)]
-    
-    // التسلسل الاحتياطي
-    if !exists || !provider.IsAvailable() {
-        fallbackChain := mp.strategy.GetFallbackChain(providerType, "video")
-        for _, fbType := range fallbackChain {
-            if fbProvider, fbExists := mp.videoProviders[string(fbType)]; fbExists && fbProvider.IsAvailable() {
-                provider = fbProvider
-                mp.stats.FallbackCount[fbType]++
-                break
-            }
+    // البحث عن مزود فيديو
+    for _, provider := range mp.videoProviders {
+        if provider.IsAvailable() {
+            return provider.GenerateVideo(req)
         }
     }
-    
-    if provider == nil {
-        return nil, fmt.Errorf("no available video provider")
-    }
-    
-    // توليد الفيديو
-    response, err := provider.GenerateVideo(req)
-    
-    // تسجيل الاستخدام
-    if mp.costManager != nil {
-        record := &UsageRecord{
-            UserID:     req.UserID,
-            UserTier:   req.UserTier,
-            Provider:   provider.GetName(),
-            Type:       "video",
-            Cost:       provider.GetCost(),
-            Quantity:   1,
-            Latency:    float64(time.Since(startTime).Milliseconds()),
-            Success:    err == nil,
-            Timestamp:  time.Now(),
-            Metadata: map[string]interface{}{
-                "duration": req.Duration,
-                "aspect_ratio": req.AspectRatio,
-            },
-        }
-        mp.costManager.RecordUsage(record)
-    }
-    
-    // تحديث الإحصائيات
-    mp.updateRequestStats(providerType, err == nil, provider.GetCost())
-    
-    return response, err
+    return nil, fmt.Errorf("no available video provider")
 }
 
-// GetTextProvider الحصول على مزود نصوص محدد
-func (mp *MultiProvider) GetTextProvider(name string) ProviderInterface {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    return mp.textProviders[name]
-}
-
-// GetImageProvider الحصول على مزود صور محدد
-func (mp *MultiProvider) GetImageProvider(name string) ProviderInterface {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    return mp.imageProviders[name]
-}
-
-// GetVideoProvider الحصول على مزود فيديوهات محدد
-func (mp *MultiProvider) GetVideoProvider(name string) ProviderInterface {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    return mp.videoProviders[name]
-}
-
-// GetAvailableProviders الحصول على المزودين المتاحين
-func (mp *MultiProvider) GetAvailableProviders() map[string][]string {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    result := make(map[string][]string)
-    
-    // مزودي النصوص
-    textProviders := make([]string, 0, len(mp.textProviders))
-    for name := range mp.textProviders {
-        textProviders = append(textProviders, name)
-    }
-    result["text"] = textProviders
-    
-    // مزودي الصور
-    imageProviders := make([]string, 0, len(mp.imageProviders))
-    for name := range mp.imageProviders {
-        imageProviders = append(imageProviders, name)
-    }
-    result["image"] = imageProviders
-    
-    // مزودي الفيديو
-    videoProviders := make([]string, 0, len(mp.videoProviders))
-    for name := range mp.videoProviders {
-        videoProviders = append(videoProviders, name)
-    }
-    result["video"] = videoProviders
-    
-    return result
-}
-
-// SetRoutingStrategy تعيين إستراتيجية التوجيه
-func (mp *MultiProvider) SetRoutingStrategy(strategy RoutingStrategy) {
-    mp.mu.Lock()
-    defer mp.mu.Unlock()
-    
-    mp.strategy = strategy
-}
-
-// GetStats الحصول على إحصائيات المزود المتعدد
-func (mp *MultiProvider) GetStats() *MultiProviderStats {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    return mp.stats
-}
-
-// GetProviderStats الحصول على إحصائيات مزود محدد
-func (mp *MultiProvider) GetProviderStats(providerType ProviderType) (*ProviderStats, error) {
-    mp.mu.RLock()
-    defer mp.mu.RUnlock()
-    
-    if stats, exists := mp.stats.ProviderStats[providerType]; exists {
-        return stats, nil
-    }
-    
-    return nil, fmt.Errorf("provider stats not found: %s", providerType)
-}
-
-// updateRequestStats تحديث إحصائيات الطلب
-func (mp *MultiProvider) updateRequestStats(providerType ProviderType, success bool, cost float64) {
-    mp.mu.Lock()
-    defer mp.mu.Unlock()
-    
-    mp.stats.TotalRequests++
-    if success {
-        mp.stats.Successful++
-    } else {
-        mp.stats.Failed++
-    }
-    mp.stats.TotalCost += cost
-    
-    // تحديث إحصائيات المزود المحدد
-    if _, exists := mp.stats.ProviderStats[providerType]; !exists {
-        mp.stats.ProviderStats[providerType] = &ProviderStats{
-            Name: string(providerType),
-            Type: getProviderType(providerType),
+// AnalyzeText تحليل نص
+func (mp *MultiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error) {
+    // البحث عن مزود يدعم تحليل النصوص
+    for _, provider := range mp.textProviders {
+        if provider.IsAvailable() {
+            return provider.AnalyzeText(req)
         }
     }
-    
-    stats := mp.stats.ProviderStats[providerType]
-    stats.Requests++
-    if success {
-        stats.Successful++
-    } else {
-        stats.Failed++
-    }
-    stats.TotalCost += cost
-    stats.LastUsed = time.Now()
-    stats.SuccessRate = float64(stats.Successful) / float64(stats.Requests) * 100
+    return nil, fmt.Errorf("no available text analysis provider")
 }
 
-// updateProviderStats تحديث إحصائيات جميع المزودين
-func (mp *MultiProvider) updateProviderStats() {
-    mp.mu.Lock()
-    defer mp.mu.Unlock()
-    
-    for providerType, provider := range mp.providers {
-        if _, exists := mp.stats.ProviderStats[providerType]; !exists {
-            mp.stats.ProviderStats[providerType] = &ProviderStats{
-                Name: string(providerType),
-                Type: getProviderType(providerType),
-            }
-        }
-        
-        stats := mp.stats.ProviderStats[providerType]
-        stats.IsAvailable = provider.IsAvailable()
-        
-        // الحصول على الإحصائيات من المزود نفسه إذا كان يدعمها
-        if providerStats := provider.GetStats(); providerStats != nil {
-            stats.Requests = providerStats.Requests
-            stats.Successful = providerStats.Successful
-            stats.Failed = providerStats.Failed
-            stats.TotalCost = providerStats.TotalCost
-            stats.AvgLatency = providerStats.AvgLatency
-            stats.SuccessRate = providerStats.SuccessRate
+// AnalyzeImage تحليل صورة
+func (mp *MultiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error) {
+    // البحث عن مزود يدعم تحليل الصور
+    for _, provider := range mp.imageProviders {
+        if provider.IsAvailable() {
+            return provider.AnalyzeImage(req)
         }
     }
+    return nil, fmt.Errorf("no available image analysis provider")
 }
 
-// Helper Functions
-
-func getEnvWithFallback(key, fallback string) string {
-    if value := os.Getenv(key); value != "" {
-        return value
-    }
-    return fallback
-}
-
-func getProviderType(providerType ProviderType) string {
-    switch providerType {
-    case ProviderGemini, ProviderOpenAI, ProviderOllama, ProviderHuggingFace:
-        return "text"
-    case ProviderLuma, ProviderRunway, ProviderPika:
-        return "video"
-    default:
-        return "mixed"
-    }
-}
-
-func getUserTier(userID string) string {
-    // هذه دالة مساعدة - يجب تنفيذها حسب نظام المستخدمين
-    return "free" // مؤقت
-}
-
-func classifyPrompt(prompt string) string {
-    prompt = strings.ToLower(prompt)
-    
-    keywords := map[string][]string{
-        "analysis": {"analyze", "analysis", "compare", "evaluate", "assess"},
-        "strategy": {"strategy", "plan", "marketing", "business", "growth"},
-        "creative": {"creative", "story", "poem", "song", "script"},
-        "technical": {"code", "algorithm", "technical", "explain", "how to"},
-    }
-    
-    for category, words := range keywords {
-        for _, word := range words {
-            if strings.Contains(prompt, word) {
-                return category
-            }
+// TranslateText ترجمة نص
+func (mp *MultiProvider) TranslateText(req TranslationRequest) (*TranslationResponse, error) {
+    // البحث عن مزود يدعم الترجمة
+    for _, provider := range mp.textProviders {
+        if provider.IsAvailable() {
+            return provider.TranslateText(req)
         }
     }
-    
-    return "general"
+    return nil, fmt.Errorf("no available translation provider")
+}
+
+// GetName اسم المزود
+func (mp *MultiProvider) GetName() string {
+    return "MultiProvider"
+}
+
+// GetType نوع المزود
+func (mp *MultiProvider) GetType() string {
+    return "multi"
+}
+
+// IsAvailable التحقق من التوفر
+func (mp *MultiProvider) IsAvailable() bool {
+    mp.mu.RLock()
+    defer mp.mu.RUnlock()
+    return len(mp.providers) > 0
+}
+
+// GetCost التكلفة
+func (mp *MultiProvider) GetCost() float64 {
+    return 0.0 // سيتم حسابها بناءً على الاستخدام الفعلي
+}
+
+// GetStats الحصول على إحصائيات
+func (mp *MultiProvider) GetStats() *ProviderStats {
+    return &ProviderStats{
+        Name:        mp.GetName(),
+        Type:        mp.GetType(),
+        IsAvailable: mp.IsAvailable(),
+        Requests:    mp.stats.TotalRequests,
+        Successful:  mp.stats.Successful,
+        Failed:      mp.stats.Failed,
+        TotalCost:   mp.stats.TotalCost,
+        SuccessRate: 0,
+    }
+}
+
+// SupportsStreaming يدعم التدفق
+func (mp *MultiProvider) SupportsStreaming() bool {
+    // Ollama يدعم التدفق
+    if provider, ok := mp.providers[ProviderOllama]; ok {
+        // تحقق إذا كان المزود يدعم التدفق
+        if streamingProvider, ok := provider.(interface{ SupportsStreaming() bool }); ok {
+            return streamingProvider.SupportsStreaming()
+        }
+    }
+    return false
+}
+
+// SupportsEmbedding يدعم التضمين
+func (mp *MultiProvider) SupportsEmbedding() bool {
+    // Ollama يدعم التضمين
+    if provider, ok := mp.providers[ProviderOllama]; ok {
+        if embeddingProvider, ok := provider.(interface{ SupportsEmbedding() bool }); ok {
+            return embeddingProvider.SupportsEmbedding()
+        }
+    }
+    return false
+}
+
+// GetMaxTokens الحد الأقصى للرموز
+func (mp *MultiProvider) GetMaxTokens() int {
+    // العودة إلى القيمة الافتراضية
+    return 2048
+}
+
+// GetSupportedLanguages اللغات المدعومة
+func (mp *MultiProvider) GetSupportedLanguages() []string {
+    return []string{"ar", "en", "es", "fr", "de"}
 }
 
 // DefaultStrategy إستراتيجية افتراضية
 type DefaultStrategy struct{}
 
-func (s *DefaultStrategy) SelectProvider(userTier, promptType, providerType string, providers map[ProviderType]ProviderInterface) ProviderType {
-    // منطق بسيط: استخدام Ollama للمستخدمين المجانيين، Gemini للمستخدمين المميزين
-    switch userTier {
-    case "free":
-        if providerType == "video" {
-            return ProviderLuma // Luma مجاني للمستخدمين المجانيين
-        }
-        return ProviderOllama // Ollama مجاني بالكامل
-    case "premium":
-        if providerType == "video" {
-            return ProviderRunway // Runway أفضل جودة
-        }
-        return ProviderGemini // Gemini للمستخدمين المميزين
-    case "enterprise":
-        if providerType == "video" {
-            return ProviderPika // Pika للشركات
-        }
-        return ProviderOpenAI // OpenAI للأمور المتقدمة
+func (s *DefaultStrategy) SelectProvider(userTier, promptType, providerType string) ProviderType {
+    // إستراتيجية بسيطة: استخدام Ollama للمستخدمين المجانيين
+    if providerType == "text" || providerType == "" {
+        return ProviderOllama
+    }
+    
+    // للأنواع الأخرى، استخدام أول مزود متاح
+    switch providerType {
+    case "image":
+        return ProviderOllama // Ollama قد يدعم الصور في المستقبل
+    case "video":
+        return ProviderLuma
     default:
         return ProviderOllama
     }
 }
 
 func (s *DefaultStrategy) GetFallbackChain(primary ProviderType, providerType string) []ProviderType {
-    chains := map[ProviderType][]ProviderType{
-        ProviderGemini: {ProviderHuggingFace, ProviderOllama},
-        ProviderOpenAI: {ProviderGemini, ProviderHuggingFace, ProviderOllama},
-        ProviderOllama: {ProviderGemini, ProviderHuggingFace},
-        ProviderLuma: {ProviderRunway, ProviderPika},
-        ProviderRunway: {ProviderLuma, ProviderPika},
-        ProviderPika: {ProviderLuma, ProviderRunway},
-    }
-    
-    if chain, exists := chains[primary]; exists {
-        return chain
-    }
-    
-    // سلسلة احتياطية افتراضية
+    // سلسلة احتياطية بسيطة
     if providerType == "text" {
-        return []ProviderType{ProviderGemini, ProviderHuggingFace, ProviderOllama}
-    } else if providerType == "video" {
-        return []ProviderType{ProviderLuma, ProviderRunway, ProviderPika}
+        return []ProviderType{ProviderOllama}
     }
     
     return []ProviderType{ProviderOllama}
