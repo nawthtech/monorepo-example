@@ -664,13 +664,15 @@ func (s *DefaultStrategy) SelectProvider(userTier, promptType, providerType stri
             return ProviderGemini
         }
     case "free":
-        fallback:
         // المستخدمين المجانيين يحصلون على Ollama أو HuggingFace
         if providerType == "text" || providerType == "" {
             return ProviderOllama
         }
     default:
-        goto fallback
+        // الحالة الافتراضية - استخدام Ollama
+        if providerType == "text" || providerType == "" {
+            return ProviderOllama
+        }
     }
     
     // للأنواع الأخرى
