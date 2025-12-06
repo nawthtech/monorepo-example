@@ -9,6 +9,12 @@ interface UseAIOptions {
   showNotifications?: boolean;
 }
 
+interface AIGenerateOptions {
+  language?: string;
+  style?: string;
+  model?: string;
+}
+
 export const useAI = (options: UseAIOptions = {}) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,14 +58,16 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, [options]);
   
-  const generateBlogPost = useCallback(async (topic: string, language: string = 'ar'): Promise<any> => {
+  const generateBlogPost = useCallback(async (
+    topic: string, 
+    language: string = 'ar'
+  ): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
       const request: AIRequest = {
         prompt: `Write a blog post about: ${topic}`,
-        model: 'blog-writer',
         options: { language }
       };
       
@@ -87,7 +95,6 @@ export const useAI = (options: UseAIOptions = {}) => {
     try {
       const request: AIRequest = {
         prompt: `Write a ${platform} post about: ${topic}`,
-        model: 'social-media',
         options: { language }
       };
       
@@ -104,15 +111,16 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, [generateContent, options.onError]);
   
-  const analyzeMarketTrends = useCallback(async (industry: string, timeframe: string): Promise<any> => {
+  const analyzeMarketTrends = useCallback(async (
+    industry: string, 
+    timeframe: string
+  ): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
       const request: AIRequest = {
         prompt: `Analyze market trends for ${industry} industry for ${timeframe}`,
-        model: 'analysis',
-        options: {}
       };
       
       const response = await generateContent(request);
@@ -128,14 +136,16 @@ export const useAI = (options: UseAIOptions = {}) => {
     }
   }, [generateContent, options.onError]);
   
-  const generateImage = useCallback(async (prompt: string, style: string = 'realistic'): Promise<any> => {
+  const generateImage = useCallback(async (
+    prompt: string, 
+    style: string = 'realistic'
+  ): Promise<any> => {
     setLoading(true);
     setError(null);
     
     try {
       const request: AIRequest = {
         prompt: `Generate an image: ${prompt} in ${style} style`,
-        model: 'image-generator',
         options: { style }
       };
       
@@ -211,8 +221,10 @@ export const useAI = (options: UseAIOptions = {}) => {
     try {
       const request: AIRequest = {
         prompt: `Translate: ${text}`,
-        model: 'translator',
-        options: { targetLanguage, sourceLanguage }
+        options: { 
+          targetLanguage, 
+          sourceLanguage: sourceLanguage || 'auto' 
+        }
       };
       
       const response = await generateContent(request);
