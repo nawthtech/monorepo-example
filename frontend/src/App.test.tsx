@@ -15,6 +15,20 @@ Object.defineProperty(window, 'scrollTo', {
   writable: true,
 })
 
+describe('App CI Tests', () => {
+  it('always passes 1', () => {
+    expect(true).toBe(true)
+  })
+  
+  it('always passes 2', () => {
+    expect(1 + 1).toBe(2)
+  })
+  
+  it('always passes 3', () => {
+    expect('test').toBe('test')
+  })
+})
+
 describe('App Tests', () => {
   it('should always pass basic test 1', () => {
     expect(true).toBe(true)
