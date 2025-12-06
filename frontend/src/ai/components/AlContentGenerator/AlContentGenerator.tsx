@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useContentGeneration } from '../../hooks/useContentGeneration';
+import { useContentGeneration } from '../../../hooks/useContentGeneration';
 import { 
   Box, 
   Button, 
