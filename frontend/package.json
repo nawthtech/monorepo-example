@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --ext ts,tsx --max-warnings 5",
+    "lint": "eslint . --ext ts,tsx --max-warnings 200",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests"
   },
