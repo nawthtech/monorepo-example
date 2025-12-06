@@ -1,55 +1,78 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from './App'
 
-describe('App', () => {
+// Mock لـ EventSource
+const mockEventSource = {
+  onopen: null,
+  onmessage: null,
+  onerror: null,
+  close: vi.fn(),
+  readyState: 0,
+}
+
+describe('App Component', () => {
   beforeEach(() => {
-    // Reset mocks before each test
     vi.clearAllMocks()
+    // Reset EventSource mock
+    global.EventSource = vi.fn(() => mockEventSource) as any
   })
 
-  it('renders main heading and button', () => {
+  it('renders without crashing', () => {
     render(<App />)
     
-    expect(screen.getByRole('main')).toBeInTheDocument()
-    expect(screen.getByText("Here's some unnecessary quotes for you to read...")).toBeInTheDocument()
-    expect(screen.getByText('Start Quotes')).toBeInTheDocument()
+    // تحقق من وجود العناصر الأساسية
+    expect(screen.getByTestId('redux-provider')).toBeInTheDocument()
+    expect(screen.getByTestId('theme-provider')).toBeInTheDocument()
+    expect(screen.getByTestId('css-baseline')).toBeInTheDocument()
   })
 
-  it('toggles button text when clicked', async () => {
+  it('contains router provider', () => {
     render(<App />)
-    
-    const button = screen.getByText('Start Quotes')
-    fireEvent.click(button)
-    
-    await waitFor(() => {
-      expect(screen.getByText('Stop Quotes')).toBeInTheDocument()
-    })
+    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
   })
 
-  it('initially shows no messages', () => {
+  it('has correct routing structure', () => {
     render(<App />)
     
-    const messages = screen.queryAllByRole('paragraph')
-    expect(messages.length).toBe(0)
+    // تحقق من وجود العناصر المتوقعة
+    const mainElement = screen.getByRole('main')
+    expect(mainElement).toBeInTheDocument()
+    
+    // تحقق من أن AI Dashboard معروض (الصفحة الافتراضية)
+    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
   })
 
-  it('starts and stops connection when button is clicked', async () => {
+  it('initializes EventSource when connection opens', () => {
     render(<App />)
     
-    // Start connection
-    const button = screen.getByText('Start Quotes')
-    fireEvent.click(button)
+    // تحقق من أن EventSource تم استدعاؤه
+    expect(global.EventSource).toHaveBeenCalled()
+  })
+
+  it('handles EventSource errors gracefully', () => {
+    // محاكاة خطأ في EventSource
+    const errorEventSource = {
+      onopen: null,
+      onmessage: null,
+      onerror: vi.fn(),
+      close: vi.fn(),
+      readyState: 2, // CLOSED
+    }
     
-    await waitFor(() => {
-      expect(screen.getByText('Stop Quotes')).toBeInTheDocument()
-    })
+    global.EventSource = vi.fn(() => errorEventSource) as any
     
-    // Stop connection
-    fireEvent.click(screen.getByText('Stop Quotes'))
+    render(<App />)
     
-    await waitFor(() => {
-      expect(screen.getByText('Start Quotes')).toBeInTheDocument()
-    })
+    // يجب أن يعالج التطبيق الخطأ دون أن يتحطم
+    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
+  })
+})
+
+describe('App Routing', () => {
+  it('renders AI Dashboard at /ai route', () => {
+    window.history.pushState({}, 'AI Dashboard', '/ai')
+    render(<App />)
+    expect(screen.getByTestId('ai-dashboard')).toBeInTheDocument()
   })
 })
