@@ -1,6 +1,6 @@
 package types
 
-// File for AI-specific types that are used across the system
+import "time"  // ← أضف هذا
 
 // AIRequest طلب AI عام
 type AIRequest struct {
