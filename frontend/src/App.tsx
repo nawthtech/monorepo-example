@@ -7,12 +7,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Provider } from 'react-redux';
 import { store } from './store';
 
-// تصحيح المسارات - استخدم المسار الصحيح
-import AIDashboard from './pages/AIDashboard/AIDashboard';
-import ContentGenerator from './pages/ContentGenerator/ContentGenerator';
-import MediaStudio from './pages/MediaStudio/MediaStudio';
-import StrategyPlanner from './pages/StrategyPlanner/StrategyPlanner';
-
 // Theme
 const theme = createTheme({
   palette: {
@@ -49,6 +43,44 @@ const theme = createTheme({
   },
   direction: 'rtl',
 });
+
+// مكونات احتياطية
+const FallbackPage = ({ title }: { title: string }) => (
+  <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <h2>{title}</h2>
+    <p>الصفحة قيد التطوير</p>
+  </div>
+);
+
+// مكونات ديناميكية مع معالجة الأخطاء
+let AIDashboardComponent: React.ComponentType;
+let ContentGeneratorComponent: React.ComponentType;
+let MediaStudioComponent: React.ComponentType;
+let StrategyPlannerComponent: React.ComponentType;
+
+try {
+  AIDashboardComponent = require('./pages/AIDashboard/AIDashboard').default;
+} catch {
+  AIDashboardComponent = () => <FallbackPage title="لوحة تحكم الذكاء الاصطناعي" />;
+}
+
+try {
+  ContentGeneratorComponent = require('./pages/ContentGenerator/ContentGenerator').default;
+} catch {
+  ContentGeneratorComponent = () => <FallbackPage title="مولد المحتوى" />;
+}
+
+try {
+  MediaStudioComponent = require('./pages/MediaStudio/MediaStudio').default;
+} catch {
+  MediaStudioComponent = () => <FallbackPage title="استوديو الوسائط" />;
+}
+
+try {
+  StrategyPlannerComponent = require('./pages/StrategyPlanner/StrategyPlanner').default;
+} catch {
+  StrategyPlannerComponent = () => <FallbackPage title="مخطط الاستراتيجيات" />;
+}
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -106,14 +138,14 @@ function App() {
           <div className="app-container">
             <Routes>
               <Route path="/" element={<Navigate to="/ai" />} />
-              <Route path="/ai" element={<AIDashboard />} />
-              <Route path="/ai/content" element={<ContentGenerator />} />
-              <Route path="/ai/media" element={<MediaStudio />} />
-              <Route path="/ai/strategy" element={<StrategyPlanner />} />
+              <Route path="/ai" element={<AIDashboardComponent />} />
+              <Route path="/ai/content" element={<ContentGeneratorComponent />} />
+              <Route path="/ai/media" element={<MediaStudioComponent />} />
+              <Route path="/ai/strategy" element={<StrategyPlannerComponent />} />
             </Routes>
             
             {/* SSE Quotes Section */}
-            <div className="sse-quotes" style={{ display: 'none' }}> {/* مخفي حالياً */}
+            <div className="sse-quotes" style={{ display: 'none' }}>
               <h1 className="text-4xl font-semibold">Here's some unnecessary quotes for you to read...</h1>
 
               {messages.map((message, index, elements) => (
