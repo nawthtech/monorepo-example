@@ -7,6 +7,8 @@ import (
     "strings"
     "sync"
     "time"
+    
+    "github.com/nawthtech/nawthtech/backend/internal/ai/types"
 )
 
 // ProviderType نوع المزود
@@ -25,7 +27,7 @@ type MultiProviderStats struct {
     Successful        int64
     Failed            int64
     TotalCost         float64
-    ProviderStats     map[ProviderType]*ProviderStats
+    ProviderStats     map[ProviderType]*types.ProviderStats
     LastRotation      map[string]time.Time
     FallbackCount     map[ProviderType]int64
 }
@@ -39,10 +41,10 @@ type RoutingStrategy interface {
 // MultiProvider مزود متعدد يدعم عدة مزودين AI
 type MultiProvider struct {
     mu              sync.RWMutex
-    providers       map[ProviderType]ProviderInterface
-    textProviders   map[string]ProviderInterface
-    imageProviders  map[string]ProviderInterface
-    videoProviders  map[string]ProviderInterface
+    providers       map[ProviderType]types.ProviderInterface
+    textProviders   map[string]types.ProviderInterface
+    imageProviders  map[string]types.ProviderInterface
+    videoProviders  map[string]types.ProviderInterface
     strategy        RoutingStrategy
     costManager     *CostManager
     stats           *MultiProviderStats
@@ -51,13 +53,13 @@ type MultiProvider struct {
 // NewMultiProvider إنشاء مزود متعدد جديد
 func NewMultiProvider() (*MultiProvider, error) {
     mp := &MultiProvider{
-        providers:      make(map[ProviderType]ProviderInterface),
-        textProviders:  make(map[string]ProviderInterface),
-        imageProviders: make(map[string]ProviderInterface),
-        videoProviders: make(map[string]ProviderInterface),
+        providers:      make(map[ProviderType]types.ProviderInterface),
+        textProviders:  make(map[string]types.ProviderInterface),
+        imageProviders: make(map[string]types.ProviderInterface),
+        videoProviders: make(map[string]types.ProviderInterface),
         strategy:       &DefaultStrategy{},
         stats: &MultiProviderStats{
-            ProviderStats: make(map[ProviderType]*ProviderStats),
+            ProviderStats: make(map[ProviderType]*types.ProviderStats),
             LastRotation:  make(map[string]time.Time),
             FallbackCount: make(map[ProviderType]int64),
         },
@@ -130,7 +132,7 @@ func (mp *MultiProvider) updateProviderStats() {
     
     for providerType, provider := range mp.providers {
         if _, exists := mp.stats.ProviderStats[providerType]; !exists {
-            mp.stats.ProviderStats[providerType] = &ProviderStats{
+            mp.stats.ProviderStats[providerType] = &types.ProviderStats{
                 Name: provider.GetName(),
                 Type: provider.GetType(),
             }
@@ -166,7 +168,7 @@ func (mp *MultiProvider) updateRequestStats(providerType ProviderType, success b
     
     // تحديث إحصائيات المزود المحدد
     if _, exists := mp.stats.ProviderStats[providerType]; !exists {
-        mp.stats.ProviderStats[providerType] = &ProviderStats{
+        mp.stats.ProviderStats[providerType] = &types.ProviderStats{
             Name: string(providerType),
             Type: getProviderType(providerType),
         }
@@ -188,7 +190,7 @@ func (mp *MultiProvider) updateRequestStats(providerType ProviderType, success b
 }
 
 // GenerateText توليد نص
-func (mp *MultiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
+func (mp *MultiProvider) GenerateText(req types.TextRequest) (*types.TextResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -209,7 +211,7 @@ func (mp *MultiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -230,7 +232,7 @@ func (mp *MultiProvider) GenerateText(req TextRequest) (*TextResponse, error) {
 }
 
 // GenerateImage توليد صورة
-func (mp *MultiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error) {
+func (mp *MultiProvider) GenerateImage(req types.ImageRequest) (*types.ImageResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -251,7 +253,7 @@ func (mp *MultiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error)
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -269,7 +271,7 @@ func (mp *MultiProvider) GenerateImage(req ImageRequest) (*ImageResponse, error)
 }
 
 // GenerateVideo توليد فيديو
-func (mp *MultiProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error) {
+func (mp *MultiProvider) GenerateVideo(req types.VideoRequest) (*types.VideoResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -290,7 +292,7 @@ func (mp *MultiProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error)
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -311,7 +313,7 @@ func (mp *MultiProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error)
 }
 
 // AnalyzeText تحليل نص
-func (mp *MultiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error) {
+func (mp *MultiProvider) AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -332,7 +334,7 @@ func (mp *MultiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, er
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -350,7 +352,7 @@ func (mp *MultiProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, er
 }
 
 // AnalyzeImage تحليل صورة
-func (mp *MultiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error) {
+func (mp *MultiProvider) AnalyzeImage(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -371,7 +373,7 @@ func (mp *MultiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -389,7 +391,7 @@ func (mp *MultiProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, e
 }
 
 // TranslateText ترجمة نص
-func (mp *MultiProvider) TranslateText(req TranslationRequest) (*TranslationResponse, error) {
+func (mp *MultiProvider) TranslateText(req types.TranslationRequest) (*types.TranslationResponse, error) {
     startTime := time.Now()
     
     // تحديد المزود المناسب
@@ -410,7 +412,7 @@ func (mp *MultiProvider) TranslateText(req TranslationRequest) (*TranslationResp
     
     // تسجيل الاستخدام
     if mp.costManager != nil {
-        record := &UsageRecord{
+        record := &types.UsageRecord{
             UserID:     req.UserID,
             UserTier:   req.UserTier,
             Provider:   provider.GetName(),
@@ -428,7 +430,7 @@ func (mp *MultiProvider) TranslateText(req TranslationRequest) (*TranslationResp
 }
 
 // getProvider الحصول على مزود من النوع المحدد
-func (mp *MultiProvider) getProvider(providerType ProviderType, requestedType string) (ProviderInterface, error) {
+func (mp *MultiProvider) getProvider(providerType ProviderType, requestedType string) (types.ProviderInterface, error) {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
@@ -451,7 +453,7 @@ func (mp *MultiProvider) getProvider(providerType ProviderType, requestedType st
 }
 
 // GetTextProvider الحصول على مزود نصوص محدد
-func (mp *MultiProvider) GetTextProvider(name string) ProviderInterface {
+func (mp *MultiProvider) GetTextProvider(name string) types.ProviderInterface {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
@@ -459,7 +461,7 @@ func (mp *MultiProvider) GetTextProvider(name string) ProviderInterface {
 }
 
 // GetImageProvider الحصول على مزود صور محدد
-func (mp *MultiProvider) GetImageProvider(name string) ProviderInterface {
+func (mp *MultiProvider) GetImageProvider(name string) types.ProviderInterface {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
@@ -467,7 +469,7 @@ func (mp *MultiProvider) GetImageProvider(name string) ProviderInterface {
 }
 
 // GetVideoProvider الحصول على مزود فيديوهات محدد
-func (mp *MultiProvider) GetVideoProvider(name string) ProviderInterface {
+func (mp *MultiProvider) GetVideoProvider(name string) types.ProviderInterface {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
@@ -526,11 +528,11 @@ func (mp *MultiProvider) SetRoutingStrategy(strategy RoutingStrategy) {
 }
 
 // GetStats الحصول على إحصائيات المزود المتعدد
-func (mp *MultiProvider) GetStats() *ProviderStats {
+func (mp *MultiProvider) GetStats() *types.ProviderStats {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
-    stats := &ProviderStats{
+    stats := &types.ProviderStats{
         Name:        "MultiProvider",
         Type:        "multi",
         IsAvailable: len(mp.providers) > 0,
@@ -550,7 +552,7 @@ func (mp *MultiProvider) GetStats() *ProviderStats {
 }
 
 // GetProviderStats الحصول على إحصائيات مزود محدد
-func (mp *MultiProvider) GetProviderStats(providerType ProviderType) (*ProviderStats, error) {
+func (mp *MultiProvider) GetProviderStats(providerType ProviderType) (*types.ProviderStats, error) {
     mp.mu.RLock()
     defer mp.mu.RUnlock()
     
