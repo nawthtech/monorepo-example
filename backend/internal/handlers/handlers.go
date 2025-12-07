@@ -10,8 +10,6 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/cloudinary"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
 	"github.com/nawthtech/nawthtech/backend/internal/utils"
-	"github.com/nawthtech/nawthtech/backend/internal/ai"
-	"github.com/nawthtech/nawthtech/backend/internal/ai/video"
 )
 
 // ================================
@@ -49,8 +47,8 @@ type (
 		UpdateService(c *gin.Context)
 		DeleteService(c *gin.Context)
 		GetMyServices(c *gin.Context)
-		GetSellerOrders(c *gin.Context)  // أضفنا هذه الدالة
-		GetAllOrders(c *gin.Context)     // أضفنا هذه الدالة
+		GetSellerOrders(c *gin.Context)
+		GetAllOrders(c *gin.Context)
 	}
 
 	// CategoryHandler معالج الفئات
@@ -69,8 +67,8 @@ type (
 		GetUserOrders(c *gin.Context)
 		UpdateOrderStatus(c *gin.Context)
 		CancelOrder(c *gin.Context)
-		GetSellerOrders(c *gin.Context) // أضفنا هذه الدالة
-		GetAllOrders(c *gin.Context)    // أضفنا هذه الدالة
+		GetSellerOrders(c *gin.Context)
+		GetAllOrders(c *gin.Context)
 	}
 
 	// PaymentHandler معالج الدفع
@@ -78,8 +76,8 @@ type (
 		CreatePaymentIntent(c *gin.Context)
 		ConfirmPayment(c *gin.Context)
 		GetPaymentHistory(c *gin.Context)
-		HandleStripeWebhook(c *gin.Context)  // أضفنا هذه الدالة
-		HandlePayPalWebhook(c *gin.Context)  // أضفنا هذه الدالة
+		HandleStripeWebhook(c *gin.Context)
+		HandlePayPalWebhook(c *gin.Context)
 	}
 
 	// UploadHandler معالج الرفع
@@ -89,7 +87,7 @@ type (
 		DeleteImage(c *gin.Context)
 		GetImageInfo(c *gin.Context)
 		GetUserImages(c *gin.Context)
-		HandleCloudinaryWebhook(c *gin.Context)  // أضفنا هذه الدالة
+		HandleCloudinaryWebhook(c *gin.Context)
 	}
 
 	// NotificationHandler معالج الإشعارات
@@ -107,27 +105,7 @@ type (
 		GetUsers(c *gin.Context)
 		UpdateUserStatus(c *gin.Context)
 		GetSystemLogs(c *gin.Context)
-		GetAllOrders(c *gin.Context)  // أضفنا هذه الدالة
-	}
-
-	// AIHandler معالج الذكاء الاصطناعي
-	AIHandler interface {
-		GenerateContentHandler(c *gin.Context)
-		AnalyzeImageHandler(c *gin.Context)
-		TranslateTextHandler(c *gin.Context)
-		SummarizeTextHandler(c *gin.Context)
-		GetAICapabilitiesHandler(c *gin.Context)
-	}
-
-	// VideoHandler معالج الفيديو
-	VideoHandler interface {
-		GenerateVideoHandler(c *gin.Context)
-		GetVideoStatusHandler(c *gin.Context)
-		ListVideoJobsHandler(c *gin.Context)
-		CancelVideoJobHandler(c *gin.Context)
-		DownloadVideoHandler(c *gin.Context)
-		GetVideoCapabilitiesHandler(c *gin.Context)
-		GetVideoStatsHandler(c *gin.Context)
+		GetAllOrders(c *gin.Context)
 	}
 )
 
@@ -170,14 +148,6 @@ type (
 
 	adminHandler struct {
 		adminService services.AdminService
-	}
-
-	aiHandler struct {
-		aiClient *ai.Client
-	}
-
-	videoHandler struct {
-		videoService *video.VideoService
 	}
 )
 
@@ -227,14 +197,6 @@ func NewNotificationHandler(notificationService services.NotificationService) No
 
 func NewAdminHandler(adminService services.AdminService) AdminHandler {
 	return &adminHandler{adminService: adminService}
-}
-
-func NewAIHandler(aiClient *ai.Client) AIHandler {
-	return &aiHandler{aiClient: aiClient}
-}
-
-func NewVideoHandler(videoService *video.VideoService) VideoHandler {
-	return &videoHandler{videoService: videoService}
 }
 
 // ================================
@@ -903,8 +865,6 @@ func (h *uploadHandler) GetImageInfo(c *gin.Context) {
 		return
 	}
 
-	// في التطبيق الحقيقي، قد تحتاج إلى تنفيذ دالة GetImageInfo في CloudinaryService
-	// حالياً سنستخدم دالة بسيطة للاستجابة
 	utils.SuccessResponse(c, http.StatusOK, "معلومات الصورة", gin.H{
 		"public_id":     publicID,
 		"message":       "معلومات الصورة - هذه الدالة تحتاج إلى تنفيذ في CloudinaryService",
@@ -920,8 +880,6 @@ func (h *uploadHandler) GetUserImages(c *gin.Context) {
 		return
 	}
 
-	// في التطبيق الحقيقي، يمكن جلب الصور من قاعدة البيانات
-	// هذا مثال بسيط للاستجابة
 	utils.SuccessResponse(c, http.StatusOK, "صور المستخدم", gin.H{
 		"user_id": userID,
 		"images":  []gin.H{},
@@ -930,7 +888,6 @@ func (h *uploadHandler) GetUserImages(c *gin.Context) {
 }
 
 func (h *uploadHandler) HandleCloudinaryWebhook(c *gin.Context) {
-	// معالجة webhook من Cloudinary
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Cloudinary webhook received",
@@ -1079,104 +1036,6 @@ func (h *adminHandler) GetAllOrders(c *gin.Context) {
 			"orders":   []gin.H{},
 			"database": "MongoDB",
 		},
-	})
-}
-
-// AIHandler implementations (ستكون في ai_handler.go، هنا فقط للتوافق)
-func (h *aiHandler) GenerateContentHandler(c *gin.Context) {
-	// سيتم تنفيذها في ai_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "AI handler not implemented in this file",
-	})
-}
-
-func (h *aiHandler) AnalyzeImageHandler(c *gin.Context) {
-	// سيتم تنفيذها في ai_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "AI handler not implemented in this file",
-	})
-}
-
-func (h *aiHandler) TranslateTextHandler(c *gin.Context) {
-	// سيتم تنفيذها في ai_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "AI handler not implemented in this file",
-	})
-}
-
-func (h *aiHandler) SummarizeTextHandler(c *gin.Context) {
-	// سيتم تنفيذها في ai_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "AI handler not implemented in this file",
-	})
-}
-
-func (h *aiHandler) GetAICapabilitiesHandler(c *gin.Context) {
-	// سيتم تنفيذها في ai_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "AI handler not implemented in this file",
-	})
-}
-
-// VideoHandler implementations (ستكون في video_handler.go، هنا فقط للتوافق)
-func (h *videoHandler) GenerateVideoHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) GetVideoStatusHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) ListVideoJobsHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) CancelVideoJobHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) DownloadVideoHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) GetVideoCapabilitiesHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
-	})
-}
-
-func (h *videoHandler) GetVideoStatsHandler(c *gin.Context) {
-	// سيتم تنفيذها في video_handler.go
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Video handler not implemented in this file",
 	})
 }
 
