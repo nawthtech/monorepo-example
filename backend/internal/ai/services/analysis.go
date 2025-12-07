@@ -18,8 +18,14 @@ func NewAnalysisService(provider types.TextProvider) *AnalysisService {
     }
 }
 
-func (s *AnalysisService) AnalyzeMarketTrends(ctx context.Context, industry string, timeframe string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Analyze market trends for the %s industry over the %s timeframe.
+req := types.TextRequest{
+    Prompt:      prompt,
+    MaxTokens:   2000,
+    Temperature: 0.6,
+    UserID:      extractUserIDFromContext(ctx),
+    UserTier:    extractUserTierFromContext(ctx),
+}
+return s.textProvider.GenerateText(req)
 
 Provide a comprehensive analysis including:
 
