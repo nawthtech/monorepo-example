@@ -10,6 +10,46 @@ import (
     "github.com/nawthtech/nawthtech/backend/internal/ai/types"
 )
 
+// CostManager مدير التكاليف والإحصائيات
+type CostManager struct {
+    mu           sync.RWMutex
+    dataPath     string
+    monthlyLimit float64
+    dailyLimit   float64
+    Usage        UsageStats
+}
+
+// UsageStats إحصائيات الاستخدام
+type UsageStats struct {
+    TotalCost      float64                    `json:"total_cost"`
+    MonthlyCost    map[string]float64         `json:"monthly_cost"`
+    DailyCost      map[string]float64         `json:"daily_cost"`
+    UserUsage      map[string]*UserUsageStats `json:"user_usage"`
+    ProviderUsage  map[string]*ProviderStats  `json:"provider_usage"`
+    LastReset      time.Time                  `json:"last_reset"`
+}
+
+// UserUsageStats إحصائيات استخدام المستخدم
+type UserUsageStats struct {
+    UserID      string              `json:"user_id"`
+    Tier        string              `json:"tier"`
+    TotalCost   float64             `json:"total_cost"`
+    MonthlyCost map[string]float64  `json:"monthly_cost"`
+    DailyCost   map[string]float64  `json:"daily_cost"`
+    Quotas      map[string]*Quota   `json:"quotas"`
+    LastActive  time.Time           `json:"last_active"`
+}
+
+// ProviderStats إحصائيات المزود
+type ProviderStats struct {
+    ProviderName string    `json:"provider_name"`
+    TotalRequests int64    `json:"total_requests"`
+    TotalCost    float64   `json:"total_cost"`
+    AvgLatency   float64   `json:"avg_latency"`
+    SuccessRate  float64   `json:"success_rate"`
+    LastUsed     time.Time `json:"last_used"`
+}
+
 // Quota حصة المستخدم
 type Quota struct {
     Type          string    `json:"type"`           // text, image, video, audio
