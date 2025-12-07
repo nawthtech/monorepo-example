@@ -7,6 +7,7 @@ import (
     
     "github.com/gin-gonic/gin"
     "github.com/nawthtech/nawthtech/backend/internal/ai"
+    "github.com/nawthtech/nawthtech/backend/internal/utils"
 )
 
 type AIHandler struct {
@@ -20,12 +21,12 @@ func NewAIHandler(aiClient *ai.Client) *AIHandler {
 // GenerateContentHandler معالج توليد المحتوى
 func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
     var req struct {
-        Prompt      string `json:"prompt" binding:"required"`
-        Language    string `json:"language" default:"en"`
-        ContentType string `json:"content_type"`
-        Tone        string `json:"tone"`
-        Length      string `json:"length"`
-        MaxTokens   int    `json:"max_tokens" default:"1000"`
+        Prompt      string  `json:"prompt" binding:"required"`
+        Language    string  `json:"language" default:"en"`
+        ContentType string  `json:"content_type"`
+        Tone        string  `json:"tone"`
+        Length      string  `json:"length"`
+        MaxTokens   int     `json:"max_tokens" default:"1000"`
         Temperature float64 `json:"temperature" default:"0.7"`
     }
     
@@ -56,8 +57,8 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
         MaxTokens:   req.MaxTokens,
         Temperature: req.Temperature,
         Language:    req.Language,
-        UserID:      getUserID(c),
-        UserTier:    getUserTier(c),
+        UserID:      h.getUserID(c),
+        UserTier:    h.getUserTier(c),
     }
     
     // توليد المحتوى
@@ -171,11 +172,11 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
     
     // إنشاء طلب تحليل الصورة
     imageReq := ai.ImageRequest{
-        ImageData: imageData,
-        Prompt:    prompt,
+        ImageData:    imageData,
+        Prompt:       prompt,
         AnalysisType: analysisType,
-        UserID:    getUserID(c),
-        UserTier:  getUserTier(c),
+        UserID:       h.getUserID(c),
+        UserTier:     h.getUserTier(c),
     }
     
     // تحليل الصورة
@@ -209,10 +210,10 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
 // TranslateTextHandler معالج ترجمة النص
 func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
     var req struct {
-        Text        string `json:"text" binding:"required"`
-        SourceLang  string `json:"source_lang" default:"auto"`
-        TargetLang  string `json:"target_lang" binding:"required"`
-        Formal      bool   `json:"formal" default:"false"`
+        Text       string `json:"text" binding:"required"`
+        SourceLang string `json:"source_lang" default:"auto"`
+        TargetLang string `json:"target_lang" binding:"required"`
+        Formal     bool   `json:"formal" default:"false"`
     }
     
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -234,7 +235,7 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
     }
     
     // التحقق من صحة اللغة الهدف
-    if !isValidLanguage(req.TargetLang) {
+    if !h.isValidLanguage(req.TargetLang) {
         c.JSON(http.StatusBadRequest, gin.H{
             "success": false,
             "error":   "Invalid target language",
@@ -244,12 +245,12 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
     
     // إنشاء طلب الترجمة
     translateReq := ai.TranslationRequest{
-        Text:        req.Text,
-        SourceLang:  req.SourceLang,
-        TargetLang:  req.TargetLang,
-        Formal:      req.Formal,
-        UserID:      getUserID(c),
-        UserTier:    getUserTier(c),
+        Text:       req.Text,
+        SourceLang: req.SourceLang,
+        TargetLang: req.TargetLang,
+        Formal:     req.Formal,
+        UserID:     h.getUserID(c),
+        UserTier:   h.getUserTier(c),
     }
     
     // ترجمة النص
@@ -266,21 +267,21 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{
         "success": true,
         "data": gin.H{
-            "original_text": req.Text,
+            "original_text":   req.Text,
             "translated_text": translation.TranslatedText,
-            "source_lang":   translation.SourceLang,
-            "target_lang":   translation.TargetLang,
-            "detected_lang": translation.DetectedLang,
-            "confidence":    translation.Confidence,
-            "provider":      translation.Provider,
-            "model_used":    translation.ModelUsed,
-            "cost":          translation.Cost,
-            "created_at":    translation.CreatedAt,
+            "source_lang":     translation.SourceLang,
+            "target_lang":     translation.TargetLang,
+            "detected_lang":   translation.DetectedLang,
+            "confidence":      translation.Confidence,
+            "provider":        translation.Provider,
+            "model_used":      translation.ModelUsed,
+            "cost":            translation.Cost,
+            "created_at":      translation.CreatedAt,
         },
     })
 }
 
-// SummarizeTextHandler معاخ تلخيص النص
+// SummarizeTextHandler معالج تلخيص النص
 func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
     var req struct {
         Text        string `json:"text" binding:"required"`
@@ -315,8 +316,8 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
         MaxTokens:   500,
         Temperature: 0.3,
         Language:    req.Language,
-        UserID:      getUserID(c),
-        UserTier:    getUserTier(c),
+        UserID:      h.getUserID(c),
+        UserTier:    h.getUserTier(c),
     }
     
     // توليد التلخيص
@@ -334,13 +335,13 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
         "success": true,
         "data": gin.H{
             "original_length": len(req.Text),
-            "summary":        summary.Text,
-            "summary_type":   req.SummaryType,
-            "language":       req.Language,
-            "provider":       summary.Provider,
-            "model_used":     summary.ModelUsed,
-            "cost":           summary.Cost,
-            "created_at":     summary.CreatedAt,
+            "summary":         summary.Text,
+            "summary_type":    req.SummaryType,
+            "language":        req.Language,
+            "provider":        summary.Provider,
+            "model_used":      summary.ModelUsed,
+            "cost":            summary.Cost,
+            "created_at":      summary.CreatedAt,
         },
     })
 }
@@ -364,7 +365,7 @@ func (h *AIHandler) GetAICapabilitiesHandler(c *gin.Context) {
             {
                 "name": "translation",
                 "description": "Translate text between languages",
-                "supported_languages": getSupportedLanguages(),
+                "supported_languages": h.getSupportedLanguagesSimple(),
                 "max_text_length": 5000,
             },
             {
@@ -454,8 +455,8 @@ func (h *AIHandler) buildSummaryPrompt(text, summaryType string, maxLength int) 
     return prompt.String()
 }
 
-func isValidLanguage(lang string) bool {
-    supportedLangs := getSupportedLanguages()
+func (h *AIHandler) isValidLanguage(lang string) bool {
+    supportedLangs := h.getSupportedLanguages()
     for _, supportedLang := range supportedLangs {
         if supportedLang["code"] == lang {
             return true
@@ -464,7 +465,7 @@ func isValidLanguage(lang string) bool {
     return false
 }
 
-func getSupportedLanguages() []gin.H {
+func (h *AIHandler) getSupportedLanguages() []gin.H {
     return []gin.H{
         {"code": "en", "name": "English"},
         {"code": "ar", "name": "Arabic"},
@@ -486,17 +487,26 @@ func getSupportedLanguages() []gin.H {
     }
 }
 
-// Helper functions from video.go (يجب أن تكون في ملف مشترك)
-func getUserID(c *gin.Context) string {
-    if userID, exists := c.Get("userID"); exists {
-        return userID.(string)
+func (h *AIHandler) getSupportedLanguagesSimple() []string {
+    return []string{
+        "en", "ar", "fr", "es", "de", "zh",
+        "ru", "ja", "ko", "pt", "it", "nl",
+        "tr", "fa", "hi", "bn", "ur",
     }
-    return ""
 }
 
-func getUserTier(c *gin.Context) string {
-    if userTier, exists := c.Get("userTier"); exists {
-        return userTier.(string)
+// Helper functions
+func (h *AIHandler) getUserID(c *gin.Context) string {
+    return utils.GetUserIDFromContext(c)
+}
+
+func (h *AIHandler) getUserTier(c *gin.Context) string {
+    userID := h.getUserID(c)
+    if userID == "" {
+        return "free"
     }
+    
+    // في تطبيق حقيقي، يمكن الحصول على tier من قاعدة البيانات
+    // حالياً نستخدم قيمة افتراضية
     return "free"
 }
