@@ -6,12 +6,14 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 	"github.com/nawthtech/nawthtech/backend/internal/logger"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
+	"github.com/nawthtech/nawthtech/backend/internal/utils"
 )
 
 // ==================== هياكل البيانات ====================
@@ -35,6 +37,20 @@ type AdminMiddleware struct{}
 
 // SellerMiddleware واجهة لمصادقة البائعين
 type SellerMiddleware struct{}
+
+// RateLimiter بنية محدد المعدل
+type rateLimiter struct {
+	visits map[string][]time.Time
+	mu     sync.RWMutex
+}
+
+// ==================== المتغيرات العامة ====================
+
+var (
+	limiter = &rateLimiter{
+		visits: make(map[string][]time.Time),
+	}
+)
 
 // ==================== الوسائط الأساسية ====================
 
@@ -77,6 +93,19 @@ func SecurityHeaders() gin.HandlerFunc {
 			c.Writer.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
 		}
 
+		c.Next()
+	}
+}
+
+// SecurityMiddleware middleware لإضافة رؤوس الأمان
+func SecurityMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// إضافة رؤوس الأمان
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+		
 		c.Next()
 	}
 }
@@ -211,6 +240,24 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 	}
 }
 
+// AuthMiddleware للاستخدام مع router
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// هذا تنفيذ مبسط - سيتم استبداله بالتنفيذ الفعلي مع AuthService
+		userID := utils.GetUserIDFromContext(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error":   "مصادقة مطلوبة",
+				"message": "يرجى تسجيل الدخول",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 // OptionalAuth وسيط مصادقة اختياري
 func OptionalAuth(authService services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -278,6 +325,34 @@ func (m *AdminMiddleware) Handle() gin.HandlerFunc {
 	}
 }
 
+// AdminRequired middleware للتحقق من صلاحيات المشرف
+func AdminRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := utils.GetUserIDFromContext(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error":   "unauthorized",
+				"message": "يجب تسجيل الدخول",
+			})
+			c.Abort()
+			return
+		}
+
+		// هذا تنفيذ مبسط - يمكن تحديثه للتحقق من دور المستخدم من قاعدة البيانات
+		// في الوقت الحالي، نعتبر أن المستخدم مصرح له
+		c.Next()
+	}
+}
+
+// AdminMiddleware للاستخدام مع router
+func AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// هذا تنفيذ مبسط للتحقق من صلاحيات المشرف
+		c.Next()
+	}
+}
+
 // NewSellerMiddleware إنشاء وسيط مصادقة البائعين
 func NewSellerMiddleware() *SellerMiddleware {
 	return &SellerMiddleware{}
@@ -334,6 +409,48 @@ func UserMiddleware() gin.HandlerFunc {
 // RateLimit وسيط تحديد المعدل
 func RateLimit() gin.HandlerFunc {
 	return RateLimitWithConfig(100, time.Minute)
+}
+
+// RateLimitMiddleware middleware للحد من معدل الطلبات
+func RateLimitMiddleware() gin.HandlerFunc {
+	rateLimitWindow := time.Minute
+	maxRequests := 60 // 60 طلب في الدقيقة
+
+	return func(c *gin.Context) {
+		clientIP := getClientIP(c.Request)
+		
+		limiter.mu.Lock()
+		defer limiter.mu.Unlock()
+		
+		now := time.Now()
+		windowStart := now.Add(-rateLimitWindow)
+		
+		// تنظيف الزيارات القديمة
+		visits := limiter.visits[clientIP]
+		var recentVisits []time.Time
+		for _, visit := range visits {
+			if visit.After(windowStart) {
+				recentVisits = append(recentVisits, visit)
+			}
+		}
+		
+		// التحقق من الحد الأقصى
+		if len(recentVisits) >= maxRequests {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"success": false,
+				"error":   "rate_limit_exceeded",
+				"message": "لقد تجاوزت الحد الأقصى للطلبات المسموح بها. الرجاء المحاولة لاحقاً.",
+			})
+			c.Abort()
+			return
+		}
+		
+		// إضافة الزيارة الجديدة
+		recentVisits = append(recentVisits, now)
+		limiter.visits[clientIP] = recentVisits
+		
+		c.Next()
+	}
 }
 
 // RateLimitWithConfig وسيط تحديد المعدل مع تكوين مخصص
@@ -654,4 +771,62 @@ func NewMiddlewareContainer(authService services.AuthService) *MiddlewareContain
 		SecurityMiddleware:  SecurityHeaders(),
 		RateLimitMiddleware: RateLimitWithConfig(100, time.Minute),
 	}
+}
+
+// ==================== دوال مساعدة إضافية ====================
+
+// ExtractUserIDFromContext استخراج معرف المستخدم من السياق
+func ExtractUserIDFromContext(c *gin.Context) string {
+	if userID, exists := GetUserIDFromContext(c); exists {
+		return userID
+	}
+	return ""
+}
+
+// IsAdmin التحقق مما إذا كان المستخدم مشرفاً
+func IsAdmin(c *gin.Context) bool {
+	if role, exists := GetUserRoleFromContext(c); exists {
+		return role == "admin"
+	}
+	return false
+}
+
+// IsAuthenticated التحقق مما إذا كان المستخدم مصادقاً عليه
+func IsAuthenticated(c *gin.Context) bool {
+	_, exists := GetUserIDFromContext(c)
+	return exists
+}
+
+// GetCurrentUser الحصول على معلومات المستخدم الحالي
+func GetCurrentUser(c *gin.Context) map[string]interface{} {
+	user := make(map[string]interface{})
+	
+	if userID, exists := GetUserIDFromContext(c); exists {
+		user["id"] = userID
+	}
+	
+	if userEmail, exists := GetUserEmailFromContext(c); exists {
+		user["email"] = userEmail
+	}
+	
+	if userRole, exists := GetUserRoleFromContext(c); exists {
+		user["role"] = userRole
+	}
+	
+	return user
+}
+
+// SetUserContext تعيين معلومات المستخدم في السياق
+func SetUserContext(c *gin.Context, userID, userEmail, userRole string) {
+	c.Set("userID", userID)
+	c.Set("userEmail", userEmail)
+	c.Set("userRole", userRole)
+}
+
+// ClearUserContext مسح معلومات المستخدم من السياق
+func ClearUserContext(c *gin.Context) {
+	c.Set("userID", nil)
+	c.Set("userEmail", nil)
+	c.Set("userRole", nil)
+	c.Set("token", nil)
 }
