@@ -48,10 +48,16 @@ jobs:
         go test -v ./... -race -coverprofile=coverage.out
         echo "✅ Tests completed successfully"
 
-    - name: Check code format
+
+    - name: Check Go code formatting
       run: |
-        test -z $(gofmt -l .)
+        if [ -n "$(gofmt -l .)" ]; then
+        echo "❌ Code formatting issues found. Please run 'gofmt -w .' to fix."
+        gofmt -l .
+        exit 1
+      else
         echo "✅ Code formatting check passed"
+      fi
 
     - name: Build Go binary
       run: |
