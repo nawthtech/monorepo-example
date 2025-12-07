@@ -37,6 +37,60 @@ type MultiProviderInterface interface {
     GetFallbackChain(providerType string) []string
 }
 
+// CostManagerInterface واجهة لإدارة التكاليف
+type CostManagerInterface interface {
+    RecordUsage(record *UsageRecord) error
+    CanUseAI(userID, requestType string) (bool, string)
+    GetUsageStatistics() map[string]interface{}
+    GetUserQuotas(userID string) (map[string]*Quota, error)
+    ResetUserQuotas(userID string) error
+    SetLimits(monthly, daily float64)
+    GetProviderStats(providerName string) (*ProviderStats, error)
+}
+
+// CacheManagerInterface واجهة لإدارة الذاكرة المؤقتة
+type CacheManagerInterface interface {
+    Get(key string) (interface{}, bool)
+    Set(key string, value interface{}, ttl time.Duration)
+    Delete(key string)
+    Clear()
+    Size() int
+    GetStats() CacheStats
+}
+
+// AIClientInterface واجهة عميل AI
+type AIClientInterface interface {
+    // العمليات الأساسية
+    GenerateText(prompt, provider string) (string, error)
+    GenerateImage(prompt, provider string) (string, error)
+    GenerateVideo(prompt, provider string) (string, error)
+    
+    // العمليات المتقدمة
+    GenerateTextWithOptions(req TextRequest) (*TextResponse, error)
+    GenerateImageWithOptions(req ImageRequest) (*ImageResponse, error)
+    GenerateVideoWithOptions(req VideoRequest) (*VideoResponse, error)
+    AnalyzeText(text, provider string) (*AnalysisResponse, error)
+    AnalyzeTextWithOptions(req AnalysisRequest) (*AnalysisResponse, error)
+    TranslateText(text, fromLang, toLang, provider string) (string, error)
+    TranslateTextWithOptions(req TranslationRequest) (*TranslationResponse, error)
+    AnalyzeImage(imageData []byte, prompt, provider string) (*AnalysisResponse, error)
+    AnalyzeImageWithOptions(req AnalysisRequest) (*AnalysisResponse, error)
+    
+    // معلومات النظام
+    GetVideoStatus(operationID string) (*VideoResponse, error)
+    GetAvailableProviders() map[string][]string
+    IsProviderAvailable(providerType, providerName string) bool
+    GetProviderStats(providerName string) (*ProviderStats, error)
+    GetUsageStatistics() map[string]interface{}
+    
+    // إدارة المزودين
+    RegisterProvider(name string, provider ProviderInterface)
+    RemoveProvider(name string)
+    
+    // إدارة الاتصال
+    Close() error
+}
+
 // ============ هياكل الطلبات والاستجابات ============
 
 // TextRequest طلب توليد نص
