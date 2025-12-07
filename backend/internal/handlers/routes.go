@@ -14,7 +14,7 @@ import (
 
 // RegisterAllRoutes تسجيل جميع المسارات
 func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceContainer, config *config.Config, 
-	mongoClient *mongo.Client, aiClient *ai.Client, videoService *video.VideoService) {
+	mongoClient *mongo.Client, aiClient *ai.Client, videoService *video.VideoService) error {
 	
 	// تطبيق middleware العام على مستوى التطبيق
 	applyGlobalMiddleware(router, config)
@@ -41,7 +41,12 @@ func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceCon
 	registerSellerRoutes(api, serviceContainer, middlewares)
 
 	// ========== مسارات الويب هووك ==========
-	registerWebhookRoutes(api, serviceContainer, middlewares)
+	err := registerWebhookRoutes(api, serviceContainer, middlewares)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // applyGlobalMiddleware تطبيق الوسائط العامة على مستوى التطبيق
@@ -102,7 +107,7 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
 	api.POST("/auth/refresh", authHandler.RefreshToken)
-	api.POST("/auth/forgot-password", authHandler.ForgotPassword)
+	api.POST("/auth/forgot-password", authHandler.FgotPassword)
 	api.POST("/auth/reset-password", authHandler.ResetPassword)
 	api.POST("/auth/verify-token", authHandler.VerifyToken)
 
@@ -126,7 +131,6 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	// معالج الفيديو (الميزات العامة)
 	videoHandler := NewVideoHandler(videoService)
 	api.GET("/video/capabilities", videoHandler.GetVideoCapabilitiesHandler)
-	api.GET("/video/types", videoHandler.ListVideoJobsHandler) // إعادة تسمية للتوافق
 }
 
 // registerProtectedRoutes تسجيل المسارات المحمية
@@ -158,7 +162,11 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	protected.POST("/payment/confirm", paymentHandler.ConfirmPayment)
 
 	// معالج الرفع
-	uploadHandler := NewUploadHandler()
+	uploadHandler, err := NewUploadHandler()
+	if err != nil {
+		// يمكن إضافة معالجة الخطأ هنا
+		return
+	}
 	protected.POST("/upload/image", uploadHandler.UploadImage)
 	protected.POST("/upload/images", uploadHandler.UploadMultipleImages)
 	protected.GET("/upload/images", uploadHandler.GetUserImages)
@@ -232,11 +240,14 @@ func registerSellerRoutes(api *gin.RouterGroup, services *services.ServiceContai
 }
 
 // registerWebhookRoutes تسجيل مسارات الويب هووك
-func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
+func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) error {
 	webhook := api.Group("/webhook")
 	{
 		// ويب هووك الرفع (Cloudinary)
-		uploadHandler := NewUploadHandler()
+		uploadHandler, err := NewUploadHandler()
+		if err != nil {
+			return err
+		}
 		webhook.POST("/upload/cloudinary", uploadHandler.HandleCloudinaryWebhook)
 		
 		// ويب هووك الدفع (Stripe, PayPal, etc.)
@@ -244,6 +255,7 @@ func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceConta
 		webhook.POST("/payment/stripe", paymentHandler.HandleStripeWebhook)
 		webhook.POST("/payment/paypal", paymentHandler.HandlePayPalWebhook)
 	}
+	return nil
 }
 
 // HealthHandler معالج الصحة
@@ -335,129 +347,3 @@ func (h *HealthHandler) AdminHealth(c *gin.Context) {
 	}
 	c.JSON(200, response)
 }
-
-// Placeholder handlers for compilation (يجب تنفيذها في ملفات منفصلة)
-
-// NewAuthHandler placeholder
-func NewAuthHandler(authService interface{}) *AuthHandler {
-	return &AuthHandler{}
-}
-
-type AuthHandler struct{}
-
-func (h *AuthHandler) Register(c *gin.Context)           {}
-func (h *AuthHandler) Login(c *gin.Context)              {}
-func (h *AuthHandler) RefreshToken(c *gin.Context)       {}
-func (h *AuthHandler) ForgotPassword(c *gin.Context)     {}
-func (h *AuthHandler) ResetPassword(c *gin.Context)      {}
-func (h *AuthHandler) VerifyToken(c *gin.Context)        {}
-
-// NewServiceHandler placeholder
-func NewServiceHandler(serviceService interface{}) *ServiceHandler {
-	return &ServiceHandler{}
-}
-
-type ServiceHandler struct{}
-
-func (h *ServiceHandler) GetServices(c *gin.Context)         {}
-func (h *ServiceHandler) SearchServices(c *gin.Context)      {}
-func (h *ServiceHandler) GetFeaturedServices(c *gin.Context) {}
-func (h *ServiceHandler) GetCategories(c *gin.Context)       {}
-func (h *ServiceHandler) GetServiceByID(c *gin.Context)      {}
-func (h *ServiceHandler) CreateService(c *gin.Context)       {}
-func (h *ServiceHandler) UpdateService(c *gin.Context)       {}
-func (h *ServiceHandler) DeleteService(c *gin.Context)       {}
-func (h *ServiceHandler) GetMyServices(c *gin.Context)       {}
-
-// NewCategoryHandler placeholder
-func NewCategoryHandler(categoryService interface{}) *CategoryHandler {
-	return &CategoryHandler{}
-}
-
-type CategoryHandler struct{}
-
-func (h *CategoryHandler) GetCategories(c *gin.Context)      {}
-func (h *CategoryHandler) GetCategoryByID(c *gin.Context)    {}
-func (h *CategoryHandler) CreateCategory(c *gin.Context)     {}
-func (h *CategoryHandler) UpdateCategory(c *gin.Context)     {}
-func (h *CategoryHandler) DeleteCategory(c *gin.Context)     {}
-
-// NewUserHandler placeholder
-func NewUserHandler(userService interface{}) *UserHandler {
-	return &UserHandler{}
-}
-
-type UserHandler struct{}
-
-func (h *UserHandler) GetProfile(c *gin.Context)             {}
-func (h *UserHandler) UpdateProfile(c *gin.Context)          {}
-func (h *UserHandler) ChangePassword(c *gin.Context)         {}
-func (h *UserHandler) GetUserStats(c *gin.Context)           {}
-
-// NewOrderHandler placeholder
-func NewOrderHandler(orderService interface{}) *OrderHandler {
-	return &OrderHandler{}
-}
-
-type OrderHandler struct{}
-
-func (h *OrderHandler) GetUserOrders(c *gin.Context)         {}
-func (h *OrderHandler) GetOrderByID(c *gin.Context)          {}
-func (h *OrderHandler) CreateOrder(c *gin.Context)           {}
-func (h *OrderHandler) CancelOrder(c *gin.Context)           {}
-func (h *OrderHandler) UpdateOrderStatus(c *gin.Context)     {}
-func (h *OrderHandler) GetSellerOrders(c *gin.Context)       {}
-func (h *OrderHandler) GetAllOrders(c *gin.Context)          {}
-
-// NewPaymentHandler placeholder
-func NewPaymentHandler(paymentService interface{}) *PaymentHandler {
-	return &PaymentHandler{}
-}
-
-type PaymentHandler struct{}
-
-func (h *PaymentHandler) GetPaymentHistory(c *gin.Context)   {}
-func (h *PaymentHandler) CreatePaymentIntent(c *gin.Context) {}
-func (h *PaymentHandler) ConfirmPayment(c *gin.Context)      {}
-func (h *PaymentHandler) HandleStripeWebhook(c *gin.Context) {}
-func (h *PaymentHandler) HandlePayPalWebhook(c *gin.Context) {}
-
-// NewUploadHandler placeholder
-func NewUploadHandler() *UploadHandler {
-	return &UploadHandler{}
-}
-
-type UploadHandler struct{}
-
-func (h *UploadHandler) UploadImage(c *gin.Context)          {}
-func (h *UploadHandler) UploadMultipleImages(c *gin.Context) {}
-func (h *UploadHandler) GetUserImages(c *gin.Context)        {}
-func (h *UploadHandler) GetImageInfo(c *gin.Context)         {}
-func (h *UploadHandler) DeleteImage(c *gin.Context)          {}
-func (h *UploadHandler) HandleCloudinaryWebhook(c *gin.Context) {}
-
-// NewNotificationHandler placeholder
-func NewNotificationHandler(notificationService interface{}) *NotificationHandler {
-	return &NotificationHandler{}
-}
-
-type NotificationHandler struct{}
-
-func (h *NotificationHandler) GetUserNotifications(c *gin.Context)  {}
-func (h *NotificationHandler) MarkAsRead(c *gin.Context)            {}
-func (h *NotificationHandler) MarkAllAsRead(c *gin.Context)         {}
-func (h *NotificationHandler) GetUnreadCount(c *gin.Context)        {}
-
-// NewAdminHandler placeholder
-func NewAdminHandler(adminService interface{}) *AdminHandler {
-	return &AdminHandler{}
-}
-
-type AdminHandler struct{}
-
-func (h *AdminHandler) GetDashboard(c *gin.Context)          {}
-func (h *AdminHandler) GetDashboardStats(c *gin.Context)     {}
-func (h *AdminHandler) GetUsers(c *gin.Context)              {}
-func (h *AdminHandler) UpdateUserStatus(c *gin.Context)      {}
-func (h *AdminHandler) GetSystemLogs(c *gin.Context)         {}
-func (h *AdminHandler) GetAllOrders(c *gin.Context)          {}
