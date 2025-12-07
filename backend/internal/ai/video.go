@@ -9,6 +9,7 @@ import (
     "os"
     "strings"
     "time"
+    "github.com/nawthtech/nawthtech/backend/internal/ai/types"
 )
 
 // VideoProvider مزود خاص لتوليد الفيديوهات
