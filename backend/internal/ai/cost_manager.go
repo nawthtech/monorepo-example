@@ -280,7 +280,7 @@ func (cm *CostManager) getDefaultQuotas(tier string) map[string]*Quota {
 }
 
 // RecordUsage تسجيل استخدام
-func (cm *CostManager) RecordUsage(record *UsageRecord) error {
+func (cm *CostManager) RecordUsage(record *types.UsageRecord) error {
     cm.mu.Lock()
     defer cm.mu.Unlock()
     
