@@ -9,7 +9,7 @@ import (
     "os"
     "strings"
     "time"
-    import "github.com/nawthtech/nawthtech/backend/internal/ai/types"
+    "github.com/nawthtech/nawthtech/backend/internal/ai/types"
 )
 
 // HuggingFaceProvider مزود Hugging Face
