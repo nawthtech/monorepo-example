@@ -187,131 +187,108 @@ type UsageRecord struct {
     Error       string                 `json:"error,omitempty"`
 }
 
-// CostConfig تكوين التكاليف
-type CostConfig struct {
-    Provider    string  `json:"provider"`
-    Model       string  `json:"model"`
-    Type        string  `json:"type"`
-    CostPerToken float64 `json:"cost_per_token"`
-    CostPerImage float64 `json:"cost_per_image"`
-    CostPerSecond float64 `json:"cost_per_second"`
-    MaxTokens   int     `json:"max_tokens"`
-    Currency    string  `json:"currency"`
+// --- الأنواع من ai.go ---
+
+// AIRequest طلب AI عام
+type AIRequest struct {
+    Type        string                 `json:"type"` // text, image, video, analysis, translation
+    Data        interface{}            `json:"data"`
+    Options     map[string]interface{} `json:"options,omitempty"`
+    Priority    int                    `json:"priority,omitempty"`
+    UserContext *UserContext           `json:"user_context,omitempty"`
 }
 
-// ProviderConfig تكوين المزود
-type ProviderConfig struct {
-    Name        string                 `json:"name"`
+// AIResponse استجابة AI عامة
+type AIResponse struct {
     Type        string                 `json:"type"`
-    APIKey      string                 `json:"api_key,omitempty"`
-    BaseURL     string                 `json:"base_url,omitempty"`
-    Timeout     int                    `json:"timeout"` // in seconds
-    Enabled     bool                   `json:"enabled"`
-    Priority    int                    `json:"priority"`
-    Models      []string               `json:"models"`
-    Capabilities []string              `json:"capabilities"` // text, image, video, etc.
-    Config      map[string]interface{} `json:"config,omitempty"`
-}
-
-// ClientConfig تكوين العميل
-type ClientConfig struct {
-    DefaultProvider   string                 `json:"default_provider"`
-    FallbackProviders []string               `json:"fallback_providers"`
-    MaxRetries        int                    `json:"max_retries"`
-    Timeout           int                    `json:"timeout"` // in seconds
-    CacheEnabled      bool                   `json:"cache_enabled"`
-    CacheTTL          int                    `json:"cache_ttl"` // in seconds
-    RateLimit         int                    `json:"rate_limit"` // requests per minute
-    Providers         []ProviderConfig       `json:"providers"`
-    Costs             []CostConfig           `json:"costs"`
-    Features          map[string]bool        `json:"features"`
-}
-
-// ErrorResponse استجابة خطأ
-type ErrorResponse struct {
-    Error       string                 `json:"error"`
-    Code        string                 `json:"code,omitempty"`
-    Message     string                 `json:"message"`
-    Details     map[string]interface{} `json:"details,omitempty"`
-    Timestamp   time.Time              `json:"timestamp"`
-}
-
-// StreamingChunk جزء من التدفق
-type StreamingChunk struct {
-    Content     string                 `json:"content"`
-    Index       int                    `json:"index"`
-    FinishReason string                `json:"finish_reason,omitempty"`
-    Tokens      int                    `json:"tokens,omitempty"`
+    Success     bool                   `json:"success"`
+    Data        interface{}            `json:"data,omitempty"`
+    Error       string                 `json:"error,omitempty"`
     Metadata    map[string]interface{} `json:"metadata,omitempty"`
+    ProcessingTime float64             `json:"processing_time"` // in seconds
+    Provider    string                 `json:"provider,omitempty"`
 }
 
-// EmbeddingRequest طلب تضمين
-type EmbeddingRequest struct {
-    Input       string                 `json:"input"`
-    Model       string                 `json:"model,omitempty"`
-    User        string                 `json:"user,omitempty"`
-    UserID      string                 `json:"user_id,omitempty"`
-    Dimensions  int                    `json:"dimensions,omitempty"`
+// UserContext سياق المستخدم
+type UserContext struct {
+    UserID      string                 `json:"user_id"`
+    UserTier    string                 `json:"user_tier"`
+    SessionID   string                 `json:"session_id,omitempty"`
+    Preferences map[string]interface{} `json:"preferences,omitempty"`
+    History     []UsageRecord          `json:"history,omitempty"`
+    Balance     float64                `json:"balance,omitempty"`
+    Quota       map[string]int         `json:"quota,omitempty"`
 }
 
-// EmbeddingResponse استجابة تضمين
-type EmbeddingResponse struct {
-    Embedding   []float64              `json:"embedding"`
-    Model       string                 `json:"model"`
-    Cost        float64                `json:"cost"`
-    Tokens      int                    `json:"tokens"`
-    CreatedAt   time.Time              `json:"created_at"`
-}
-
-// ChatMessage رسالة محادثة
-type ChatMessage struct {
-    Role        string                 `json:"role"` // user, assistant, system
-    Content     string                 `json:"content"`
-    Name        string                 `json:"name,omitempty"`
-    Metadata    map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// ChatRequest طلب محادثة
-type ChatRequest struct {
-    Messages    []ChatMessage          `json:"messages"`
-    Model       string                 `json:"model,omitempty"`
-    Temperature float64                `json:"temperature,omitempty"`
-    MaxTokens   int                    `json:"max_tokens,omitempty"`
-    Stream      bool                   `json:"stream,omitempty"`
-    User        string                 `json:"user,omitempty"`
-    UserID      string                 `json:"user_id,omitempty"`
-}
-
-// ChatResponse استجابة محادثة
-type ChatResponse struct {
-    Message     ChatMessage            `json:"message"`
-    Tokens      int                    `json:"tokens"`
-    Cost        float64                `json:"cost"`
-    ModelUsed   string                 `json:"model_used"`
-    FinishReason string                `json:"finish_reason,omitempty"`
-    CreatedAt   time.Time              `json:"created_at"`
-}
-
-// ProviderInfo معلومات المزود
-type ProviderInfo struct {
+// ModelInfo معلومات النموذج
+type ModelInfo struct {
     Name        string                 `json:"name"`
+    Provider    string                 `json:"provider"`
     Type        string                 `json:"type"`
-    IsAvailable bool                   `json:"is_available"`
-    Cost        float64                `json:"cost"`
     MaxTokens   int                    `json:"max_tokens"`
-    Models      []string               `json:"models"`
+    Cost        float64                `json:"cost_per_token"`
     Languages   []string               `json:"languages"`
     Capabilities []string              `json:"capabilities"`
-    Stats       *ProviderStats         `json:"stats,omitempty"`
+    Description string                 `json:"description,omitempty"`
+    Version     string                 `json:"version,omitempty"`
+    ReleasedAt  time.Time              `json:"released_at,omitempty"`
 }
 
-// HealthStatus حالة الصحة
-type HealthStatus struct {
-    Status      string                 `json:"status"` // healthy, unhealthy, degraded
+// ProviderCapabilities قدرات المزود
+type ProviderCapabilities struct {
+    Provider    string                 `json:"provider"`
+    Text        bool                   `json:"text"`
+    Image       bool                   `json:"image"`
+    Video       bool                   `json:"video"`
+    Analysis    bool                   `json:"analysis"`
+    Translation bool                   `json:"translation"`
+    Embedding   bool                   `json:"embedding"`
+    Chat        bool                   `json:"chat"`
+    Streaming   bool                   `json:"streaming"`
+    Vision      bool                   `json:"vision"`
+    MaxTokens   int                    `json:"max_tokens"`
+    Models      []ModelInfo            `json:"models"`
+}
+
+// UsageSummary ملخص الاستخدام
+type UsageSummary struct {
+    Period      string                 `json:"period"` // daily, weekly, monthly
+    StartDate   time.Time              `json:"start_date"`
+    EndDate     time.Time              `json:"end_date"`
+    TotalCost   float64                `json:"total_cost"`
+    TotalRequests int64                `json:"total_requests"`
+    Successful  int64                  `json:"successful"`
+    Failed      int64                  `json:"failed"`
+    ByProvider  map[string]UsageStats  `json:"by_provider"`
+    ByType      map[string]UsageStats  `json:"by_type"`
+}
+
+// UsageStats إحصائيات الاستخدام
+type UsageStats struct {
+    Count       int64     `json:"count"`
+    Cost        float64   `json:"cost"`
+    SuccessRate float64   `json:"success_rate"`
+    AvgLatency  float64   `json:"avg_latency"`
+}
+
+// FeatureFlag علم الميزة
+type FeatureFlag struct {
+    Name        string    `json:"name"`
+    Enabled     bool      `json:"enabled"`
+    Description string    `json:"description,omitempty"`
+    EnabledFor  []string  `json:"enabled_for,omitempty"` // user tiers
+    ExpiresAt   time.Time `json:"expires_at,omitempty"`
+}
+
+// SystemMetrics مقاييس النظام
+type SystemMetrics struct {
     Timestamp   time.Time              `json:"timestamp"`
-    Providers   map[string]bool        `json:"providers"`
-    Uptime      float64                `json:"uptime"` // in seconds
-    MemoryUsage float64                `json:"memory_usage"` // in MB
+    CPUUsage    float64                `json:"cpu_usage"` // percentage
+    MemoryUsage float64                `json:"memory_usage"` // MB
+    DiskUsage   float64                `json:"disk_usage"` // percentage
     Goroutines  int                    `json:"goroutines"`
-    Errors      []string               `json:"errors,omitempty"`
+    ActiveConnections int              `json:"active_connections"`
+    RequestRate float64                `json:"request_rate"` // requests per second
+    ErrorRate   float64                `json:"error_rate"` // errors per second
+    ProviderStatus map[string]bool     `json:"provider_status"`
 }
