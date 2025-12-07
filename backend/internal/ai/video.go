@@ -71,7 +71,7 @@ func NewVideoProvider(apiType string) (*VideoProvider, error) {
 }
 
 // GenerateVideo توليد فيديو باستخدام API المختار
-func (p *VideoProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error) {
+func (p *VideoProvider) GenerateVideo(req types.VideoRequest) (*types.VideoResponse, error) {
     switch p.apiType {
     case "gemini":
         return p.generateWithGemini(req)
@@ -87,17 +87,17 @@ func (p *VideoProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error) 
 }
 
 // generateWithGemini توليد فيديو باستخدام Gemini Veo
-func (p *VideoProvider) generateWithGemini(req VideoRequest) (*VideoResponse, error) {
-    // هذا مثال مبسط - في الواقع تحتاج إلى استيراد مكتبة Google AI بشكل صحيح
-    // هنا نستخدم استدعاء REST API مباشرة
-    
+func (p *VideoProvider) generateWithGemini(req types.VideoRequest) (*types.VideoResponse, error) {
     url := fmt.Sprintf("%s/models/veo-2.0-generate-001:generateVideo?key=%s", p.baseURL, p.apiKey)
     
     requestBody := map[string]interface{}{
         "prompt": req.Prompt,
         "video_length_seconds": req.Duration,
-        "aspect_ratio": req.AspectRatio,
-        "output_format": req.OutputFormat,
+        "resolution": req.Resolution,
+    }
+    
+    if req.Style != "" {
+        requestBody["style"] = req.Style
     }
     
     jsonData, err := json.Marshal(requestBody)
@@ -126,22 +126,28 @@ func (p *VideoProvider) generateWithGemini(req VideoRequest) (*VideoResponse, er
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
     
-    return &VideoResponse{
-        VideoURL:    result.VideoURL,
-        Duration:    float64(req.Duration),
+    return &types.VideoResponse{
+        URL:         result.VideoURL,
+        Duration:    req.Duration,
+        Resolution:  req.Resolution,
         Status:      result.Status,
         OperationID: result.OperationID,
-        Cost:        0.1, // تقدير تكلفة Gemini Veo
+        Cost:        0.1,
+        ModelUsed:   "gemini-veo",
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // generateWithLuma توليد فيديو باستخدام Luma AI
-func (p *VideoProvider) generateWithLuma(req VideoRequest) (*VideoResponse, error) {
+func (p *VideoProvider) generateWithLuma(req types.VideoRequest) (*types.VideoResponse, error) {
     url := p.baseURL + "/generations"
     
     requestBody := map[string]interface{}{
         "prompt": req.Prompt,
-        "aspect_ratio": req.AspectRatio,
+    }
+    
+    if req.Resolution != "" {
+        requestBody["aspect_ratio"] = req.Resolution
     }
     
     jsonData, err := json.Marshal(requestBody)
@@ -178,23 +184,25 @@ func (p *VideoProvider) generateWithLuma(req VideoRequest) (*VideoResponse, erro
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
     
-    return &VideoResponse{
-        VideoURL:    result.VideoURL,
-        Duration:    float64(req.Duration),
+    return &types.VideoResponse{
+        URL:         result.VideoURL,
+        Duration:    req.Duration,
+        Resolution:  req.Resolution,
         Status:      result.Status,
         OperationID: result.ID,
-        Cost:        0.05, // تقدير تكلفة Luma
+        Cost:        0.05,
+        ModelUsed:   "luma-ai",
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // generateWithRunway توليد فيديو باستخدام Runway ML
-func (p *VideoProvider) generateWithRunway(req VideoRequest) (*VideoResponse, error) {
+func (p *VideoProvider) generateWithRunway(req types.VideoRequest) (*types.VideoResponse, error) {
     url := p.baseURL + "/generations"
     
     requestBody := map[string]interface{}{
         "prompt": req.Prompt,
         "duration": req.Duration,
-        "aspect_ratio": req.AspectRatio,
     }
     
     jsonData, err := json.Marshal(requestBody)
@@ -233,23 +241,25 @@ func (p *VideoProvider) generateWithRunway(req VideoRequest) (*VideoResponse, er
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
     
-    return &VideoResponse{
-        VideoURL:    result.Generation.URL,
-        Duration:    float64(req.Duration),
+    return &types.VideoResponse{
+        URL:         result.Generation.URL,
+        Duration:    req.Duration,
+        Resolution:  req.Resolution,
         Status:      result.Generation.Status,
         OperationID: result.Generation.ID,
-        Cost:        0.08, // تقدير تكلفة Runway
+        Cost:        0.08,
+        ModelUsed:   "runway-ml",
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // generateWithPika توليد فيديو باستخدام Pika Labs
-func (p *VideoProvider) generateWithPika(req VideoRequest) (*VideoResponse, error) {
+func (p *VideoProvider) generateWithPika(req types.VideoRequest) (*types.VideoResponse, error) {
     url := p.baseURL + "/generate"
     
     requestBody := map[string]interface{}{
         "prompt": req.Prompt,
         "duration": req.Duration,
-        "aspect_ratio": req.AspectRatio,
     }
     
     jsonData, err := json.Marshal(requestBody)
@@ -288,32 +298,35 @@ func (p *VideoProvider) generateWithPika(req VideoRequest) (*VideoResponse, erro
         return nil, fmt.Errorf("failed to decode response: %w", err)
     }
     
-    return &VideoResponse{
-        VideoURL:    result.Video.URL,
-        Duration:    float64(req.Duration),
+    return &types.VideoResponse{
+        URL:         result.Video.URL,
+        Duration:    req.Duration,
+        Resolution:  req.Resolution,
         Status:      result.Status,
         OperationID: result.ID,
-        Cost:        0.03, // تقدير تكلفة Pika
+        Cost:        0.03,
+        ModelUsed:   "pika-labs",
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // AnalyzeImage تحليل صورة - غير مدعوم في معظم مزودي الفيديو
-func (p *VideoProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error) {
+func (p *VideoProvider) AnalyzeImage(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     return nil, fmt.Errorf("image analysis not supported by video provider %s", p.apiType)
 }
 
 // AnalyzeText تحليل نص - غير مدعوم في معظم مزودي الفيديو
-func (p *VideoProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error) {
+func (p *VideoProvider) AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     return nil, fmt.Errorf("text analysis not supported by video provider %s", p.apiType)
 }
 
 // TranslateText ترجمة نص - غير مدعوم في معظم مزودي الفيديو
-func (p *VideoProvider) TranslateText(req TranslationRequest) (*TranslationResponse, error) {
+func (p *VideoProvider) TranslateText(req types.TranslationRequest) (*types.TranslationResponse, error) {
     return nil, fmt.Errorf("text translation not supported by video provider %s", p.apiType)
 }
 
 // GetVideoStatus الحصول على حالة فيديو
-func (p *VideoProvider) GetVideoStatus(operationID string) (*VideoResponse, error) {
+func (p *VideoProvider) GetVideoStatus(operationID string) (*types.VideoResponse, error) {
     switch p.apiType {
     case "gemini":
         return p.getGeminiStatus(operationID)
@@ -329,7 +342,7 @@ func (p *VideoProvider) GetVideoStatus(operationID string) (*VideoResponse, erro
 }
 
 // getGeminiStatus الحصول على حالة فيديو Gemini
-func (p *VideoProvider) getGeminiStatus(operationID string) (*VideoResponse, error) {
+func (p *VideoProvider) getGeminiStatus(operationID string) (*types.VideoResponse, error) {
     url := fmt.Sprintf("%s/operations/%s?key=%s", p.baseURL, operationID, p.apiKey)
     
     resp, err := p.httpClient.Get(url)
@@ -352,9 +365,10 @@ func (p *VideoProvider) getGeminiStatus(operationID string) (*VideoResponse, err
         return nil, fmt.Errorf("failed to decode Gemini status: %w", err)
     }
     
-    response := &VideoResponse{
+    response := &types.VideoResponse{
         OperationID: operationID,
         Status:      "pending",
+        CreatedAt:   time.Now(),
     }
     
     if result.Done {
@@ -362,7 +376,7 @@ func (p *VideoProvider) getGeminiStatus(operationID string) (*VideoResponse, err
             response.Status = "failed"
         } else {
             response.Status = "completed"
-            response.VideoURL = result.Result.VideoURL
+            response.URL = result.Result.VideoURL
         }
     }
     
@@ -370,7 +384,7 @@ func (p *VideoProvider) getGeminiStatus(operationID string) (*VideoResponse, err
 }
 
 // getLumaStatus الحصول على حالة فيديو Luma
-func (p *VideoProvider) getLumaStatus(operationID string) (*VideoResponse, error) {
+func (p *VideoProvider) getLumaStatus(operationID string) (*types.VideoResponse, error) {
     url := fmt.Sprintf("%s/generations/%s", p.baseURL, operationID)
     
     httpReq, err := http.NewRequest("GET", url, nil)
@@ -395,20 +409,21 @@ func (p *VideoProvider) getLumaStatus(operationID string) (*VideoResponse, error
         return nil, fmt.Errorf("failed to decode Luma status: %w", err)
     }
     
-    return &VideoResponse{
+    return &types.VideoResponse{
         OperationID: operationID,
         Status:      result.Status,
-        VideoURL:    result.VideoURL,
+        URL:         result.VideoURL,
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // GenerateText توليد نص - غير مدعوم في مزود الفيديو
-func (p *VideoProvider) GenerateText(req TextRequest) (*TextResponse, error) {
+func (p *VideoProvider) GenerateText(req types.TextRequest) (*types.TextResponse, error) {
     return nil, fmt.Errorf("text generation not supported by video provider %s", p.apiType)
 }
 
 // GenerateImage توليد صورة - غير مدعوم في مزود الفيديو
-func (p *VideoProvider) GenerateImage(req ImageRequest) (*ImageResponse, error) {
+func (p *VideoProvider) GenerateImage(req types.ImageRequest) (*types.ImageResponse, error) {
     return nil, fmt.Errorf("image generation not supported by video provider %s", p.apiType)
 }
 
@@ -449,7 +464,7 @@ func (p *VideoProvider) GetName() string {
 func (p *VideoProvider) GetCost() float64 {
     switch p.apiType {
     case "gemini":
-        return 0.1 // دولار لكل فيديو
+        return 0.1
     case "luma":
         return 0.05
     case "runway":
@@ -462,21 +477,23 @@ func (p *VideoProvider) GetCost() float64 {
 }
 
 // GetStats الحصول على إحصائيات
-func (p *VideoProvider) GetStats() *ProviderStats {
-    return &ProviderStats{
+func (p *VideoProvider) GetStats() *types.ProviderStats {
+    return &types.ProviderStats{
         Name:        p.GetName(),
         Type:        "video",
         IsAvailable: p.IsAvailable(),
         Requests:    0,
-        Errors:      0,
-        LastUsed:    "",
-        TotalCost:   0,
-        SuccessRate: 85.0, // تقديري
+        Successful:  0,
+        Failed:      0,
+        TotalCost:   0.0,
+        AvgLatency:  0.0,
+        SuccessRate: 85.0,
+        LastUsed:    time.Time{},
     }
 }
 
 // getRunwayStatus الحصول على حالة فيديو Runway
-func (p *VideoProvider) getRunwayStatus(operationID string) (*VideoResponse, error) {
+func (p *VideoProvider) getRunwayStatus(operationID string) (*types.VideoResponse, error) {
     url := fmt.Sprintf("%s/generations/%s", p.baseURL, operationID)
     
     httpReq, err := http.NewRequest("GET", url, nil)
@@ -503,15 +520,16 @@ func (p *VideoProvider) getRunwayStatus(operationID string) (*VideoResponse, err
         return nil, fmt.Errorf("failed to decode Runway status: %w", err)
     }
     
-    return &VideoResponse{
+    return &types.VideoResponse{
         OperationID: operationID,
         Status:      result.Generation.Status,
-        VideoURL:    result.Generation.URL,
+        URL:         result.Generation.URL,
+        CreatedAt:   time.Now(),
     }, nil
 }
 
 // getPikaStatus الحصول على حالة فيديو Pika
-func (p *VideoProvider) getPikaStatus(operationID string) (*VideoResponse, error) {
+func (p *VideoProvider) getPikaStatus(operationID string) (*types.VideoResponse, error) {
     url := fmt.Sprintf("%s/generations/%s", p.baseURL, operationID)
     
     httpReq, err := http.NewRequest("GET", url, nil)
@@ -538,9 +556,37 @@ func (p *VideoProvider) getPikaStatus(operationID string) (*VideoResponse, error
         return nil, fmt.Errorf("failed to decode Pika status: %w", err)
     }
     
-    return &VideoResponse{
+    return &types.VideoResponse{
         OperationID: operationID,
         Status:      result.Status,
-        VideoURL:    result.Video.URL,
+        URL:         result.Video.URL,
+        CreatedAt:   time.Now(),
     }, nil
+}
+
+// ============ الدوال المطلوبة للواجهة ============
+
+// GetType نوع المزود
+func (p *VideoProvider) GetType() string {
+    return "video"
+}
+
+// SupportsStreaming يدعم التدفق
+func (p *VideoProvider) SupportsStreaming() bool {
+    return false
+}
+
+// SupportsEmbedding يدعم التضمين
+func (p *VideoProvider) SupportsEmbedding() bool {
+    return false
+}
+
+// GetMaxTokens الحد الأقصى للرموز
+func (p *VideoProvider) GetMaxTokens() int {
+    return 1000
+}
+
+// GetSupportedLanguages اللغات المدعومة
+func (p *VideoProvider) GetSupportedLanguages() []string {
+    return []string{"en"}
 }
