@@ -51,8 +51,8 @@ func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceCon
 
 // applyGlobalMiddleware تطبيق الوسائط العامة على مستوى التطبيق
 func applyGlobalMiddleware(router *gin.Engine, config *config.Config) {
-	// CORS middleware - يتم تطبيقه على مستوى التطبيق بالكامل
-	router.Use(middleware.CORS())
+	// CORS middleware
+	router.Use(middleware.CORSMiddleware())
 
 	// Security headers middleware
 	router.Use(middleware.SecurityHeaders())
@@ -64,19 +64,17 @@ func applyGlobalMiddleware(router *gin.Engine, config *config.Config) {
 	router.Use(middleware.Logger())
 
 	// Recovery middleware
-	router.Use(middleware.Recovery())
+	router.Use(gin.Recovery())
 }
 
 // initializeMiddlewares تهيئة جميع الوسائط
 func initializeMiddlewares(services *services.ServiceContainer, config *config.Config) *middleware.MiddlewareContainer {
 	return &middleware.MiddlewareContainer{
-		AuthMiddleware:      middleware.AuthMiddleware(services.Auth),
-		AdminMiddleware:     middleware.AdminMiddleware(),
-		CORSMiddleware:      middleware.CORS(),
+		AuthMiddleware:      middleware.NewAuthMiddleware(services.Auth),
+		AdminMiddleware:     middleware.NewAdminMiddleware(),
+		CORSMiddleware:      middleware.CORSMiddleware(),
 		SecurityMiddleware:  middleware.SecurityHeaders(),
 		RateLimitMiddleware: middleware.RateLimit(),
-		LoggerMiddleware:    middleware.Logger(),
-		RecoveryMiddleware:  middleware.Recovery(),
 	}
 }
 
@@ -107,7 +105,7 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
 	api.POST("/auth/refresh", authHandler.RefreshToken)
-	api.POST("/auth/forgot-password", authHandler.FgotPassword)
+	api.POST("/auth/forgot-password", authHandler.ForgotPassword)
 	api.POST("/auth/reset-password", authHandler.ResetPassword)
 	api.POST("/auth/verify-token", authHandler.VerifyToken)
 
@@ -138,7 +136,7 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 	middlewares *middleware.MiddlewareContainer, aiClient *ai.Client, videoService *video.VideoService) {
 	
 	protected := api.Group("")
-	protected.Use(middlewares.AuthMiddleware)
+	protected.Use(middlewares.AuthMiddleware.Handle())
 
 	// معالج المستخدم
 	userHandler := NewUserHandler(services.User)
@@ -199,7 +197,7 @@ func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceCon
 // registerAdminRoutes تسجيل مسارات المسؤولين
 func registerAdminRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	admin := api.Group("/admin")
-	admin.Use(middlewares.AuthMiddleware, middlewares.AdminMiddleware)
+	admin.Use(middlewares.AuthMiddleware.Handle(), middlewares.AdminMiddleware.Handle())
 
 	// معالج الإدارة
 	adminHandler := NewAdminHandler(services.Admin)
@@ -224,7 +222,7 @@ func registerAdminRoutes(api *gin.RouterGroup, services *services.ServiceContain
 // registerSellerRoutes تسجيل مسارات البائعين
 func registerSellerRoutes(api *gin.RouterGroup, services *services.ServiceContainer, middlewares *middleware.MiddlewareContainer) {
 	seller := api.Group("/seller")
-	seller.Use(middlewares.AuthMiddleware, middleware.SellerMiddleware())
+	seller.Use(middlewares.AuthMiddleware.Handle(), middleware.NewSellerMiddleware().Handle())
 
 	// معالج الخدمات (البائعين)
 	serviceHandler := NewServiceHandler(services.Service)
