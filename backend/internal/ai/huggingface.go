@@ -77,7 +77,7 @@ func NewHuggingFaceProvider() *HuggingFaceProvider {
 }
 
 // GenerateText توليد نص
-func (p *HuggingFaceProvider) GenerateText(req TextRequest) (*TextResponse, error) {
+func (p *HuggingFaceProvider) GenerateText(req types.TextRequest) (*types.TextResponse, error) {
     if p.apiToken == "" {
         return nil, fmt.Errorf("HUGGINGFACE_TOKEN environment variable is required")
     }
@@ -155,7 +155,7 @@ func (p *HuggingFaceProvider) GenerateText(req TextRequest) (*TextResponse, erro
     // تقدير عدد الرموز
     tokens := len(strings.Fields(generatedText)) * 1.3
     
-    return &TextResponse{
+    return &types.TextResponse{
         Text:        strings.TrimSpace(generatedText),
         Tokens:      int(tokens),
         Cost:        0.0, // Hugging Face مجاني
@@ -205,7 +205,7 @@ func (p *HuggingFaceProvider) parseResponse(body []byte) (string, error) {
 }
 
 // GenerateImage توليد صورة
-func (p *HuggingFaceProvider) GenerateImage(req ImageRequest) (*ImageResponse, error) {
+func (p *HuggingFaceProvider) GenerateImage(req types.ImageRequest) (*types.ImageResponse, error) {
     if p.apiToken == "" {
         return nil, fmt.Errorf("HUGGINGFACE_TOKEN environment variable is required")
     }
@@ -255,7 +255,7 @@ func (p *HuggingFaceProvider) GenerateImage(req ImageRequest) (*ImageResponse, e
         return nil, fmt.Errorf("failed to read image data: %w", err)
     }
     
-    return &ImageResponse{
+    return &types.ImageResponse{
         URL:         "", // Hugging Face لا يعيد URLs للصور
         ImageData:   imageData,
         Size:        req.Size,
@@ -268,12 +268,12 @@ func (p *HuggingFaceProvider) GenerateImage(req ImageRequest) (*ImageResponse, e
 }
 
 // GenerateVideo توليد فيديو - غير مدعوم في Hugging Face
-func (p *HuggingFaceProvider) GenerateVideo(req VideoRequest) (*VideoResponse, error) {
+func (p *HuggingFaceProvider) GenerateVideo(req types.VideoRequest) (*types.VideoResponse, error) {
     return nil, fmt.Errorf("video generation not supported by Hugging Face")
 }
 
 // AnalyzeText تحليل نص
-func (p *HuggingFaceProvider) AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error) {
+func (p *HuggingFaceProvider) AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     if p.apiToken == "" {
         return nil, fmt.Errorf("HUGGINGFACE_TOKEN environment variable is required")
     }
@@ -334,21 +334,22 @@ func (p *HuggingFaceProvider) AnalyzeText(req AnalysisRequest) (*AnalysisRespons
         }
     }
     
-    return &AnalysisResponse{
+    return &types.AnalysisResponse{
         Result:     result,
         Confidence: confidence,
         Cost:       0.0,
         Model:      model,
+        CreatedAt:  time.Now(),
     }, nil
 }
 
 // AnalyzeImage تحليل صورة
-func (p *HuggingFaceProvider) AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error) {
+func (p *HuggingFaceProvider) AnalyzeImage(req types.AnalysisRequest) (*types.AnalysisResponse, error) {
     return nil, fmt.Errorf("image analysis not supported by Hugging Face")
 }
 
 // TranslateText ترجمة نص
-func (p *HuggingFaceProvider) TranslateText(req TranslationRequest) (*TranslationResponse, error) {
+func (p *HuggingFaceProvider) TranslateText(req types.TranslationRequest) (*types.TranslationResponse, error) {
     if p.apiToken == "" {
         return nil, fmt.Errorf("HUGGINGFACE_TOKEN environment variable is required")
     }
@@ -402,10 +403,11 @@ func (p *HuggingFaceProvider) TranslateText(req TranslationRequest) (*Translatio
         return nil, fmt.Errorf("translation failed")
     }
     
-    return &TranslationResponse{
+    return &types.TranslationResponse{
         TranslatedText: translatedText,
         Cost:           0.0,
         Model:          model,
+        CreatedAt:      time.Now(),
     }, nil
 }
 
@@ -563,8 +565,8 @@ func (p *HuggingFaceProvider) GetCost() float64 {
 }
 
 // GetStats الحصول على إحصائيات
-func (p *HuggingFaceProvider) GetStats() *ProviderStats {
-    return &ProviderStats{
+func (p *HuggingFaceProvider) GetStats() *types.ProviderStats {
+    return &types.ProviderStats{
         Name:        p.GetName(),
         Type:        "text",
         IsAvailable: p.IsAvailable(),
