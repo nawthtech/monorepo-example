@@ -26,6 +26,28 @@ type ProviderInterface interface {
     GetSupportedLanguages() []string
 }
 
+// ============ الواجهات المتخصصة ============
+
+type TextProvider interface {
+    GenerateText(req TextRequest) (*TextResponse, error)
+    AnalyzeText(req AnalysisRequest) (*AnalysisResponse, error)
+    TranslateText(req TranslationRequest) (*TranslationResponse, error)
+    GetName() string
+    SupportsStreaming() bool
+    GetMaxTokens() int
+}
+
+type ImageProvider interface {
+    GenerateImage(req ImageRequest) (*ImageResponse, error)
+    AnalyzeImage(req AnalysisRequest) (*AnalysisResponse, error)
+    GetName() string
+}
+
+type VideoProvider interface {
+    GenerateVideo(req VideoRequest) (*VideoResponse, error)
+    GetName() string
+}
+
 // MultiProviderInterface واجهة للمزود المتعدد
 type MultiProviderInterface interface {
     ProviderInterface
