@@ -187,14 +187,12 @@ func (s *MediaService) AnalyzeImage(ctx context.Context, imageData []byte, analy
     return nil, fmt.Errorf("image provider does not support image analysis")
 }
 
-func (s *MediaService) GenerateVariations(ctx context.Context, baseImageData []byte, variations int, style string) ([]*types.ImageResponse, error) {
+func (s *MediaService) GenerateVariations(ctx context.Context, style string) ([]*types.ImageResponse, error) {
     // هذه وظيفة متقدمة قد لا تدعمها جميع المزودين
     prompt := fmt.Sprintf("Generate %d variations of this image in %s style", variations, style)
     
     req := types.ImageRequest{
         Prompt:       prompt,
-        ImageData:    baseImageData, // بعض المزودين يدعمون image-to-image
-        NumImages:    variations,
         Style:        style,
         UserID:       extractUserIDFromContext(ctx),
         UserTier:     extractUserTierFromContext(ctx),
