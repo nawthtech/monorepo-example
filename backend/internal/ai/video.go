@@ -1,7 +1,7 @@
 package ai
 
 import (
-    "context"
+    "io"
     "encoding/json"
     "fmt"
     "log"
@@ -112,7 +112,7 @@ func (p *VideoProvider) generateWithGemini(req types.VideoRequest) (*types.Video
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
-        body, _ := os.ReadAll(resp.Body)
+        body, _ := io.ReadAll(resp.Body)
         return nil, fmt.Errorf("Gemini API error: %s - %s", resp.Status, string(body))
     }
     
@@ -170,7 +170,7 @@ func (p *VideoProvider) generateWithLuma(req types.VideoRequest) (*types.VideoRe
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
-        body, _ := os.ReadAll(resp.Body)
+        body, _ := io.ReadAll(resp.Body)
         return nil, fmt.Errorf("Luma API error: %s - %s", resp.Status, string(body))
     }
     
@@ -225,7 +225,7 @@ func (p *VideoProvider) generateWithRunway(req types.VideoRequest) (*types.Video
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
-        body, _ := os.ReadAll(resp.Body)
+        body, _ := io.ReadAll(resp.Body)
         return nil, fmt.Errorf("Runway API error: %s - %s", resp.Status, string(body))
     }
     
@@ -282,7 +282,7 @@ func (p *VideoProvider) generateWithPika(req types.VideoRequest) (*types.VideoRe
     defer resp.Body.Close()
     
     if resp.StatusCode != http.StatusOK {
-        body, _ := os.ReadAll(resp.Body)
+        body, _ := io.ReadAll(resp.Body)
         return nil, fmt.Errorf("Pika API error: %s - %s", resp.Status, string(body))
     }
     
