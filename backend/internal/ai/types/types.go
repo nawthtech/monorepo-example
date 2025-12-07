@@ -2,6 +2,8 @@ package types
 
 import "time"
 
+// ============ الواجهات الأساسية ============
+
 // ProviderInterface واجهة أساسية لجميع مزودي AI
 type ProviderInterface interface {
     // العمليات الأساسية
@@ -23,6 +25,19 @@ type ProviderInterface interface {
     GetMaxTokens() int
     GetSupportedLanguages() []string
 }
+
+// MultiProviderInterface واجهة للمزود المتعدد
+type MultiProviderInterface interface {
+    ProviderInterface
+    GetActiveProvider(providerType string) string
+    SetActiveProvider(providerType, providerName string) error
+    GetAvailableProviders(providerType string) []string
+    GetProviderStats(providerType, providerName string) (*ProviderStats, error)
+    RotateProvider(providerType string) error
+    GetFallbackChain(providerType string) []string
+}
+
+// ============ هياكل الطلبات والاستجابات ============
 
 // TextRequest طلب توليد نص
 type TextRequest struct {
@@ -155,6 +170,8 @@ type TranslationResponse struct {
     DetectedSourceLanguage string `json:"detected_source_language,omitempty"`
 }
 
+// ============ الإحصائيات والتتبع ============
+
 // ProviderStats إحصائيات المزود
 type ProviderStats struct {
     Name        string    `json:"name"`
@@ -187,7 +204,28 @@ type UsageRecord struct {
     Error       string                 `json:"error,omitempty"`
 }
 
-// --- الأنواع من ai.go ---
+// UsageStats إحصائيات الاستخدام
+type UsageStats struct {
+    Count       int64     `json:"count"`
+    Cost        float64   `json:"cost"`
+    SuccessRate float64   `json:"success_rate"`
+    AvgLatency  float64   `json:"avg_latency"`
+}
+
+// UsageSummary ملخص الاستخدام
+type UsageSummary struct {
+    Period      string                 `json:"period"` // daily, weekly, monthly
+    StartDate   time.Time              `json:"start_date"`
+    EndDate     time.Time              `json:"end_date"`
+    TotalCost   float64                `json:"total_cost"`
+    TotalRequests int64                `json:"total_requests"`
+    Successful  int64                  `json:"successful"`
+    Failed      int64                  `json:"failed"`
+    ByProvider  map[string]UsageStats  `json:"by_provider"`
+    ByType      map[string]UsageStats  `json:"by_type"`
+}
+
+// ============ أنواع إضافية ============
 
 // AIRequest طلب AI عام
 type AIRequest struct {
@@ -250,27 +288,6 @@ type ProviderCapabilities struct {
     Models      []ModelInfo            `json:"models"`
 }
 
-// UsageSummary ملخص الاستخدام
-type UsageSummary struct {
-    Period      string                 `json:"period"` // daily, weekly, monthly
-    StartDate   time.Time              `json:"start_date"`
-    EndDate     time.Time              `json:"end_date"`
-    TotalCost   float64                `json:"total_cost"`
-    TotalRequests int64                `json:"total_requests"`
-    Successful  int64                  `json:"successful"`
-    Failed      int64                  `json:"failed"`
-    ByProvider  map[string]UsageStats  `json:"by_provider"`
-    ByType      map[string]UsageStats  `json:"by_type"`
-}
-
-// UsageStats إحصائيات الاستخدام
-type UsageStats struct {
-    Count       int64     `json:"count"`
-    Cost        float64   `json:"cost"`
-    SuccessRate float64   `json:"success_rate"`
-    AvgLatency  float64   `json:"avg_latency"`
-}
-
 // FeatureFlag علم الميزة
 type FeatureFlag struct {
     Name        string    `json:"name"`
@@ -291,4 +308,93 @@ type SystemMetrics struct {
     RequestRate float64                `json:"request_rate"` // requests per second
     ErrorRate   float64                `json:"error_rate"` // errors per second
     ProviderStatus map[string]bool     `json:"provider_status"`
+}
+
+// ============ أنواع مساعدة ============
+
+// Quota حد الاستخدام
+type Quota struct {
+    UserID      string                 `json:"user_id"`
+    Type        string                 `json:"type"` // daily, monthly, etc.
+    Limit       float64                `json:"limit"`
+    Used        float64                `json:"used"`
+    ResetAt     time.Time              `json:"reset_at"`
+    Period      string                 `json:"period"`
+    Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// CacheStats إحصائيات الذاكرة المؤقتة
+type CacheStats struct {
+    Hits        int64                  `json:"hits"`
+    Misses      int64                  `json:"misses"`
+    HitRate     float64                `json:"hit_rate"`
+    Size        int                    `json:"size"`
+    Items       int                    `json:"items"`
+    MemoryUsage int64                  `json:"memory_usage"`
+    Evictions   int64                  `json:"evictions,omitempty"`
+}
+
+// VideoOptions خيارات الفيديو
+type VideoOptions struct {
+    Duration     int                    `json:"duration"`
+    Quality      string                 `json:"quality,omitempty"`
+    AspectRatio  string                 `json:"aspect_ratio,omitempty"`
+    Style        string                 `json:"style,omitempty"`
+    OutputFormat string                 `json:"output_format,omitempty"`
+    FPS          int                    `json:"fps,omitempty"`
+    Resolution   string                 `json:"resolution,omitempty"`
+    Audio        bool                   `json:"audio,omitempty"`
+    Watermark    string                 `json:"watermark,omitempty"`
+    Background   string                 `json:"background,omitempty"`
+}
+
+// TextOptions خيارات النصوص
+type TextOptions struct {
+    Model         string               `json:"model,omitempty"`
+    Temperature   float64              `json:"temperature,omitempty"`
+    MaxTokens     int                  `json:"max_tokens,omitempty"`
+    TopP          float64              `json:"top_p,omitempty"`
+    TopK          int                  `json:"top_k,omitempty"`
+    FrequencyPenalty float64           `json:"frequency_penalty,omitempty"`
+    PresencePenalty  float64           `json:"presence_penalty,omitempty"`
+    StopSequences []string             `json:"stop_sequences,omitempty"`
+    SystemPrompt  string               `json:"system_prompt,omitempty"`
+    Language      string               `json:"language,omitempty"`
+}
+
+// ImageOptions خيارات الصور
+type ImageOptions struct {
+    Model         string               `json:"model,omitempty"`
+    Size          string               `json:"size,omitempty"`
+    Style         string               `json:"style,omitempty"`
+    Quality       string               `json:"quality,omitempty"`
+    AspectRatio   string               `json:"aspect_ratio,omitempty"`
+    NumImages     int                  `json:"num_images,omitempty"`
+    NegativePrompt string              `json:"negative_prompt,omitempty"`
+    Seed          int64                `json:"seed,omitempty"`
+}
+
+// AnalysisOptions خيارات التحليل
+type AnalysisOptions struct {
+    Model         string               `json:"model,omitempty"`
+    Task          string               `json:"task,omitempty"`
+    Language      string               `json:"language,omitempty"`
+    DetailLevel   string               `json:"detail_level,omitempty"`
+    Format        string               `json:"format,omitempty"`
+    MaxResults    int                  `json:"max_results,omitempty"`
+}
+
+// VideoInfo معلومات الفيديو
+type VideoInfo struct {
+    ID          string                 `json:"id"`
+    Title       string                 `json:"title,omitempty"`
+    Description string                 `json:"description,omitempty"`
+    URL         string                 `json:"url,omitempty"`
+    Duration    int                    `json:"duration"`
+    Size        int64                  `json:"size"`
+    Status      string                 `json:"status"`
+    CreatedAt   time.Time              `json:"created_at"`
+    UpdatedAt   time.Time              `json:"updated_at"`
+    Cost        float64                `json:"cost"`
+    Provider    string                 `json:"provider"`
 }
