@@ -341,10 +341,20 @@ func (h *VideoHandler) DownloadVideoHandler(c *gin.Context) {
             return
         }
         
-        c.JSON(http.StatusBadRequest, gin.H.H{
-            "success": false,
-            "error":   "Video data not available",
-        })
+        // في الدالة GetVideoStatsHandler، أصلح السطر 344:
+c.JSON(http.StatusOK, gin.H{
+    "success": true,
+    "data": gin.H{
+        "total_generations":  stats.TotalGenerations,
+        "successful":         stats.Successful,
+        "failed":             stats.Failed,
+        "total_duration":     stats.TotalDuration,
+        "total_cost":         stats.TotalCost,
+        "last_generation":    stats.LastGeneration.Format(time.RFC3339),
+        "most_used_style":    stats.MostUsedStyle,
+        "most_used_provider": stats.MostUsedProvider,
+    },
+})
         return
     }
     
