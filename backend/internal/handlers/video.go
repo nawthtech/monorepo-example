@@ -3,11 +3,11 @@ package handlers
 import (
     "fmt"
     "net/http"
-    "path/filepath"
     "time"
     
     "github.com/gin-gonic/gin"
     "github.com/nawthtech/nawthtech/backend/internal/ai/video"
+    "github.com/nawthtech/nawthtech/backend/internal/utils"
 )
 
 type VideoHandler struct {
@@ -23,12 +23,12 @@ func NewVideoHandler(videoService *video.VideoService) *VideoHandler {
 // GenerateVideoHandler معالج توليد فيديو
 func (h *VideoHandler) GenerateVideoHandler(c *gin.Context) {
     var req struct {
-        Prompt         string            `json:"prompt" binding:"required"`
-        Duration       int               `json:"duration" default:"5"`
-        Resolution     string            `json:"resolution" default:"512x512"`
-        Aspect         string            `json:"aspect" default:"1:1"`
-        Style          string            `json:"style" default:"realistic"`
-        NegativePrompt string            `json:"negative_prompt,omitempty"`
+        Prompt         string                 `json:"prompt" binding:"required"`
+        Duration       int                    `json:"duration" default:"5"`
+        Resolution     string                 `json:"resolution" default:"512x512"`
+        Aspect         string                 `json:"aspect" default:"1:1"`
+        Style          string                 `json:"style" default:"realistic"`
+        NegativePrompt string                 `json:"negative_prompt,omitempty"`
         Options        map[string]interface{} `json:"options,omitempty"`
     }
     
@@ -50,6 +50,9 @@ func (h *VideoHandler) GenerateVideoHandler(c *gin.Context) {
         return
     }
     
+    // الحصول على معلومات المستخدم
+    userID := h.getUserID(c)
+    
     // إنشاء طلب الفيديو
     videoReq := video.VideoRequest{
         Prompt:         req.Prompt,
@@ -58,21 +61,34 @@ func (h *VideoHandler) GenerateVideoHandler(c *gin.Context) {
         Aspect:         req.Aspect,
         Style:          req.Style,
         NegativePrompt: req.NegativePrompt,
-        UserID:         getUserID(c),
-        UserTier:       getUserTier(c),
+        UserID:         userID,
+        UserTier:       h.getUserTier(c),
     }
     
     // تحويل الخيارات الإضافية
     if req.Options != nil {
+        videoOpts := video.VideoOptions{}
+        
         if seed, ok := req.Options["seed"].(float64); ok {
-            videoReq.Options.Seed = int64(seed)
+            videoOpts.Seed = int64(seed)
         }
         if fps, ok := req.Options["fps"].(float64); ok {
-            videoReq.Options.FPS = int(fps)
+            videoOpts.FPS = int(fps)
         }
         if quality, ok := req.Options["quality"].(string); ok {
-            videoReq.Options.Quality = quality
+            videoOpts.Quality = quality
         }
+        if cfgScale, ok := req.Options["cfg_scale"].(float64); ok {
+            videoOpts.CFGScale = cfgScale
+        }
+        if steps, ok := req.Options["steps"].(float64); ok {
+            videoOpts.Steps = int(steps)
+        }
+        if model, ok := req.Options["model"].(string); ok {
+            videoOpts.Model = model
+        }
+        
+        videoReq.Options = videoOpts
     }
     
     // التحقق من صحة الطلب
@@ -81,6 +97,15 @@ func (h *VideoHandler) GenerateVideoHandler(c *gin.Context) {
             "success": false,
             "error":   "Invalid video request",
             "details": err.Error(),
+        })
+        return
+    }
+    
+    // التحقق من إمكانية المستخدم لتوليد فيديو
+    if canGenerate, message := h.videoService.CanUserGenerateVideo(userID, h.getUserTier(c)); !canGenerate {
+        c.JSON(http.StatusTooManyRequests, gin.H{
+            "success": false,
+            "error":   message,
         })
         return
     }
@@ -96,17 +121,20 @@ func (h *VideoHandler) GenerateVideoHandler(c *gin.Context) {
         return
     }
     
+    // تسجيل استخدام المستخدم
+    h.videoService.RecordUserGeneration(userID, h.getUserTier(c))
+    
     c.JSON(http.StatusAccepted, gin.H{
         "success": true,
         "data": gin.H{
-            "job_id":      job.ID,
-            "status":      job.Status,
-            "progress":    job.Progress,
-            "created_at":  job.CreatedAt.Format(time.RFC3339),
-            "updated_at":  job.UpdatedAt.Format(time.RFC3339),
-            "prompt":      videoReq.Prompt,
-            "duration":    videoReq.Duration,
-            "resolution":  videoReq.Resolution,
+            "job_id":     job.ID,
+            "status":     job.Status,
+            "progress":   job.Progress,
+            "created_at": job.CreatedAt.Format(time.RFC3339),
+            "updated_at": job.UpdatedAt.Format(time.RFC3339),
+            "prompt":     videoReq.Prompt,
+            "duration":   videoReq.Duration,
+            "resolution": videoReq.Resolution,
         },
         "message": "Video generation started successfully",
     })
@@ -134,27 +162,27 @@ func (h *VideoHandler) GetVideoStatusHandler(c *gin.Context) {
     }
     
     response := gin.H{
-        "job_id":      job.ID,
-        "status":      job.Status,
-        "progress":    job.Progress,
-        "created_at":  job.CreatedAt.Format(time.RFC3339),
-        "updated_at":  job.UpdatedAt.Format(time.RFC3339),
-        "prompt":      job.Request.Prompt,
-        "duration":    job.Request.Duration,
-        "resolution":  job.Request.Resolution,
+        "job_id":     job.ID,
+        "status":     job.Status,
+        "progress":   job.Progress,
+        "created_at": job.CreatedAt.Format(time.RFC3339),
+        "updated_at": job.UpdatedAt.Format(time.RFC3339),
+        "prompt":     job.Request.Prompt,
+        "duration":   job.Request.Duration,
+        "resolution": job.Request.Resolution,
     }
     
     if job.Result != nil {
         response["result"] = gin.H{
-            "success":     job.Result.Success,
-            "video_url":   job.Result.VideoURL,
-            "duration":    job.Result.Duration,
-            "resolution":  job.Result.Resolution,
-            "format":      job.Result.Format,
-            "provider":    job.Result.Provider,
-            "cost":        job.Result.Cost,
-            "error":       job.Result.Error,
-            "created_at":  job.Result.CreatedAt.Format(time.RFC3339),
+            "success":    job.Result.Success,
+            "video_url":  job.Result.VideoURL,
+            "duration":   job.Result.Duration,
+            "resolution": job.Result.Resolution,
+            "format":     job.Result.Format,
+            "provider":   job.Result.Provider,
+            "cost":       job.Result.Cost,
+            "error":      job.Result.Error,
+            "created_at": job.Result.CreatedAt.Format(time.RFC3339),
         }
     }
     
@@ -169,18 +197,15 @@ func (h *VideoHandler) ListVideoJobsHandler(c *gin.Context) {
     limitStr := c.DefaultQuery("limit", "20")
     offsetStr := c.DefaultQuery("offset", "0")
     status := c.Query("status")
-    userID := getUserID(c)
+    userID := h.getUserID(c)
     
-    // في إصدار بسيط، نعيد جميع المهام
-    // في إصدار متقدم، يمكن إضافة تصفية وترقيم صفحات
     jobs := h.videoService.ListJobs()
     
     var filteredJobs []*video.VideoJob
     for _, job := range jobs {
-        // تصفية حسب المستخدم (إذا لم يكن مسؤولاً)
-        if userID != "admin" && userID != "" {
-            // يمكن التحقق من ملكية المهمة هنا
-            // في هذا المثال البسيط، نعيد جميع المهام
+        // تصفية حسب المستخدم
+        if userID != "" && userID != "admin" && !h.videoService.IsJobOwner(job.ID, userID) {
+            continue
         }
         
         // تصفية حسب الحالة
@@ -192,29 +217,35 @@ func (h *VideoHandler) ListVideoJobsHandler(c *gin.Context) {
     }
     
     // ترتيب حسب التاريخ (الأحدث أولاً)
-    // (في Go، يمكن استخدام sort.Slice)
+    for i := 0; i < len(filteredJobs)-1; i++ {
+        for j := i + 1; j < len(filteredJobs); j++ {
+            if filteredJobs[i].CreatedAt.Before(filteredJobs[j].CreatedAt) {
+                filteredJobs[i], filteredJobs[j] = filteredJobs[j], filteredJobs[i]
+            }
+        }
+    }
     
-    // التحديد حسب الحدود
+    // التحديد حسب الحدود (تبسيطي)
     var result []gin.H
     for _, job := range filteredJobs {
         result = append(result, gin.H{
-            "job_id":      job.ID,
-            "status":      job.Status,
-            "progress":    job.Progress,
-            "created_at":  job.CreatedAt.Format(time.RFC3339),
-            "prompt":      job.Request.Prompt,
-            "duration":    job.Request.Duration,
-            "resolution":  job.Request.Resolution,
+            "job_id":     job.ID,
+            "status":     job.Status,
+            "progress":   job.Progress,
+            "created_at": job.CreatedAt.Format(time.RFC3339),
+            "prompt":     job.Request.Prompt,
+            "duration":   job.Request.Duration,
+            "resolution": job.Request.Resolution,
         })
     }
     
     c.JSON(http.StatusOK, gin.H{
         "success": true,
         "data": gin.H{
-            "jobs":      result,
-            "total":     len(result),
-            "limit":     limitStr,
-            "offset":    offsetStr,
+            "jobs":   result,
+            "total":  len(result),
+            "limit":  limitStr,
+            "offset": offsetStr,
         },
     })
 }
@@ -226,6 +257,16 @@ func (h *VideoHandler) CancelVideoJobHandler(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{
             "success": false,
             "error":   "Job ID is required",
+        })
+        return
+    }
+    
+    // التحقق من ملكية المهمة
+    userID := h.getUserID(c)
+    if userID != "admin" && !h.videoService.IsJobOwner(jobID, userID) {
+        c.JSON(http.StatusForbidden, gin.H{
+            "success": false,
+            "error":   "You are not authorized to cancel this job",
         })
         return
     }
@@ -267,6 +308,16 @@ func (h *VideoHandler) DownloadVideoHandler(c *gin.Context) {
         return
     }
     
+    // التحقق من ملكية المهمة
+    userID := h.getUserID(c)
+    if userID != "admin" && !h.videoService.IsJobOwner(jobID, userID) {
+        c.JSON(http.StatusForbidden, gin.H{
+            "success": false,
+            "error":   "You are not authorized to download this video",
+        })
+        return
+    }
+    
     if job.Status != video.VideoJobCompleted {
         c.JSON(http.StatusBadRequest, gin.H{
             "success": false,
@@ -275,14 +326,22 @@ func (h *VideoHandler) DownloadVideoHandler(c *gin.Context) {
         return
     }
     
-    if job.Result == nil || len(job.Result.VideoData) == 0 {
+    if job.Result == nil {
+        c.JSON(http.StatusBadRequest, gin.H{
+            "success": false,
+            "error":   "Video result not available",
+        })
+        return
+    }
+    
+    if len(job.Result.VideoData) == 0 {
         if job.Result.VideoURL != "" {
             // إعادة توجيه إلى URL
             c.Redirect(http.StatusFound, job.Result.VideoURL)
             return
         }
         
-        c.JSON(http.StatusBadRequest, gin.H{
+        c.JSON(http.StatusBadRequest, gin.H.H{
             "success": false,
             "error":   "Video data not available",
         })
@@ -296,39 +355,48 @@ func (h *VideoHandler) DownloadVideoHandler(c *gin.Context) {
     }
     
     // تعيين رؤوس الاستجابة
-    c.Header("Content-Type", "video/mp4")
+    contentType := "video/mp4"
+    if job.Result.Format == "webm" {
+        contentType = "video/webm"
+    } else if job.Result.Format == "gif" {
+        contentType = "image/gif"
+    }
+    
+    c.Header("Content-Type", contentType)
     c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
     c.Header("Content-Length", fmt.Sprintf("%d", len(job.Result.VideoData)))
     c.Header("Cache-Control", "public, max-age=31536000") // تخزين لمدة سنة
     
     // إرسال البيانات
-    c.Data(http.StatusOK, "video/mp4", job.Result.VideoData)
+    c.Data(http.StatusOK, contentType, job.Result.VideoData)
 }
 
 // GetVideoCapabilitiesHandler معالج قدرات توليد الفيديو
 func (h *VideoHandler) GetVideoCapabilitiesHandler(c *gin.Context) {
+    providerStats := h.videoService.GetProviderStats()
+    
     capabilities := gin.H{
         "video_types": []gin.H{
             {
-                "id":          "short",
-                "name":        "Short Video",
-                "description": "Short videos for social media",
-                "duration":    15,
-                "max_duration": 60,
+                "id":            "short",
+                "name":          "Short Video",
+                "description":   "Short videos for social media",
+                "duration":      15,
+                "max_duration":  60,
             },
             {
-                "id":          "explainer",
-                "name":        "Explainer Video", 
-                "description": "Educational and explanatory videos",
-                "duration":    60,
-                "max_duration": 300,
+                "id":            "explainer",
+                "name":          "Explainer Video", 
+                "description":   "Educational and explanatory videos",
+                "duration":      60,
+                "max_duration":  300,
             },
             {
-                "id":          "promotional",
-                "name":        "Promotional Video",
-                "description": "Marketing and promotional content",
-                "duration":    30,
-                "max_duration": 120,
+                "id":            "promotional",
+                "name":          "Promotional Video",
+                "description":   "Marketing and promotional content",
+                "duration":      30,
+                "max_duration":  120,
             },
         },
         
@@ -357,10 +425,11 @@ func (h *VideoHandler) GetVideoCapabilitiesHandler(c *gin.Context) {
         
         "features": []string{
             "text_to_video",
-            "image_to_video",
             "style_transfer",
             "aspect_ratio_conversion",
         },
+        
+        "provider": providerStats,
     }
     
     c.JSON(http.StatusOK, gin.H{
@@ -384,7 +453,30 @@ func (h *VideoHandler) GetVideoStatsHandler(c *gin.Context) {
             "last_generation":    stats.LastGeneration.Format(time.RFC3339),
             "most_used_style":    stats.MostUsedStyle,
             "most_used_provider": stats.MostUsedProvider,
-            "provider":           stats.Provider,
+        },
+    })
+}
+
+// GetVideoUsageHandler معالج استخدام الفيديو
+func (h *VideoHandler) GetVideoUsageHandler(c *gin.Context) {
+    userID := h.getUserID(c)
+    userTier := h.getUserTier(c)
+    
+    usage := h.videoService.GetUserUsage(userID, userTier)
+    
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "data": gin.H{
+            "user_id":           usage.UserID,
+            "tier":              usage.Tier,
+            "total_generations": usage.TotalGenerations,
+            "monthly_limit":     usage.MonthlyLimit,
+            "monthly_used":      usage.MonthlyUsed,
+            "daily_limit":       usage.DailyLimit,
+            "daily_used":        usage.DailyUsed,
+            "last_generated":    usage.LastGenerated.Format(time.RFC3339),
+            "last_reset":        usage.LastReset.Format(time.RFC3339),
+            "can_generate":      usage.MonthlyUsed < usage.MonthlyLimit && usage.DailyUsed < usage.DailyLimit,
         },
     })
 }
@@ -399,16 +491,17 @@ func (h *VideoHandler) UploadImageForVideoHandler(c *gin.Context) {
 }
 
 // Helper functions
-func getUserID(c *gin.Context) string {
-    if userID, exists := c.Get("userID"); exists {
-        return userID.(string)
-    }
-    return ""
+func (h *VideoHandler) getUserID(c *gin.Context) string {
+    return utils.GetUserIDFromContext(c)
 }
 
-func getUserTier(c *gin.Context) string {
-    if userTier, exists := c.Get("userTier"); exists {
-        return userTier.(string)
+func (h *VideoHandler) getUserTier(c *gin.Context) string {
+    userID := h.getUserID(c)
+    if userID == "" {
+        return "free"
     }
+    
+    // في تطبيق حقيقي، يمكن الحصول على tier من قاعدة البيانات
+    // حالياً نستخدم قيمة افتراضية
     return "free"
 }
