@@ -474,3 +474,44 @@ type VideoInfo struct {
     Cost        float64                `json:"cost"`
     Provider    string                 `json:"provider"`
 }
+
+// ============ أنواع الوسائط المتعددة ============
+
+// ImageInfo معلومات الصورة
+type ImageInfo struct {
+    Width      int    `json:"width"`
+    Height     int    `json:"height"`
+    Format     string `json:"format"`
+    SizeBytes  int    `json:"size_bytes"`
+    HasAlpha   bool   `json:"has_alpha"`
+    ColorModel string `json:"color_model"`
+}
+
+// ImageGenerationOptions خيارات توليد الصور
+type ImageGenerationOptions struct {
+    Model         string               `json:"model,omitempty"`
+    Size          string               `json:"size,omitempty"`
+    Style         string               `json:"style,omitempty"`
+    Quality       string               `json:"quality,omitempty"`
+    AspectRatio   string               `json:"aspect_ratio,omitempty"`
+    NumImages     int                  `json:"num_images,omitempty"`
+    NegativePrompt string              `json:"negative_prompt,omitempty"`
+    Seed          int64                `json:"seed,omitempty"`
+}
+
+// GeneratedImage صورة مٌنشأة
+type GeneratedImage struct {
+    ID          string    `json:"id"`
+    URL         string    `json:"url,omitempty"`
+    ImageData   []byte    `json:"image_data,omitempty"`
+    Width       int       `json:"width"`
+    Height      int       `json:"height"`
+    Format      string    `json:"format"`
+    SizeBytes   int       `json:"size_bytes"`
+    CreatedAt   time.Time `json:"created_at"`
+    Provider    string    `json:"provider"`
+    Model       string    `json:"model"`
+    Cost        float64   `json:"cost"`
+    Prompt      string    `json:"prompt"`
+    Seed        int64     `json:"seed,omitempty"`
+}
