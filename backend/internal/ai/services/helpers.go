@@ -5,6 +5,16 @@ import (
     "strings"
 )
 
+// ServiceError تعريف خطأ الخدمة
+type ServiceError struct {
+    Code    string
+    Message string
+}
+
+func (e *ServiceError) Error() string {
+    return e.Code + ": " + e.Message
+}
+
 // UserContextKey مفتاح سياق المستخدم
 type UserContextKey string
 
@@ -162,7 +172,7 @@ func toString(b bool) string {
 func ValidateUserContext(ctx context.Context) error {
     userID := extractUserIDFromContext(ctx)
     if userID == "" {
-        return ErrUnauthorized
+        return &ServiceError{"unauthorized", "User is not authenticated"}
     }
     
     // يمكن إضافة مزيد من التحقق هنا
@@ -170,6 +180,3 @@ func ValidateUserContext(ctx context.Context) error {
     
     return nil
 }
-
-// ErrUnauthorized خطأ المصادقة
-var ErrUnauthorized = &ServiceError{"unauthorized", "User is not authenticated"}
