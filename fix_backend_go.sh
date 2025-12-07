@@ -4,31 +4,10 @@ echo "🔧 إصلاح أخطاء Go في backend..."
 
 cd backend || exit 1
 
-# 1. إنشاء types/interfaces.go إذا لم يكن موجوداً
-mkdir -p internal/ai/types
-cat > internal/ai/types/interfaces.go << 'EOF'
 package types
 
 import "context"
 
-// TextProvider واجهة لمزودي النصوص
-type TextProvider interface {
-    GenerateText(ctx context.Context, prompt string, options map[string]interface{}) (string, error)
-    Name() string
-}
-
-// ImageProvider واجهة لمزودي الصور
-type ImageProvider interface {
-    GenerateImage(ctx context.Context, prompt string, options map[string]interface{}) ([]byte, error)
-    Name() string
-}
-
-// VideoProvider واجهة لمزودي الفيديو
-type VideoProvider interface {
-    GenerateVideo(ctx context.Context, prompt string, options map[string]interface{}) ([]byte, error)
-    Name() string
-}
-EOF
 
 # 2. إصلاح ملفات services
 echo "🛠️ إصلاح ملفات services..."
@@ -77,11 +56,6 @@ func NewContentService(provider types.TextProvider) *ContentService {
     }
 }
 
-func (s *ContentService) GenerateBlogPost(ctx context.Context, topic string, options map[string]interface{}) (string, error) {
-    prompt := "Write a blog post about: " + topic
-    return s.textProvider.GenerateText(ctx, prompt, options)
-}
-EOF
 
 # media.go
 cat > internal/ai/services/media.go << 'EOF'
@@ -104,14 +78,6 @@ func NewMediaService(imageProvider types.ImageProvider, videoProvider types.Vide
     }
 }
 
-func (s *MediaService) GenerateSocialMediaImage(ctx context.Context, platform string, prompt string, style string) ([]byte, error) {
-    options := map[string]interface{}{
-        "platform": platform,
-        "style":    style,
-    }
-    return s.imageProvider.GenerateImage(ctx, prompt, options)
-}
-EOF
 
 # strategy.go
 cat > internal/ai/services/strategy.go << 'EOF'
@@ -184,9 +150,6 @@ func NewStabilityProvider(apiKey string) *StabilityProvider {
     }
 }
 
-func (s *StabilityProvider) GenerateImage(ctx context.Context, prompt string, options map[string]interface{}) ([]byte, error) {
-    return []byte("stability image data"), nil
-}
 
 func (s *StabilityProvider) Name() string {
     return "stability"
@@ -211,9 +174,6 @@ func NewGeminiProvider(apiKey string) *GeminiProvider {
     }
 }
 
-func (g *GeminiProvider) GenerateText(ctx context.Context, prompt string, options map[string]interface{}) (string, error) {
-    return "Gemini generated text for: " + prompt, nil
-}
 
 func (g *GeminiProvider) Name() string {
     return "gemini"
