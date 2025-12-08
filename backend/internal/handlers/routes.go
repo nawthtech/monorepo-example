@@ -4,18 +4,18 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nawthtech/nawthtech/backend/internal/ai"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/video"
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
-	"github.com/nawthtech/nawthtech/backend/internal/ai"
-	"github.com/nawthtech/nawthtech/backend/internal/ai/video"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // RegisterAllRoutes تسجيل جميع المسارات
-func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceContainer, config *config.Config, 
+func RegisterAllRoutes(router *gin.Engine, serviceContainer *services.ServiceContainer, config *config.Config,
 	mongoClient *mongo.Client, aiClient *ai.Client, videoService *video.VideoService) error {
-	
+
 	// تطبيق middleware العام على مستوى التطبيق
 	applyGlobalMiddleware(router, config)
 
@@ -97,9 +97,9 @@ func registerHealthRoutes(router *gin.Engine, config *config.Config, mongoClient
 }
 
 // registerPublicRoutes تسجيل المسارات العامة
-func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContainer, 
+func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContainer,
 	middlewares *middleware.MiddlewareContainer, aiClient *ai.Client, videoService *video.VideoService) {
-	
+
 	// معالج المصادقة
 	authHandler := NewAuthHandler(services.Auth)
 	api.POST("/auth/register", authHandler.Register)
@@ -132,9 +132,9 @@ func registerPublicRoutes(api *gin.RouterGroup, services *services.ServiceContai
 }
 
 // registerProtectedRoutes تسجيل المسارات المحمية
-func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceContainer, 
+func registerProtectedRoutes(api *gin.RouterGroup, services *services.ServiceContainer,
 	middlewares *middleware.MiddlewareContainer, aiClient *ai.Client, videoService *video.VideoService) {
-	
+
 	protected := api.Group("")
 	protected.Use(middlewares.AuthMiddleware.Handle())
 
@@ -247,7 +247,7 @@ func registerWebhookRoutes(api *gin.RouterGroup, services *services.ServiceConta
 			return err
 		}
 		webhook.POST("/upload/cloudinary", uploadHandler.HandleCloudinaryWebhook)
-		
+
 		// ويب هووك الدفع (Stripe, PayPal, etc.)
 		paymentHandler := NewPaymentHandler(services.Payment)
 		webhook.POST("/payment/stripe", paymentHandler.HandleStripeWebhook)

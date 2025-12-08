@@ -1,23 +1,23 @@
 package providers
 
 import (
-    "context"
+	"context"
 )
 
 type GeminiProvider struct {
-    apiKey string
+	apiKey string
 }
 
 func NewGeminiProvider(apiKey string) *GeminiProvider {
-    return &GeminiProvider{
-        apiKey: apiKey,
-    }
+	return &GeminiProvider{
+		apiKey: apiKey,
+	}
 }
 
 func (g *GeminiProvider) GenerateText(ctx context.Context, prompt string, options map[string]interface{}) (string, error) {
-    return "Gemini generated text for: " + prompt, nil
+	return "Gemini generated text for: " + prompt, nil
 }
 
 func (g *GeminiProvider) Name() string {
-    return "gemini"
+	return "gemini"
 }

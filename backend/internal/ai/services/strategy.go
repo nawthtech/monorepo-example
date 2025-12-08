@@ -1,25 +1,25 @@
 package services
 
 import (
-    "context"
-    "fmt"
-    "strings"
-    "time"
-    "github.com/nawthtech/nawthtech/backend/internal/ai/types"
+	"context"
+	"fmt"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/types"
+	"strings"
+	"time"
 )
 
 type StrategyService struct {
-    textProvider types.TextProvider
+	textProvider types.TextProvider
 }
 
 func NewStrategyService(provider types.TextProvider) *StrategyService {
-    return &StrategyService{
-        textProvider: provider,
-    }
+	return &StrategyService{
+		textProvider: provider,
+	}
 }
 
 func (s *StrategyService) GenerateMarketingStrategy(ctx context.Context, product string, targetAudience string, budget string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Generate a comprehensive marketing strategy for: %s
+	prompt := fmt.Sprintf(`Generate a comprehensive marketing strategy for: %s
 
 Target Audience: %s
 Budget: %s
@@ -35,20 +35,20 @@ Include the following sections:
 8. KPIs and Metrics
 
 Make it detailed and actionable.`, product, targetAudience, budget)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateBusinessPlan(ctx context.Context, businessIdea string, industry string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Generate a comprehensive business plan for: %s
+	prompt := fmt.Sprintf(`Generate a comprehensive business plan for: %s
 
 Industry: %s
 
@@ -64,23 +64,23 @@ Include the following sections:
 9. Appendix
 
 Make it professional and investor-ready.`, businessIdea, industry)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   3000,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   3000,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateContentStrategy(ctx context.Context, brand string, platforms []string, goals []string) (*types.TextResponse, error) {
-    platformsStr := strings.Join(platforms, ", ")
-    goalsStr := strings.Join(goals, ", ")
-    
-    prompt := fmt.Sprintf(`Generate a content strategy for: %s
+	platformsStr := strings.Join(platforms, ", ")
+	goalsStr := strings.Join(goals, ", ")
+
+	prompt := fmt.Sprintf(`Generate a content strategy for: %s
 
 Platforms: %s
 Goals: %s
@@ -96,20 +96,20 @@ Include:
 8. Team and Resources
 
 Make it practical and platform-optimized.`, brand, platformsStr, goalsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2500,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2500,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateSWOTAnalysis(ctx context.Context, company string, industry string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Generate a comprehensive SWOT analysis for: %s
+	prompt := fmt.Sprintf(`Generate a comprehensive SWOT analysis for: %s
 
 Industry: %s
 
@@ -136,22 +136,22 @@ STRATEGIC RECOMMENDATIONS:
 - Include short-term and long-term actions
 
 Make it insightful and actionable.`, company, industry)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   1500,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   1500,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateCompetitiveAnalysis(ctx context.Context, company string, competitors []string) (*types.TextResponse, error) {
-    competitorsStr := strings.Join(competitors, ", ")
-    
-    prompt := fmt.Sprintf(`Generate a competitive analysis for: %s
+	competitorsStr := strings.Join(competitors, ", ")
+
+	prompt := fmt.Sprintf(`Generate a competitive analysis for: %s
 
 Main Competitors: %s
 
@@ -171,20 +171,20 @@ Then provide:
 4. Strategic Positioning Advice
 
 Make it data-driven and strategic.`, company, competitorsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateProductLaunchPlan(ctx context.Context, product string, targetMarket string, launchDate string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Generate a product launch plan for: %s
+	prompt := fmt.Sprintf(`Generate a product launch plan for: %s
 
 Target Market: %s
 Launch Date: %s
@@ -213,22 +213,22 @@ Include:
 6. Success Metrics
 
 Make it detailed with specific timelines and responsibilities.`, product, targetMarket, launchDate)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2500,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2500,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateBrandPositioning(ctx context.Context, brand string, targetCustomer string, competitors []string) (*types.TextResponse, error) {
-    competitorsStr := strings.Join(competitors, ", ")
-    
-    prompt := fmt.Sprintf(`Generate brand positioning for: %s
+	competitorsStr := strings.Join(competitors, ", ")
+
+	prompt := fmt.Sprintf(`Generate brand positioning for: %s
 
 Target Customer: %s
 Competitors: %s
@@ -246,22 +246,22 @@ Include:
 10. Implementation Roadmap
 
 Make it distinctive and memorable.`, brand, targetCustomer, competitorsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateCrisisManagementPlan(ctx context.Context, organization string, potentialCrises []string) (*types.TextResponse, error) {
-    crisesStr := strings.Join(potentialCrises, ", ")
-    
-    prompt := fmt.Sprintf(`Generate a crisis management plan for: %s
+	crisesStr := strings.Join(potentialCrises, ", ")
+
+	prompt := fmt.Sprintf(`Generate a crisis management plan for: %s
 
 Potential Crises to Address: %s
 
@@ -278,22 +278,22 @@ Include:
 10. Legal and Compliance Considerations
 
 Make it comprehensive and ready-to-use.`, organization, crisesStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateDigitalTransformationStrategy(ctx context.Context, company string, currentState string, goals []string) (*types.TextResponse, error) {
-    goalsStr := strings.Join(goals, ", ")
-    
-    prompt := fmt.Sprintf(`Generate a digital transformation strategy for: %s
+	goalsStr := strings.Join(goals, ", ")
+
+	prompt := fmt.Sprintf(`Generate a digital transformation strategy for: %s
 
 Current State: %s
 Transformation Goals: %s
@@ -311,22 +311,22 @@ Include:
 10. Risk Management
 
 Make it practical with clear milestones.`, company, currentState, goalsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2500,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2500,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GenerateOKRs(ctx context.Context, department string, timeframe string, companyGoals []string) (*types.TextResponse, error) {
-    companyGoalsStr := strings.Join(companyGoals, ", ")
-    
-    prompt := fmt.Sprintf(`Generate Objectives and Key Results (OKRs) for: %s
+	companyGoalsStr := strings.Join(companyGoals, ", ")
+
+	prompt := fmt.Sprintf(`Generate Objectives and Key Results (OKRs) for: %s
 
 Timeframe: %s
 Company Goals to Align With: %s
@@ -354,40 +354,40 @@ Include:
 4. Review cadence
 
 Make the OKRs SMART (Specific, Measurable, Achievable, Relevant, Time-bound).`, department, timeframe, companyGoalsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   1500,
-        Temperature: 0.7,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   1500,
+		Temperature: 0.7,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *StrategyService) GetServiceStats(ctx context.Context) map[string]interface{} {
-    stats := make(map[string]interface{})
-    
-    // الحصول على إحصائيات من المزود إذا كانت متوفرة
-    if provider, ok := s.textProvider.(interface{ GetStats() *types.ProviderStats }); ok {
-        stats["provider_stats"] = provider.GetStats()
-    }
-    
-    stats["service"] = "strategy"
-    stats["capabilities"] = []string{
-        "marketing_strategy",
-        "business_plan",
-        "content_strategy", 
-        "swot_analysis",
-        "competitive_analysis",
-        "product_launch_plan",
-        "brand_positioning",
-        "crisis_management",
-        "digital_transformation",
-        "okrs",
-    }
-    stats["timestamp"] = time.Now()
-    
-    return stats
+	stats := make(map[string]interface{})
+
+	// الحصول على إحصائيات من المزود إذا كانت متوفرة
+	if provider, ok := s.textProvider.(interface{ GetStats() *types.ProviderStats }); ok {
+		stats["provider_stats"] = provider.GetStats()
+	}
+
+	stats["service"] = "strategy"
+	stats["capabilities"] = []string{
+		"marketing_strategy",
+		"business_plan",
+		"content_strategy",
+		"swot_analysis",
+		"competitive_analysis",
+		"product_launch_plan",
+		"brand_positioning",
+		"crisis_management",
+		"digital_transformation",
+		"okrs",
+	}
+	stats["timestamp"] = time.Now()
+
+	return stats
 }

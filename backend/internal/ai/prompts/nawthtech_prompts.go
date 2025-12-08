@@ -6,7 +6,7 @@ type NawthTechPrompts struct{}
 
 // DigitalGrowthPrompt prompt للنمو الرقمي
 func (p *NawthTechPrompts) DigitalGrowthPrompt(businessType, goals string) string {
-    return fmt.Sprintf(`
+	return fmt.Sprintf(`
     أنت مساعد النمو الرقمي في NawthTech. ساعد عميلاً في صناعة %s على تحقيق: %s
     
     قدم خطة متكاملة تتضمن:
@@ -47,8 +47,8 @@ func (p *NawthTechPrompts) DigitalGrowthPrompt(businessType, goals string) strin
 
 // AIContentPrompt prompt للمحتوى المدعوم بالذكاء الاصطناعي
 func (p *NawthTechPrompts) AIContentPrompt(contentType, topic, language string) string {
-    templates := map[string]string{
-        "ar": `
+	templates := map[string]string{
+		"ar": `
         أنت كاتب محتوى في NawthTech المتخصص في النمو الرقمي.
         
         اكتب محتوى عن: %s
@@ -66,7 +66,7 @@ func (p *NawthTechPrompts) AIContentPrompt(contentType, topic, language string) 
         التنسيق: Markdown مع عناوين واضحة
         الطول: 800-1200 كلمة
         `,
-        "en": `
+		"en": `
         You are a content writer at NawthTech specializing in digital growth.
         
         Write content about: %s
@@ -84,19 +84,19 @@ func (p *NawthTechPrompts) AIContentPrompt(contentType, topic, language string) 
         Format: Markdown with clear headings
         Length: 800-1200 words
         `,
-    }
-    
-    template := templates[language]
-    if template == "" {
-        template = templates["en"]
-    }
-    
-    return fmt.Sprintf(template, topic, contentType)
+	}
+
+	template := templates[language]
+	if template == "" {
+		template = templates["en"]
+	}
+
+	return fmt.Sprintf(template, topic, contentType)
 }
 
 // BusinessAnalysisPrompt prompt لتحليل الأعمال
 func (p *NawthTechPrompts) BusinessAnalysisPrompt(businessData string) string {
-    return fmt.Sprintf(`
+	return fmt.Sprintf(`
     قم بتحليل بيانات العمل التالية وتقديم توصيات للنمو:
     
     %s

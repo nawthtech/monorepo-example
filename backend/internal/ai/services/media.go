@@ -105,11 +105,11 @@ func (s *MediaService) GenerateImageFromText(ctx context.Context, prompt string,
 
 	// تحضير طلب توليد الصورة
 	req := types.ImageRequest{
-		Prompt:   prompt,
-		Size:     options.Size,
-		Style:    options.Style,
-		Quality:  options.Quality,
-		UserID:   userID,
+		Prompt:  prompt,
+		Size:    options.Size,
+		Style:   options.Style,
+		Quality: options.Quality,
+		UserID:  userID,
 	}
 
 	resp, err := s.imageProvider.GenerateImage(req)

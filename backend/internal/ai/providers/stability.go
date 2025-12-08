@@ -1,23 +1,23 @@
 package providers
 
 import (
-    "context"
+	"context"
 )
 
 type StabilityProvider struct {
-    apiKey string
+	apiKey string
 }
 
 func NewStabilityProvider(apiKey string) *StabilityProvider {
-    return &StabilityProvider{
-        apiKey: apiKey,
-    }
+	return &StabilityProvider{
+		apiKey: apiKey,
+	}
 }
 
 func (s *StabilityProvider) GenerateImage(ctx context.Context, prompt string, options map[string]interface{}) ([]byte, error) {
-    return []byte("stability image data"), nil
+	return []byte("stability image data"), nil
 }
 
 func (s *StabilityProvider) Name() string {
-    return "stability"
+	return "stability"
 }

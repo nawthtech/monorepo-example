@@ -318,11 +318,11 @@ func (h *userHandler) GetUserStats(c *gin.Context) {
 		"success": true,
 		"message": "Get user stats endpoint",
 		"data": gin.H{
-			"user_id":         userID,
-			"total_services":  15,
-			"total_orders":    47,
-			"joined_date":     "2023-01-15",
-			"account_status":  "active",
+			"user_id":        userID,
+			"total_services": 15,
+			"total_orders":   47,
+			"joined_date":    "2023-01-15",
+			"account_status": "active",
 		},
 	})
 }
@@ -475,9 +475,9 @@ func (h *serviceHandler) GetSellerOrders(c *gin.Context) {
 		"success": true,
 		"message": "Get seller orders endpoint",
 		"data": gin.H{
-			"orders":   []gin.H{},
+			"orders":    []gin.H{},
 			"seller_id": userID,
-			"database": "MongoDB",
+			"database":  "MongoDB",
 		},
 	})
 }
@@ -571,10 +571,10 @@ func (h *orderHandler) CreateOrder(c *gin.Context) {
 		"success": true,
 		"message": "Create order endpoint",
 		"data": gin.H{
-			"order_id":  "order_123",
-			"status":    "pending",
-			"user_id":   userID,
-			"database":  "MongoDB",
+			"order_id": "order_123",
+			"status":   "pending",
+			"user_id":  userID,
+			"database": "MongoDB",
 		},
 	})
 }

@@ -105,7 +105,7 @@ func SecurityMiddlewareFunc() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-		
+
 		c.Next()
 	}
 }
@@ -171,7 +171,7 @@ func Logger() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		duration := time.Since(start)
-		
+
 		logger.Stdout.Info("HTTP Request",
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
@@ -459,13 +459,13 @@ func RateLimitMiddlewareFunc() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		clientIP := getClientIP(c.Request)
-		
+
 		limiter.mu.Lock()
 		defer limiter.mu.Unlock()
-		
+
 		now := time.Now()
 		windowStart := now.Add(-rateLimitWindow)
-		
+
 		// تنظيف الزيارات القديمة
 		visits := limiter.visits[clientIP]
 		var recentVisits []time.Time
@@ -474,7 +474,7 @@ func RateLimitMiddlewareFunc() gin.HandlerFunc {
 				recentVisits = append(recentVisits, visit)
 			}
 		}
-		
+
 		// التحقق من الحد الأقصى
 		if len(recentVisits) >= maxRequests {
 			c.JSON(http.StatusTooManyRequests, gin.H{
@@ -485,11 +485,11 @@ func RateLimitMiddlewareFunc() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// إضافة الزيارة الجديدة
 		recentVisits = append(recentVisits, now)
 		limiter.visits[clientIP] = recentVisits
-		
+
 		c.Next()
 	}
 }
@@ -583,10 +583,10 @@ func ValidateContentType() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-			
-			if !strings.Contains(contentType, "application/json") && 
-			   !strings.Contains(contentType, "multipart/form-data") &&
-			   !strings.Contains(contentType, "application/x-www-form-urlencoded") {
+
+			if !strings.Contains(contentType, "application/json") &&
+				!strings.Contains(contentType, "multipart/form-data") &&
+				!strings.Contains(contentType, "application/x-www-form-urlencoded") {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
 					"error":   "نوع محتوى غير مدعوم",
@@ -755,18 +755,18 @@ func RegisterGlobalMiddlewares(router *gin.Engine, cfg *config.Config) {
 	router.Use(Logging())
 	router.Use(CORSMiddleware())
 	router.Use(SecurityHeaders())
-	
+
 	// تحديد المعدل يختلف حسب البيئة
 	if cfg.Environment == "production" {
 		router.Use(RateLimitWithConfig(100, time.Minute)) // 100 طلب/دقيقة في الإنتاج
-		router.Use(SizeLimit(10 * 1024 * 1024)) // 10MB في الإنتاج
-		router.Use(Timeout(30 * time.Second)) // 30 ثانية في الإنتاج
+		router.Use(SizeLimit(10 * 1024 * 1024))           // 10MB في الإنتاج
+		router.Use(Timeout(30 * time.Second))             // 30 ثانية في الإنتاج
 	} else {
 		router.Use(RateLimitWithConfig(1000, time.Minute)) // 1000 طلب/دقيقة في التطوير
-		router.Use(SizeLimit(50 * 1024 * 1024)) // 50MB في التطوير
-		router.Use(Timeout(60 * time.Second)) // 60 ثانية في التطوير
+		router.Use(SizeLimit(50 * 1024 * 1024))            // 50MB في التطوير
+		router.Use(Timeout(60 * time.Second))              // 60 ثانية في التطوير
 	}
-	
+
 	router.Use(ValidateContentType())
 	router.Use(ValidateJSON())
 }
@@ -841,19 +841,19 @@ func IsAuthenticated(c *gin.Context) bool {
 // GetCurrentUser الحصول على معلومات المستخدم الحالي
 func GetCurrentUser(c *gin.Context) map[string]interface{} {
 	user := make(map[string]interface{})
-	
+
 	if userID, exists := GetUserIDFromContext(c); exists {
 		user["id"] = userID
 	}
-	
+
 	if userEmail, exists := GetUserEmailFromContext(c); exists {
 		user["email"] = userEmail
 	}
-	
+
 	if userRole, exists := GetUserRoleFromContext(c); exists {
 		user["role"] = userRole
 	}
-	
+
 	return user
 }
 

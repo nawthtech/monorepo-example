@@ -15,19 +15,19 @@ import (
 func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
-	
+
 	// Create router
 	router := gin.New()
-	
+
 	// Global middleware
-	router.Use(gin.Recovery()) // Recover from panics
+	router.Use(gin.Recovery())      // Recover from panics
 	router.Use(middleware.Logger()) // Custom logging
-	router.Use(CORSMiddleware()) // CORS middleware
-	
+	router.Use(CORSMiddleware())    // CORS middleware
+
 	// Static files
 	router.Static("/static", "./static")
 	router.StaticFile("/favicon.ico", "./static/favicon.ico")
-	
+
 	// Create handlers using the correct ServiceContainer fields
 	authHandler := handlers.NewAuthHandler(serviceContainer.Auth)
 	userHandler := handlers.NewUserHandler(serviceContainer.User)
@@ -35,17 +35,17 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 	categoryHandler := handlers.NewCategoryHandler(serviceContainer.Category)
 	orderHandler := handlers.NewOrderHandler(serviceContainer.Order)
 	paymentHandler := handlers.NewPaymentHandler(serviceContainer.Payment)
-	
+
 	// Create upload handler
 	uploadHandler, err := handlers.NewUploadHandler()
 	if err != nil {
 		// Fallback to nil handler if upload service fails
 		uploadHandler = nil
 	}
-	
+
 	notificationHandler := handlers.NewNotificationHandler(serviceContainer.Notification)
 	adminHandler := handlers.NewAdminHandler(serviceContainer.Admin)
-	
+
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -54,7 +54,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 			"service": "nawthtech-backend",
 		})
 	})
-	
+
 	// API routes
 	api := router.Group("/api")
 	{
@@ -72,7 +72,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				auth.POST("/reset-password", authHandler.ResetPassword)
 				auth.POST("/verify-token", authHandler.VerifyToken)
 			}
-			
+
 			// User routes
 			users := v1.Group("/users")
 			{
@@ -81,7 +81,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				users.PUT("/change-password", userHandler.ChangePassword)
 				users.GET("/stats", userHandler.GetUserStats)
 			}
-			
+
 			// Service routes
 			servicesGroup := v1.Group("/services")
 			{
@@ -96,7 +96,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				servicesGroup.PUT("/:id", serviceHandler.UpdateService)
 				servicesGroup.DELETE("/:id", serviceHandler.DeleteService)
 			}
-			
+
 			// Category routes
 			categories := v1.Group("/categories")
 			{
@@ -106,7 +106,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				categories.PUT("/:id", categoryHandler.UpdateCategory)
 				categories.DELETE("/:id", categoryHandler.DeleteCategory)
 			}
-			
+
 			// Order routes
 			orders := v1.Group("/orders")
 			{
@@ -117,7 +117,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				orders.PUT("/:id/status", orderHandler.UpdateOrderStatus)
 				orders.PUT("/:id/cancel", orderHandler.CancelOrder)
 			}
-			
+
 			// Payment routes
 			payments := v1.Group("/payments")
 			{
@@ -127,7 +127,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				payments.POST("/stripe-webhook", paymentHandler.HandleStripeWebhook)
 				payments.POST("/paypal-webhook", paymentHandler.HandlePayPalWebhook)
 			}
-			
+
 			// Upload routes
 			if uploadHandler != nil {
 				uploads := v1.Group("/uploads")
@@ -140,7 +140,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 					uploads.POST("/cloudinary-webhook", uploadHandler.HandleCloudinaryWebhook)
 				}
 			}
-			
+
 			// Notification routes
 			notifications := v1.Group("/notifications")
 			{
@@ -149,7 +149,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
 				notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
 			}
-			
+
 			// Admin routes
 			admin := v1.Group("/admin")
 			{
@@ -162,7 +162,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 				admin.PUT("/users/:id/status", adminHandler.UpdateUserStatus)
 			}
 		}
-		
+
 		// API v2 (future version)
 		v2 := api.Group("/v2")
 		{
@@ -174,7 +174,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 			})
 		}
 	}
-	
+
 	// Documentation
 	router.GET("/docs", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -203,7 +203,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 			},
 		})
 	})
-	
+
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -213,7 +213,7 @@ func NewRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 			"docs":    "/docs",
 		})
 	})
-	
+
 	return router
 }
 
@@ -252,19 +252,19 @@ func CORSMiddleware() gin.HandlerFunc {
 func DevelopmentRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 	gin.SetMode(gin.DebugMode)
 	router := NewRouter(serviceContainer)
-	
+
 	// Add development-only middleware
 	router.Use(gin.Logger()) // Detailed logging in dev
-	
+
 	return router
 }
 
 // ProductionRouter creates a router with production settings
 func ProductionRouter(serviceContainer *services.ServiceContainer) *gin.Engine {
 	router := NewRouter(serviceContainer)
-	
+
 	// Note: RateLimitMiddleware and SecurityMiddleware don't exist yet
 	// We'll need to implement them or remove these lines
-	
+
 	return router
 }

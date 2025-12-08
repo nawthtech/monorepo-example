@@ -1,26 +1,26 @@
 package services
 
 import (
-    "context"
-    "fmt"
-    "strings"
-    "time"
-    "github.com/nawthtech/nawthtech/backend/internal/ai/types"
+	"context"
+	"fmt"
+	"github.com/nawthtech/nawthtech/backend/internal/ai/types"
+	"strings"
+	"time"
 )
 
 type AnalysisService struct {
-    textProvider types.TextProvider
+	textProvider types.TextProvider
 }
 
 func NewAnalysisService(provider types.TextProvider) *AnalysisService {
-    return &AnalysisService{
-        textProvider: provider,
-    }
+	return &AnalysisService{
+		textProvider: provider,
+	}
 }
 
 // AnalyzeMarketTrends تحليل اتجاهات السوق
 func (s *AnalysisService) AnalyzeMarketTrends(ctx context.Context, industry string, timeframe string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Analyze market trends for the %s industry over the %s timeframe.
+	prompt := fmt.Sprintf(`Analyze market trends for the %s industry over the %s timeframe.
 
 Provide a comprehensive analysis including:
 
@@ -61,20 +61,20 @@ Provide a comprehensive analysis including:
    - Lagging indicators
 
 Provide data-driven insights with specific examples and actionable recommendations.`, industry, timeframe)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.6,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.6,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) AnalyzeSentiment(ctx context.Context, text string, sourceType string) (*types.AnalysisResponse, error) {
-    prompt := fmt.Sprintf(`Perform sentiment analysis on the following %s text:
+	prompt := fmt.Sprintf(`Perform sentiment analysis on the following %s text:
 
 Text: %s
 
@@ -89,45 +89,47 @@ Analyze:
 8. Potential biases or loaded language
 
 Provide the analysis in a structured format with confidence scores.`, sourceType, text)
-    
-    req := types.AnalysisRequest{
-        Text:     text,
-        Prompt:   prompt,
-        UserID:   extractUserIDFromContext(ctx),
-        UserTier: extractUserTierFromContext(ctx),
-    }
-    
-    // نحتاج إلى معرفة إذا كان المزود يدعم AnalyzeText مباشرة
-    if provider, ok := s.textProvider.(interface{ AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error) }); ok {
-        return provider.AnalyzeText(req)
-    }
-    
-    // خيار احتياطي: استخدام GenerateText
-    textReq := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   500,
-        Temperature: 0.3,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    resp, err := s.textProvider.GenerateText(textReq)
-    if err != nil {
-        return nil, err
-    }
-    
-    // تحويل النتيجة إلى AnalysisResponse
-    return &types.AnalysisResponse{
-        Result:     resp.Text,
-        Confidence: 0.85, // قيمة افتراضية
-        Cost:       resp.Cost,
-        Model:      resp.ModelUsed,
-        CreatedAt:  resp.CreatedAt,
-    }, nil
+
+	req := types.AnalysisRequest{
+		Text:     text,
+		Prompt:   prompt,
+		UserID:   extractUserIDFromContext(ctx),
+		UserTier: extractUserTierFromContext(ctx),
+	}
+
+	// نحتاج إلى معرفة إذا كان المزود يدعم AnalyzeText مباشرة
+	if provider, ok := s.textProvider.(interface {
+		AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error)
+	}); ok {
+		return provider.AnalyzeText(req)
+	}
+
+	// خيار احتياطي: استخدام GenerateText
+	textReq := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   500,
+		Temperature: 0.3,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	resp, err := s.textProvider.GenerateText(textReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// تحويل النتيجة إلى AnalysisResponse
+	return &types.AnalysisResponse{
+		Result:     resp.Text,
+		Confidence: 0.85, // قيمة افتراضية
+		Cost:       resp.Cost,
+		Model:      resp.ModelUsed,
+		CreatedAt:  resp.CreatedAt,
+	}, nil
 }
 
 func (s *AnalysisService) AnalyzeCompetitor(ctx context.Context, competitor string, yourCompany string, analysisType string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Perform a comprehensive competitor analysis for %s compared to %s.
+	prompt := fmt.Sprintf(`Perform a comprehensive competitor analysis for %s compared to %s.
 
 Analysis type: %s
 
@@ -174,25 +176,25 @@ Include:
    - Innovation priorities
 
 Provide actionable intelligence.`, competitor, yourCompany, analysisType)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2500,
-        Temperature: 0.6,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2500,
+		Temperature: 0.6,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) AnalyzeFinancialData(ctx context.Context, financialMetrics map[string]interface{}, timeframe string) (*types.TextResponse, error) {
-    metricsStr := ""
-    for key, value := range financialMetrics {
-        metricsStr += fmt.Sprintf("- %s: %v\n", key, value)
-    }
-    
-    prompt := fmt.Sprintf(`Analyze the following financial data:
+	metricsStr := ""
+	for key, value := range financialMetrics {
+		metricsStr += fmt.Sprintf("- %s: %v\n", key, value)
+	}
+
+	prompt := fmt.Sprintf(`Analyze the following financial data:
 
 Timeframe: %s
 
@@ -240,22 +242,22 @@ Provide analysis covering:
    - Sensitivity analysis
 
 Provide data-driven insights with specific recommendations.`, timeframe, metricsStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.5,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.5,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) AnalyzeCustomerFeedback(ctx context.Context, feedback []string, product string) (*types.AnalysisResponse, error) {
-    feedbackStr := strings.Join(feedback, "\n")
-    
-    prompt := fmt.Sprintf(`Analyze customer feedback for: %s
+	feedbackStr := strings.Join(feedback, "\n")
+
+	prompt := fmt.Sprintf(`Analyze customer feedback for: %s
 
 Customer Feedback:
 %s
@@ -301,43 +303,45 @@ Analyze:
    - Prioritization matrix
 
 Provide structured analysis with specific action items.`, product, feedbackStr)
-    
-    req := types.AnalysisRequest{
-        Text:     feedbackStr,
-        Prompt:   prompt,
-        UserID:   extractUserIDFromContext(ctx),
-        UserTier: extractUserTierFromContext(ctx),
-    }
-    
-    if provider, ok := s.textProvider.(interface{ AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error) }); ok {
-        return provider.AnalyzeText(req)
-    }
-    
-    textReq := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   1500,
-        Temperature: 0.4,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    resp, err := s.textProvider.GenerateText(textReq)
-    if err != nil {
-        return nil, err
-    }
-    
-    return &types.AnalysisResponse{
-        Result:     resp.Text,
-        Confidence: 0.9,
-        Cost:       resp.Cost,
-        Model:      resp.ModelUsed,
-        CreatedAt:  resp.CreatedAt,
-        Categories: []string{"customer_feedback", "sentiment", "product_analysis"},
-    }, nil
+
+	req := types.AnalysisRequest{
+		Text:     feedbackStr,
+		Prompt:   prompt,
+		UserID:   extractUserIDFromContext(ctx),
+		UserTier: extractUserTierFromContext(ctx),
+	}
+
+	if provider, ok := s.textProvider.(interface {
+		AnalyzeText(req types.AnalysisRequest) (*types.AnalysisResponse, error)
+	}); ok {
+		return provider.AnalyzeText(req)
+	}
+
+	textReq := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   1500,
+		Temperature: 0.4,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	resp, err := s.textProvider.GenerateText(textReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.AnalysisResponse{
+		Result:     resp.Text,
+		Confidence: 0.9,
+		Cost:       resp.Cost,
+		Model:      resp.ModelUsed,
+		CreatedAt:  resp.CreatedAt,
+		Categories: []string{"customer_feedback", "sentiment", "product_analysis"},
+	}, nil
 }
 
 func (s *AnalysisService) AnalyzeSWOT(ctx context.Context, organization string, industry string) (*types.TextResponse, error) {
-    prompt := fmt.Sprintf(`Perform a comprehensive SWOT analysis for %s in the %s industry.
+	prompt := fmt.Sprintf(`Perform a comprehensive SWOT analysis for %s in the %s industry.
 
 Provide detailed analysis in this structure:
 
@@ -383,22 +387,22 @@ IMPLEMENTATION ROADMAP:
 - Phase 3 (12+ months)
 
 Make it actionable with specific recommendations.`, organization, industry)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   3000,
-        Temperature: 0.6,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   3000,
+		Temperature: 0.6,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) AnalyzeRisk(ctx context.Context, project string, riskAreas []string) (*types.TextResponse, error) {
-    riskAreasStr := strings.Join(riskAreas, ", ")
-    
-    prompt := fmt.Sprintf(`Perform a comprehensive risk analysis for: %s
+	riskAreasStr := strings.Join(riskAreas, ", ")
+
+	prompt := fmt.Sprintf(`Perform a comprehensive risk analysis for: %s
 
 Risk areas to consider: %s
 
@@ -451,30 +455,30 @@ Analysis Structure:
    - Resource allocation recommendations
 
 Provide a practical, actionable risk management framework.`, project, riskAreasStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2500,
-        Temperature: 0.5,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2500,
+		Temperature: 0.5,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) AnalyzePerformanceMetrics(ctx context.Context, metrics map[string]interface{}, benchmarks map[string]interface{}) (*types.TextResponse, error) {
-    metricsStr := ""
-    for key, value := range metrics {
-        metricsStr += fmt.Sprintf("- %s: %v\n", key, value)
-    }
-    
-    benchmarksStr := ""
-    for key, value := range benchmarks {
-        benchmarksStr += fmt.Sprintf("- %s: %v\n", key, value)
-    }
-    
-    prompt := fmt.Sprintf(`Analyze performance metrics against benchmarks:
+	metricsStr := ""
+	for key, value := range metrics {
+		metricsStr += fmt.Sprintf("- %s: %v\n", key, value)
+	}
+
+	benchmarksStr := ""
+	for key, value := range benchmarks {
+		benchmarksStr += fmt.Sprintf("- %s: %v\n", key, value)
+	}
+
+	prompt := fmt.Sprintf(`Analyze performance metrics against benchmarks:
 
 Performance Metrics:
 %s
@@ -527,38 +531,38 @@ Analysis Requirements:
    - Timeline for improvements
 
 Provide data-driven insights with specific recommendations.`, metricsStr, benchmarksStr)
-    
-    req := types.TextRequest{
-        Prompt:      prompt,
-        MaxTokens:   2000,
-        Temperature: 0.5,
-        UserID:      extractUserIDFromContext(ctx),
-        UserTier:    extractUserTierFromContext(ctx),
-    }
-    
-    return s.textProvider.GenerateText(req)
+
+	req := types.TextRequest{
+		Prompt:      prompt,
+		MaxTokens:   2000,
+		Temperature: 0.5,
+		UserID:      extractUserIDFromContext(ctx),
+		UserTier:    extractUserTierFromContext(ctx),
+	}
+
+	return s.textProvider.GenerateText(req)
 }
 
 func (s *AnalysisService) GetServiceStats(ctx context.Context) map[string]interface{} {
-    stats := make(map[string]interface{})
-    
-    // الحصول على إحصائيات من المزود إذا كانت متوفرة
-    if provider, ok := s.textProvider.(interface{ GetStats() *types.ProviderStats }); ok {
-        stats["provider_stats"] = provider.GetStats()
-    }
-    
-    stats["service"] = "analysis"
-    stats["analysis_types"] = []string{
-        "market_trends",
-        "sentiment",
-        "competitor", 
-        "financial",
-        "customer_feedback",
-        "swot",
-        "risk",
-        "performance_metrics",
-    }
-    stats["timestamp"] = time.Now()
-    
-    return stats
+	stats := make(map[string]interface{})
+
+	// الحصول على إحصائيات من المزود إذا كانت متوفرة
+	if provider, ok := s.textProvider.(interface{ GetStats() *types.ProviderStats }); ok {
+		stats["provider_stats"] = provider.GetStats()
+	}
+
+	stats["service"] = "analysis"
+	stats["analysis_types"] = []string{
+		"market_trends",
+		"sentiment",
+		"competitor",
+		"financial",
+		"customer_feedback",
+		"swot",
+		"risk",
+		"performance_metrics",
+	}
+	stats["timestamp"] = time.Now()
+
+	return stats
 }

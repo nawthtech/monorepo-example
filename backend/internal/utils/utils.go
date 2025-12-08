@@ -787,20 +787,20 @@ func GenerateSlug(text string) string {
 	// إزالة الرموز الخاصة
 	reg := regexp.MustCompile("[^a-zA-Z0-9\\s]")
 	slug := reg.ReplaceAllString(text, "")
-	
+
 	// استبدال المسافات بشرطات
 	slug = strings.ReplaceAll(slug, " ", "-")
-	
+
 	// تحويل إلى أحرف صغيرة
 	slug = strings.ToLower(slug)
-	
+
 	// إزالة الشرطات المكررة
 	reg = regexp.MustCompile("-+")
 	slug = reg.ReplaceAllString(slug, "-")
-	
+
 	// إزالة الشرطات من البداية والنهاية
 	slug = strings.Trim(slug, "-")
-	
+
 	return slug
 }
 
@@ -809,7 +809,7 @@ func GenerateRandomNumber(min, max int) int {
 	if max <= min {
 		return min
 	}
-	
+
 	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(max-min+1)))
 	if err != nil {
 		// Fallback بسيط
@@ -841,19 +841,19 @@ func MaskEmail(email string) string {
 	if !IsValidEmail(email) {
 		return email
 	}
-	
+
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {
 		return email
 	}
-	
+
 	username := parts[0]
 	domain := parts[1]
-	
+
 	if len(username) <= 2 {
 		return username + "@" + domain
 	}
-	
+
 	maskedUsername := username[:2] + strings.Repeat("*", len(username)-2)
 	return maskedUsername + "@" + domain
 }
@@ -863,7 +863,7 @@ func MaskPhone(phone string) string {
 	if len(phone) <= 4 {
 		return strings.Repeat("*", len(phone))
 	}
-	
+
 	visiblePart := phone[len(phone)-4:]
 	maskedPart := strings.Repeat("*", len(phone)-4)
 	return maskedPart + visiblePart
@@ -896,12 +896,12 @@ func GetQueryInt(c *gin.Context, key string, defaultValue int) int {
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
 		return defaultValue
 	}
-	
+
 	return intValue
 }
 
@@ -911,12 +911,12 @@ func GetQueryFloat(c *gin.Context, key string, defaultValue float64) float64 {
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	floatValue, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return defaultValue
 	}
-	
+
 	return floatValue
 }
 
@@ -926,12 +926,12 @@ func GetQueryBool(c *gin.Context, key string, defaultValue bool) bool {
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	boolValue, err := strconv.ParseBool(value)
 	if err != nil {
 		return defaultValue
 	}
-	
+
 	return boolValue
 }
 
@@ -960,17 +960,17 @@ func ValidateUploadToken(token string, maxAge time.Duration) bool {
 	if !strings.HasPrefix(token, "upl_") {
 		return false
 	}
-	
+
 	parts := strings.Split(token, "_")
 	if len(parts) != 3 {
 		return false
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		return false
 	}
-	
+
 	uploadTime := time.Unix(timestamp, 0)
 	return time.Since(uploadTime) <= maxAge
 }
@@ -1005,11 +1005,11 @@ func GetRequestDuration(ctx context.Context) time.Duration {
 	if startTime == nil {
 		return 0
 	}
-	
+
 	if t, ok := startTime.(time.Time); ok {
 		return time.Since(t)
 	}
-	
+
 	return 0
 }
 
@@ -1021,17 +1021,17 @@ func GetCurrentUserID(c *gin.Context) string {
 	if userID := GetUserIDFromGinContext(c); userID != "" {
 		return userID
 	}
-	
+
 	// حاول الحصول من سياق HTTP
 	if userID := c.GetString("userID"); userID != "" {
 		return userID
 	}
-	
+
 	// حاول الحصول من الرؤوس
 	if userID := c.GetHeader("X-User-ID"); userID != "" {
 		return userID
 	}
-	
+
 	return ""
 }
 
@@ -1043,12 +1043,12 @@ func GetCurrentUserRole(c *gin.Context) string {
 			return role
 		}
 	}
-	
+
 	// حاول الحصول من الرؤوس
 	if userRole := c.GetHeader("X-User-Role"); userRole != "" {
 		return userRole
 	}
-	
+
 	return "user" // القيمة الافتراضية
 }
 
@@ -1077,11 +1077,11 @@ func GenerateResponseData(data interface{}, pagination *Pagination) gin.H {
 		"success": true,
 		"data":    data,
 	}
-	
+
 	if pagination != nil {
 		response["pagination"] = pagination
 	}
-	
+
 	return response
 }
 
