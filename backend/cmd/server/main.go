@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,7 +17,6 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 	"github.com/nawthtech/nawthtech/backend/internal/email"
 	"github.com/nawthtech/nawthtech/backend/internal/handlers"
-	"github.com/nawthtech/nawthtech/backend/internal/logger"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/mongodb"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
@@ -27,8 +27,11 @@ func Run() error {
 	// تحميل الإعدادات
 	cfg := config.Load()
 
+	// ✅ تهيئة logger افتراضي
+	initLogger()
+
 	// تسجيل بدء التشغيل
-	logger.Stdout.Info("🚀 بدء تشغيل خادم نوذ تك",
+	slog.Info("🚀 بدء تشغيل خادم نوذ تك",
 		"environment", cfg.Environment,
 		"version", cfg.Version,
 		"port", cfg.Port,
@@ -41,9 +44,9 @@ func Run() error {
 	// 1. 📧 تهيئة خدمة البريد الإلكتروني
 	emailService, err := email.NewEmailService()
 	if err != nil {
-		logger.Stderr.Error("⚠️ فشل في تهيئة خدمة البريد الإلكتروني", logger.ErrAttr(err))
+		slog.Error("⚠️ فشل في تهيئة خدمة البريد الإلكتروني", "error", err)
 	} else {
-		logger.Stdout.Info("✅ خدمة البريد الإلكتروني جاهزة للاستخدام",
+		slog.Info("✅ خدمة البريد الإلكتروني جاهزة للاستخدام",
 			"enabled", email.IsEnabled(),
 		)
 	}
@@ -51,9 +54,9 @@ func Run() error {
 	// 2. 🌐 تهيئة خدمة Cloudflare
 	cloudflareService, err := cloudflare.InitCloudflareService()
 	if err != nil {
-		logger.Stderr.Error("⚠️ فشل في تهيئة Cloudflare", logger.ErrAttr(err))
+		slog.Error("⚠️ فشل في تهيئة Cloudflare", "error", err)
 	} else {
-		logger.Stdout.Info("✅ Cloudflare جاهز للاستخدام",
+		slog.Info("✅ Cloudflare جاهز للاستخدام",
 			"enabled", cloudflare.IsEnabled(),
 		)
 	}
@@ -61,7 +64,7 @@ func Run() error {
 	// 3. 🗄️ تهيئة قاعدة بيانات MongoDB
 	mongoService, err := mongodb.NewMongoDBService()
 	if err != nil {
-		logger.Stderr.Error("❌ فشل في تهيئة قاعدة البيانات", logger.ErrAttr(err))
+		slog.Error("❌ فشل في تهيئة قاعدة البيانات", "error", err)
 		return err
 	}
 	defer mongoService.Close()
@@ -69,10 +72,10 @@ func Run() error {
 	// 4. ☁️ تهيئة خدمة Cloudinary
 	cloudinaryService, err := cloudinary.NewCloudinaryService()
 	if err != nil {
-		logger.Stderr.Error("❌ فشل في تهيئة خدمة Cloudinary", logger.ErrAttr(err))
+		slog.Error("❌ فشل في تهيئة خدمة Cloudinary", "error", err)
 		// لا نوقف التطبيق إذا فشل Cloudinary، يمكن أن يعمل بدونها
 	} else {
-		logger.Stdout.Info("✅ تم تهيئة خدمة Cloudinary بنجاح")
+		slog.Info("✅ تم تهيئة خدمة Cloudinary بنجاح")
 	}
 
 	// ================================
@@ -93,6 +96,17 @@ func Run() error {
 
 	// بدء الخادم
 	return startServer(app, cfg)
+}
+
+// initLogger تهيئة logger
+func initLogger() {
+	// إذا كان logger الافتراضي ليس لديه handler، قم بتهيئته
+	if slog.Default().Handler() == nil {
+		handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+		slog.SetDefault(slog.New(handler))
+	}
 }
 
 // initGinApp تهيئة تطبيق Gin
@@ -138,7 +152,7 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 
 	// ✅ وسيط التسجيل المخصص
 	app.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		logger.Stdout.Info("طلب HTTP",
+		slog.Info("طلب HTTP",
 			"method", param.Method,
 			"path", param.Path,
 			"status", param.StatusCode,
@@ -161,7 +175,7 @@ func registerMiddlewares(app *gin.Engine, cfg *config.Config) {
 	// ✅ وسيط استجابة API الموحدة
 	app.Use(v1shared.APIResponseMiddleware())
 
-	logger.Stdout.Info("✅ تم تسجيل الوسائط الأساسية",
+	slog.Info("✅ تم تسجيل الوسائط الأساسية",
 		"cors_enabled", true,
 		"security_headers", true,
 		"rate_limiting", true,
@@ -180,7 +194,7 @@ func registerAllRoutes(
 	cloudflareService *cloudflare.CloudflareConfig,
 	emailService *email.Office365Config,
 ) {
-	logger.Stdout.Info("🛣️  تسجيل مسارات التطبيق...")
+	slog.Info("🛣️  تسجيل مسارات التطبيق...")
 
 	// ✅ إنشاء حاوية المعاجل
 	handlerContainer := &routes.HandlerContainer{
@@ -202,7 +216,7 @@ func registerAllRoutes(
 		// إنشاء معالج رفع بدون Cloudinary (للحالات الطارئة)
 		uploadHandler, err := handlers.NewUploadHandler()
 		if err != nil {
-			logger.Stderr.Error("❌ فشل في إنشاء معالج الرفع الافتراضي", logger.ErrAttr(err))
+			slog.Error("❌ فشل في إنشاء معالج الرفع الافتراضي", "error", err)
 		} else {
 			handlerContainer.Upload = uploadHandler
 		}
@@ -219,7 +233,7 @@ func registerAllRoutes(
 	// ✅ تسجيل المسارات العامة
 	registerGeneralRoutes(app, cfg)
 
-	logger.Stdout.Info("✅ تم تسجيل جميع المسارات بنجاح",
+	slog.Info("✅ تم تسجيل جميع المسارات بنجاح",
 		"api_version", "v1",
 		"cloudinary_enabled", cloudinaryService != nil,
 		"cloudflare_enabled", cloudflare.IsEnabled(),
@@ -374,7 +388,7 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 
 	// بدء الخادم في goroutine
 	go func() {
-		logger.Stdout.Info("🌐 بدء تشغيل الخادم",
+		slog.Info("🌐 بدء تشغيل الخادم",
 			"port", cfg.Port,
 			"environment", cfg.Environment,
 			"version", cfg.Version,
@@ -390,14 +404,14 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 		)
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Stderr.Error("❌ فشل في بدء الخادم", logger.ErrAttr(err))
+			slog.Error("❌ فشل في بدء الخادم", "error", err)
 			os.Exit(1)
 		}
 	}()
 
 	// انتظار إشارة الإغلاق
 	sig := <-sigChan
-	logger.Stdout.Info("🛑 استلام إشارة إغلاق",
+	slog.Info("🛑 استلام إشارة إغلاق",
 		"signal", sig.String(),
 	)
 
@@ -405,16 +419,16 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	logger.Stdout.Info("⏳ إيقاف الخادم بشكل أنيق...",
+	slog.Info("⏳ إيقاف الخادم بشكل أنيق...",
 		"timeout", "30s",
 	)
 
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Stderr.Error("❌ فشل في إيقاف الخادم بشكل أنيق", logger.ErrAttr(err))
+		slog.Error("❌ فشل في إيقاف الخادم بشكل أنيق", "error", err)
 		return err
 	}
 
-	logger.Stdout.Info("✅ تم إيقاف الخادم بنجاح",
+	slog.Info("✅ تم إيقاف الخادم بنجاح",
 		"duration", "أنيق",
 	)
 
@@ -423,8 +437,11 @@ func startServer(app *gin.Engine, cfg *config.Config) error {
 
 // main الدالة الرئيسية
 func main() {
+	// ✅ تهيئة logger أولاً
+	initLogger()
+
 	if err := Run(); err != nil {
-		logger.Stderr.Error("❌ فشل في تشغيل الخادم", logger.ErrAttr(err))
+		slog.Error("❌ فشل في تشغيل الخادم", "error", err)
 		os.Exit(1)
 	}
 }
