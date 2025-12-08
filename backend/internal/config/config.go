@@ -262,7 +262,8 @@ func initDefaultLogger() {
 
 func setCorsDefaults() {
 	if len(appConfig.Cors.AllowedOrigins) == 0 {
-		appConfig.Cors.AllowedOrigins = getAllowedOrigins()
+		// الحصول على القيم الافتراضية للنطاقات المسموح بها
+		appConfig.Cors.AllowedOrigins = getDefaultAllowedOrigins()
 	}
 	if len(appConfig.Cors.AllowedMethods) == 0 {
 		appConfig.Cors.AllowedMethods = []string{
@@ -285,7 +286,7 @@ func setCorsDefaults() {
 	}
 }
 
-func getAllowedOrigins() []string {
+func getDefaultAllowedOrigins() []string {
 	// القيم الافتراضية للنطاقات المسموح بها
 	defaultOrigins := []string{
 		"http://localhost:3000",
@@ -296,10 +297,14 @@ func getAllowedOrigins() []string {
 
 	// في الإنتاج، أضف النطاقات الفعلية
 	if appConfig != nil && strings.ToLower(appConfig.Environment) == "production" {
-		return append(defaultOrigins, []string{
+		defaultOrigins = append(defaultOrigins, []string{
 			"https://nawthtech.com",
 			"https://www.nawthtech.com",
 			"https://admin.nawthtech.com",
+			"https://api.nawthtech.com",
+			"https://app.nawthtech.com",
+			"https://store.nawthtech.com",
+			"https://staging.nawthtech.com",
 		}...)
 	}
 
