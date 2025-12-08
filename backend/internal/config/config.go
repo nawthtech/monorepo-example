@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
-	"github.com/nawthtech/nawthtech/backend/internal/logger"
+	"log/slog"
 )
 
 // ========== هياكل التكوين ==========
@@ -135,6 +135,9 @@ func Load() *Config {
 		return appConfig
 	}
 
+	// تهيئة logger افتراضي إذا لم يكن معيناً
+	initDefaultLogger()
+
 	appConfig = &Config{
 		Environment:   getEnv("ENVIRONMENT", "development"),
 		Port:          getEnv("PORT", "3000"),
@@ -218,24 +221,22 @@ func Load() *Config {
 		},
 	}
 
-	// تعيين القيم الافتراضية من ملف // من السطر 221 إلى 247 - الملف المصلح:
-
+	// تعيين القيم الافتراضية من ملف
 	setCorsDefaults()
 
 	// التحقق من صحة الإعدادات
-	// تم إزالة الكود الذي به خطأ لأنه لا يوجد متغير err معرف في هذا السياق
-
-	// تحليل متغيرات البيئة باستخدام env package
-	if err := env.Parse(appConfig); err != nil {
-		if logger.Stderr != nil {
-			logger.Stderr.Error("failed to parse environment variables", logger.ErrAttr(err))
-		} else {
-			fmt.Printf("ERROR: Failed to parse environment variables: %v\n", err)
-		}
+	if err := validateConfig(); err != nil {
+		slog.Error("فشل التحقق من صحة الإعدادات", "error", err)
 		os.Exit(1)
 	}
 
-	logger.Stdout.Info("تم تحميل الإعدادات بنجاح",
+	// تحليل متغيرات البيئة باستخدام env package
+	if err := env.Parse(appConfig); err != nil {
+		slog.Error("فشل تحليل متغيرات البيئة", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("تم تحميل الإعدادات بنجاح",
 		"environment", appConfig.Environment,
 		"port", appConfig.Port,
 		"version", appConfig.Version,
@@ -244,6 +245,17 @@ func Load() *Config {
 	)
 
 	return appConfig
+}
+
+// initDefaultLogger تهيئة logger افتراضي
+func initDefaultLogger() {
+	// إذا كان logger الافتراضي ليس لديه handler، قم بتهيئته
+	if slog.Default().Handler() == nil {
+		handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+		slog.SetDefault(slog.New(handler))
+	}
 }
 
 // ========== دوال تعيين القيم الافتراضية ==========
@@ -271,6 +283,27 @@ func setCorsDefaults() {
 			"Content-Length",
 		}
 	}
+}
+
+func getAllowedOrigins() []string {
+	// القيم الافتراضية للنطاقات المسموح بها
+	defaultOrigins := []string{
+		"http://localhost:3000",
+		"http://localhost:5173",
+		"http://127.0.0.1:3000",
+		"http://127.0.0.1:5173",
+	}
+
+	// في الإنتاج، أضف النطاقات الفعلية
+	if appConfig != nil && strings.ToLower(appConfig.Environment) == "production" {
+		return append(defaultOrigins, []string{
+			"https://nawthtech.com",
+			"https://www.nawthtech.com",
+			"https://admin.nawthtech.com",
+		}...)
+	}
+
+	return defaultOrigins
 }
 
 // ========== دوال التحقق من الصحة ==========
