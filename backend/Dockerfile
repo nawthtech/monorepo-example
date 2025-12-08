@@ -3,17 +3,20 @@ FROM golang:1.25.4-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
-
 RUN go mod download
 
-COPY  . .
+COPY . .
 
-RUN go build -ldflags="-w -s" -o nawthtech-backend .
+# بناء الخادم فقط
+RUN CGO_ENABLED=0 GOOS=linux go build -o server-app ./cmd/server
 
-FROM gcr.io/distroless/static
+# مرحلة التشغيل
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
 
-WORKDIR /app
+WORKDIR /root/
+COPY --from=builder /app/server-app .
 
-COPY --from=builder /app/nawthtech-backend ./
+EXPOSE 8080
 
-ENTRYPOINT ["/app/nawthtech-backend"]
+CMD ["./server-app"]
