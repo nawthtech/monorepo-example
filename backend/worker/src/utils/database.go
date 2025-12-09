@@ -1,98 +1,94 @@
 package utils
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 	"os"
-	"time"
+	"sync"
 
-	_ "github.com/mattn/go-sqlite3" // SQLite driver required by D1
+	"github.com/cloudflare/cloudflare-go" // إذا لزم الأمر، يعتمد على Cloudflare SDK
 )
 
-var (
-	DB         *sql.DB
-	DBDriver   = "sqlite3"
-	DBFilePath string
-)
+// D1Manager يدير الاتصال بـ D1
+type D1Manager struct {
+	DB       *D1Database // كائن D1
+	initOnce sync.Once
+}
 
-// InitDatabase تهيئة اتصال قاعدة البيانات D1
-func InitDatabase() error {
-	// قراءة رابط قاعدة البيانات من البيئة
-	DBFilePath = os.Getenv("D1_DATABASE_PATH")
-	if DBFilePath == "" {
-		DBFilePath = ":memory:" // افتراضيًا في الذاكرة إذا لم يكن محدد
+var d1Manager *D1Manager
+
+// InitD1 تهيئة الاتصال بـ D1 (يجب استدعاؤه مرة واحدة عند بدء السيرفر)
+func InitD1() error {
+	if d1Manager != nil {
+		return nil
 	}
 
 	var err error
-	DB, err = sql.Open(DBDriver, DBFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
-	}
+	d1Manager = &D1Manager{}
 
-	// تعيين مهلة ping للتأكد من صحة الاتصال
-	DB.SetConnMaxLifetime(time.Minute * 5)
-	DB.SetMaxOpenConns(10)
-	DB.SetMaxIdleConns(5)
-
-	// اختبار الاتصال
-	if err := DB.Ping(); err != nil {
-		return fmt.Errorf("database ping failed: %w", err)
-	}
-
-	log.Println("✅ Connected to D1 database successfully!")
-	return nil
-}
-
-// CloseDatabase إغلاق الاتصال بالقاعدة
-func CloseDatabase() {
-	if DB != nil {
-		if err := DB.Close(); err != nil {
-			log.Printf("⚠️ Failed to close database: %v", err)
-		} else {
-			log.Println("🔌 Database connection closed")
+	d1Manager.initOnce.Do(func() {
+		dbURL := os.Getenv("D1_DATABASE_URL")
+		if dbURL == "" {
+			err = fmt.Errorf("D1_DATABASE_URL is required in environment variables")
+			return
 		}
-	}
+
+		// إنشاء اتصال D1
+		d1, dbErr := NewD1Database(dbURL)
+		if dbErr != nil {
+			err = fmt.Errorf("failed to connect to D1: %v", dbErr)
+			return
+		}
+
+		d1Manager.DB = d1
+		log.Println("✅ Connected to D1 successfully!")
+	})
+
+	return err
 }
 
-// HealthCheck تحقق من صحة قاعدة البيانات
-func HealthCheck() (status string, err error) {
-	if DB == nil {
-		return "disconnected", fmt.Errorf("database not initialized")
+// GetD1 إعادة كائن D1Manager
+func GetD1() *D1Manager {
+	if d1Manager == nil {
+		log.Fatal("D1Manager not initialized. Call InitD1() first.")
 	}
-
-	var result int
-	err = DB.QueryRow("SELECT 1").Scan(&result)
-	if err != nil {
-		return "unhealthy", err
-	}
-
-	if result == 1 {
-		return "healthy", nil
-	}
-	return "unhealthy", fmt.Errorf("unexpected database response")
+	return d1Manager
 }
 
-// ExecQuery تنفيذ استعلام غير إرجاعي (INSERT/UPDATE/DELETE)
-func ExecQuery(query string, args ...any) (sql.Result, error) {
-	if DB == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-	return DB.Exec(query, args...)
+// ==== وظائف مساعدة للعمل مع D1 ====
+
+type D1Database struct {
+	URL string
+	// أضف هنا أي حقول أو SDK من Cloudflare إذا لزم الأمر
 }
 
-// QueryRows تنفيذ استعلام إرجاعي (SELECT)
-func QueryRows(query string, args ...any) (*sql.Rows, error) {
-	if DB == nil {
-		return nil, fmt.Errorf("database not initialized")
+// NewD1Database إنشاء اتصال جديد بـ D1
+func NewD1Database(url string) (*D1Database, error) {
+	// حالياً مجرد مثال على الاتصال
+	if url == "" {
+		return nil, fmt.Errorf("D1 URL is empty")
 	}
-	return DB.Query(query, args...)
+
+	db := &D1Database{
+		URL: url,
+	}
+
+	// يمكن هنا إضافة اختبار Ping إذا كانت مكتبة D1 SDK متاحة
+	// مثلا: db.Ping()
+
+	return db, nil
 }
 
-// QueryRow تنفيذ استعلام صف واحد
-func QueryRow(query string, args ...any) *sql.Row {
-	if DB == nil {
-		return nil
-	}
-	return DB.QueryRow(query, args...)
+// Query تنفيذ استعلام SQL في D1
+func (d *D1Database) Query(ctx context.Context, sql string, args ...any) ([][]any, error) {
+	// TODO: استبدل هذا بتنفيذ حقيقي باستخدام D1 SDK أو REST API
+	// حالياً مجرد مثال فارغ
+	return nil, fmt.Errorf("D1 Query not implemented yet")
+}
+
+// Exec تنفيذ استعلام تعديل البيانات (INSERT, UPDATE, DELETE)
+func (d *D1Database) Exec(ctx context.Context, sql string, args ...any) error {
+	// TODO: استبدل هذا بتنفيذ حقيقي باستخدام D1 SDK أو REST API
+	return fmt.Errorf("D1 Exec not implemented yet")
 }
