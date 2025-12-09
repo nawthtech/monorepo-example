@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"worker/src/utils"
+	"github.com/nawthtech/nawthtech/backend/worker/src/utils"
 	"strings"
 )
 
