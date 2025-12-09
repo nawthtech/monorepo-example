@@ -1,157 +1,187 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
-	"worker/src/middleware"
-	"worker/src/utils"
+	"nawthtech-worker/src/utils"
 )
 
-// ========== Helper ==========
-
-func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(payload)
+// ==========================
+// Response موحد
+// ==========================
+type JSONResponse struct {
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Error   string      `json:"error,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
-// ========== Health Handlers ==========
+func respondJSON(w http.ResponseWriter, status int, resp JSONResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(resp)
+}
 
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	dbHealth := utils.DB.HealthCheck() // D1 check
+// ==========================
+// Middleware CORS موحد
+// ==========================
+func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", os.Getenv("CORS_ALLOWED_ORIGINS"))
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
 
-	data := map[string]interface{}{
+// ==========================
+// Health Handlers
+// ==========================
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	dbHealth := utils.HealthCheck()
+
+	healthData := map[string]interface{}{
 		"status":      dbHealth.Status,
 		"database":    dbHealth.Type,
-		"timestamp":   time.Now().UTC(),
-		"environment": utils.Env.Environment,
-		"version":     utils.Env.API_VERSION,
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+		"environment": os.Getenv("ENVIRONMENT"),
+		"version":     os.Getenv("API_VERSION"),
 		"service":     "nawthtech-worker",
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Service is " + dbHealth.Status,
-		"data":    data,
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Message: "Service is " + dbHealth.Status,
+		Data:    healthData,
 	})
 }
 
-func HealthReady(w http.ResponseWriter, r *http.Request) {
-	dbHealth := utils.DB.HealthCheck()
-
+func HealthReadyHandler(w http.ResponseWriter, r *http.Request) {
+	dbHealth := utils.HealthCheck()
 	if dbHealth.Status != "healthy" {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
-			"success": false,
-			"error":   "SERVICE_NOT_READY",
-			"message": "Database is not ready",
+		respondJSON(w, http.StatusServiceUnavailable, JSONResponse{
+			Success: false,
+			Error:   "SERVICE_NOT_READY",
+			Message: "Database is not ready",
 		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Service is ready",
-		"data": map[string]interface{}{
-			"status":    "ready",
-			"database":  dbHealth.Type,
-			"timestamp": time.Now().UTC(),
-		},
+	data := map[string]interface{}{
+		"status":    "ready",
+		"database":  dbHealth.Type,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Message: "Service is ready",
+		Data:    data,
 	})
 }
 
-// ========== Auth Handlers ==========
+// ==========================
+// Users Handlers
+// ==========================
+func GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := r.Header.Get("X-User-ID") // استبدل حسب مصادقة JWT
 
-func AuthRegister(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Register endpoint (stub)",
-	})
-}
-
-func AuthLogin(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Login endpoint (stub)",
-	})
-}
-
-func AuthRefresh(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Refresh token endpoint (stub)",
-	})
-}
-
-func AuthForgotPassword(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Forgot password endpoint (stub)",
-	})
-}
-
-// ========== Users Handlers ==========
-
-func GetProfile(w http.ResponseWriter, r *http.Request) {
-	userID := middleware.GetUserID(r)
 	if userID == "" {
-		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{
-			"success": false,
-			"error":   "UNAUTHORIZED",
+		respondJSON(w, http.StatusUnauthorized, JSONResponse{
+			Success: false,
+			Error:   "UNAUTHORIZED",
 		})
 		return
 	}
 
-	user, err := utils.DB.GetUserByID(userID)
+	user, err := utils.GetUserByID(ctx, userID)
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]interface{}{
-			"success": false,
-			"error":   "USER_NOT_FOUND",
+		respondJSON(w, http.StatusNotFound, JSONResponse{
+			Success: false,
+			Error:   "USER_NOT_FOUND",
 		})
 		return
 	}
 
-	// إخفاء كلمة السر
+	// اخفاء كلمة السر
 	user.Password = ""
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    user,
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Data:    user,
 	})
 }
 
-// ========== Services Handlers ==========
-
-func GetServices(w http.ResponseWriter, r *http.Request) {
-	services, _ := utils.DB.GetServices(50)
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    services,
-	})
-}
-
-func GetServiceByID(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-	service, err := utils.DB.GetServiceByID(id)
+func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	users, err := utils.GetUsers(ctx, 50)
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]interface{}{
-			"success": false,
-			"error":   "SERVICE_NOT_FOUND",
+		respondJSON(w, http.StatusInternalServerError, JSONResponse{
+			Success: false,
+			Error:   "FAILED_FETCH_USERS",
 		})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    service,
+
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Data:    users,
 	})
 }
 
-// ========== Test Handler ==========
+// ==========================
+// Services Handlers
+// ==========================
+func GetServiceByIDHandler(w http.ResponseWriter, r *http.Request, serviceID string) {
+	ctx := r.Context()
+	service, err := utils.GetServiceByID(ctx, serviceID)
+	if err != nil {
+		respondJSON(w, http.StatusNotFound, JSONResponse{
+			Success: false,
+			Error:   "SERVICE_NOT_FOUND",
+		})
+		return
+	}
 
-func TestEndpoint(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"message": "Test endpoint is working!",
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Data:    service,
+	})
+}
+
+func GetServicesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	services, err := utils.GetServices(ctx, 50)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, JSONResponse{
+			Success: false,
+			Error:   "FAILED_FETCH_SERVICES",
+		})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Data:    services,
+	})
+}
+
+// ==========================
+// Test Handler
+// ==========================
+func TestHandler(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, http.StatusOK, JSONResponse{
+		Success: true,
+		Message: "Test endpoint working correctly",
 	})
 }
