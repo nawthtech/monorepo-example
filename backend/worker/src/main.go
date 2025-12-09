@@ -4,76 +4,96 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-
-	"nawthtech-worker/src/handlers"
-	"nawthtech-worker/src/utils"
+	"worker/src/handlers"
+	"worker/src/utils"
 )
 
+// Middleware عام: CORS
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		allowedOrigins := strings.Split(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"), ",")
+		origin := r.Header.Get("Origin")
+		allowed := false
+		for _, o := range allowedOrigins {
+			if strings.TrimSpace(o) == origin {
+				allowed = true
+				break
+			}
+		}
+
+		if allowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-USER-ID")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Middleware المصادقة (يجب تمرير X-USER-ID في Header)
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Header.Get("X-USER-ID")
+		if userID == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"success":false,"error":"UNAUTHORIZED"}`))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// دالة مساعدة للحصول على متغيرات البيئة
+func getEnv(key, fallback string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	return v
+}
+
 func main() {
-	// تهيئة قاعدة البيانات D1
-	if err := utils.InitDatabase(); err != nil {
-		log.Fatalf("❌ Failed to initialize database: %v", err)
-	}
-	defer utils.CloseDatabase()
-
-	// إنشاء Router
-	r := chi.NewRouter()
-
-	// Middleware عامة
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(handlers.CorsMiddleware(next.ServeHTTP))
-	})
-
-	// ==========================
-	// Health Routes
-	// ==========================
-	r.Get("/health", handlers.HealthCheckHandler)
-	r.Get("/health/ready", handlers.HealthReadyHandler)
-
-	// ==========================
-	// Users Routes
-	// ==========================
-	r.Get("/user/profile", handlers.GetUserProfileHandler)
-	r.Get("/users", handlers.GetUsersHandler)
-
-	// ==========================
-	// Services Routes
-	// ==========================
-	r.Get("/services", handlers.GetServicesHandler)
-	r.Get("/services/{id}", func(w http.ResponseWriter, r *http.Request) {
-		serviceID := chi.URLParam(r, "id")
-		handlers.GetServiceByIDHandler(w, r, serviceID)
-	})
-
-	// ==========================
-	// Test Route
-	// ==========================
-	r.Get("/test", handlers.TestHandler)
-
-	// ==========================
-	// Not Found Handler
-	// ==========================
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		handlers.RespondJSON(w, http.StatusNotFound, handlers.JSONResponse{
-			Success: false,
-			Error:   "NOT_FOUND",
-			Message: "Route does not exist",
-		})
-	})
-
-	// بدء السيرفر
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
+	// تهيئة D1
+	if err := utils.InitD1(); err != nil {
+		log.Fatalf("Failed to initialize D1: %v", err)
 	}
 
-	log.Printf("🚀 Server running on port %s in %s mode", port, os.Getenv("ENVIRONMENT"))
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("❌ Server failed: %v", err)
+	mux := http.NewServeMux()
+
+	// ==== Health ====
+	mux.HandleFunc("/health", handlers.HealthCheck)
+	mux.HandleFunc("/health/ready", handlers.HealthReady)
+
+	// ==== Users ====
+	mux.Handle("/user/profile", authMiddleware(http.HandlerFunc(handlers.GetUserProfile)))
+	mux.Handle("/users", authMiddleware(http.HandlerFunc(handlers.GetUsers)))
+
+	// ==== Services ====
+	mux.HandleFunc("/services", handlers.GetServices)
+	mux.HandleFunc("/services/id", handlers.GetServiceByID)
+
+	// ==== Test ====
+	mux.HandleFunc("/test", handlers.TestHandler)
+
+	// ==== 404 لكل المسارات الأخرى ====
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"success":false,"error":"Not Found"}`))
+	})
+
+	// تشغيل السيرفر
+	port := getEnv("PORT", "3000")
+	log.Printf("Server started on port %s\n", port)
+	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
+		log.Fatalf("Server failed: %v", err)
 	}
 }
