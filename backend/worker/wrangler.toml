@@ -1,20 +1,76 @@
-name = "nawthtech-worker"
-compatibility_date = "2025-01-01"
+name = "nawthtech-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
 
-type = "javascript" # keep default; note: Cloudflare Go Workers require building to WASM; if you package Go, use Pages Functions or Service Workers with Go-wasm.
-
-[env.development]
-name = "nawthtech-worker-dev"
-
-[env.production]
-name = "nawthtech-worker"
-
+# Environment variables
 [vars]
 ENVIRONMENT = "production"
-API_VERSION = "v1"
+JWT_SECRET = "{{ secrets.JWT_SECRET }}"
+APP_VERSION = "1.0.0"
+DOMAIN = "db-w.nawthtech.com"
 
-# D1 binding (this tells Wrangler that your worker has a binding named DB)
+# D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "nawthtech_d1"
-database_id = "" # optional - put actual ID in Cloudflare dashboard
+database_name = "d1-nawthtech-worker"
+database_id = "bbf15aeb-0718-47c8-9723-d8a83f79e6cb"
+
+# KV Namespace for caching
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "{{ kv_cache_id }}"
+
+# KV for sessions
+[[kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "{{ kv_sessions_id }}"
+
+# R2 for storage
+[[r2_buckets]]
+binding = "R2_STORAGE"
+bucket_name = "nawthtech-storage"
+
+# Durable Objects (optional)
+# [[durable_objects.bindings]]
+# name = "COUNTER"
+# class_name = "Counter"
+
+# Analytics Engine
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "nawthtech_analytics"
+
+# Queues (for background tasks)
+[[queues.producers]]
+binding = "BACKGROUND_QUEUE"
+queue = "background-tasks"
+
+# Email Routing
+[email]
+bindings = [
+  { name = "EMAIL_ROUTING" }
+]
+
+# Triggers
+[triggers]
+crons = [
+  "0 */6 * * *",    # Every 6 hours
+  "0 0 * * *",      # Daily at midnight
+  "*/15 * * * *",   # Every 15 minutes
+]
+
+# Build configuration
+[build]
+command = "npm run build"
+upload.format = "modules"
+upload.main = "./dist/index.js"
+
+[build.upload]
+format = "modules"
+main = "./dist/index.js"
+
+# Development server
+[dev]
+port = 8787
+ip = "127.0.0.1"
+local_protocol = "http"
