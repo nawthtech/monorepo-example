@@ -5,53 +5,160 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler dev --port 8787 --local",
     "dev:remote": "wrangler dev --remote",
     "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
     "deploy:prod": "wrangler deploy --env production",
+    "deploy:preview": "wrangler deploy --env preview",
+    
     "db:create": "wrangler d1 create nawthtech-db",
     "db:init": "wrangler d1 execute nawthtech-db --file=./schema.sql",
+    "db:migrate": "wrangler d1 migrations apply nawthtech-db",
     "db:local": "wrangler d1 execute nawthtech-db --local",
     "db:remote": "wrangler d1 execute nawthtech-db --remote",
-    "db:console": "wrangler d1 console nawthtech-db",
-    "db:migrate": "wrangler d1 migrations apply nawthtech-db",
+    "db:backup": "wrangler d1 export nawthtech-db --remote --output-file backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:restore": "wrangler d1 import nawthtech-db --remote --file=./backup.sql",
+    
     "kv:create": "wrangler kv:namespace create NAWTHTECH_KV",
+    "kv:list": "wrangler kv:key list --binding=KV",
+    "kv:get": "wrangler kv:key get --binding=KV",
+    "kv:put": "wrangler kv:key put --binding=KV",
+    
     "r2:create": "wrangler r2 bucket create nawthtech-storage",
+    "r2:list": "wrangler r2 object list nawthtech-storage",
+    "r2:upload": "wrangler r2 object put nawthtech-storage",
+    
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "build": "npm run typecheck",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:performance": "k6 run tests/performance/load-test.js",
+    
+    "build": "npm run typecheck && npm run lint",
     "start": "npm run dev",
-    "prepare": "husky install"
+    
+    "generate:types": "wrangler types",
+    "generate:docs": "typedoc src/index.ts --out docs/api",
+    
+    "clean": "rm -rf dist coverage .wrangler",
+    "prepare": "husky install",
+    "precommit": "npm run lint && npm run typecheck",
+    "prepush": "npm test",
+    
+    "health": "curl http://localhost:8787/health",
+    "health:remote": "curl https://api.nawthtech.com/health",
+    
+    "logs": "wrangler tail",
+    "logs:production": "wrangler tail --env production",
+    "logs:staging": "wrangler tail --env staging",
+    
+    "metrics": "wrangler metrics",
+    "analytics": "wrangler analytics",
+    
+    "secret:set": "wrangler secret put",
+    "secret:list": "wrangler secret list",
+    "secret:delete": "wrangler secret delete",
+    
+    "version": "auto-changelog -p && git add CHANGELOG.md",
+    "release": "standard-version"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20231121.0",
     "itty-router": "^5.0.17",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "nanoid": "^5.0.1",
+    "date-fns": "^3.0.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^10.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "typescript": "^5.3.0",
     "wrangler": "^3.0.0",
+    
     "vitest": "^1.0.0",
     "@vitest/ui": "^1.0.0",
     "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/browser": "^1.0.0",
+    "happy-dom": "^14.0.0",
+    
     "eslint": "^8.55.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-vitest": "^0.3.0",
+    
     "prettier": "^3.1.0",
+    
     "husky": "^8.0.0",
+    "lint-staged": "^15.0.0",
+    
     "@commitlint/cli": "^18.0.0",
-    "@commitlint/config-conventional": "^18.0.0"
+    "@commitlint/config-conventional": "^18.0.0",
+    
+    "auto-changelog": "^2.4.0",
+    "standard-version": "^9.5.0",
+    
+    "typedoc": "^0.25.0",
+    "typedoc-plugin-markdown": "^3.16.0",
+    
+    "@graphql-codegen/cli": "^5.0.0",
+    "@graphql-codegen/typescript": "^4.0.0",
+    
+    "k6": "^0.0.0",
+    "@types/k6": "^0.50.0",
+    
+    "dotenv": "^16.3.0",
+    "cross-env": "^7.0.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "volta": {
-    "node": "18.18.0"
-  }
+    "node": "20.10.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.json": [
+      "prettier --write"
+    ],
+    "*.md": [
+      "prettier --write"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nawthtech/api.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "d1",
+    "api",
+    "nawthtech",
+    "typescript"
+  ],
+  "author": "NawthTech <contact@nawthtech.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nawthtech/api/issues"
+  },
+  "homepage": "https://github.com/nawthtech/api#readme"
 }
