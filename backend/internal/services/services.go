@@ -499,5 +499,225 @@ func NewServiceService(db *sql.DB) ServiceService {
 	return &serviceServiceImpl{db: db}
 }
 
-// يمكنك متابعة تحويل باقي الخدمات (Order, Category, Payment, Upload, Notification, Admin, Cache)
-// بنفس الطريقة مع `db.ExecContext` و `db.QueryContext` و `db.QueryRowContext`.
+// ================================
+// OrderService مع D1
+// ================================
+
+type orderServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateRequest) (*models.Order, error) {
+	orderID := fmt.Sprintf("order_%d", time.Now().UnixNano())
+	order := &models.Order{
+		ID:         orderID,
+		UserID:     req.UserID,
+		ServiceID:  req.ServiceID,
+		Status:     "pending",
+		Amount:     req.Amount,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO orders (id,user_id,service_id,status,amount,created_at,updated_at)
+		VALUES (?,?,?,?,?,?,?)`,
+		order.ID, order.UserID, order.ServiceID, order.Status, order.Amount, order.CreatedAt, order.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
+
+func (s *orderServiceImpl) GetOrder(ctx context.Context, orderID string) (*models.Order, error) {
+	row := s.db.QueryRowContext(ctx, "SELECT id,user_id,service_id,status,amount,created_at,updated_at FROM orders WHERE id=?", orderID)
+	order := &models.Order{}
+	err := row.Scan(&order.ID, &order.UserID, &order.ServiceID, &order.Status, &order.Amount, &order.CreatedAt, &order.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("الطلب غير موجود")
+		}
+		return nil, err
+	}
+	return order, nil
+}
+
+func (s *orderServiceImpl) UpdateOrderStatus(ctx context.Context, orderID string, status string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE orders SET status=?, updated_at=? WHERE id=?", status, time.Now(), orderID)
+	return err
+}
+
+func NewOrderService(db *sql.DB) OrderService {
+	return &orderServiceImpl{db: db}
+}
+
+// ================================
+// CategoryService مع D1
+// ================================
+
+type categoryServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCreateRequest) (*models.Category, error) {
+	categoryID := fmt.Sprintf("category_%d", time.Now().UnixNano())
+	category := &models.Category{
+		ID:        categoryID,
+		Name:      req.Name,
+		Slug:      req.Slug,
+		Image:     req.Image,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO categories (id,name,slug,image,is_active,created_at,updated_at)
+		VALUES (?,?,?,?,?,?,?)`,
+		category.ID, category.Name, category.Slug, category.Image, category.IsActive, category.CreatedAt, category.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return category, nil
+}
+
+func (s *categoryServiceImpl) ListCategories(ctx context.Context) ([]*models.Category, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id,name,slug,image,is_active,created_at,updated_at FROM categories WHERE is_active=1")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []*models.Category
+	for rows.Next() {
+		c := &models.Category{}
+		err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Image, &c.IsActive, &c.CreatedAt, &c.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
+func NewCategoryService(db *sql.DB) CategoryService {
+	return &categoryServiceImpl{db: db}
+}
+
+// ================================
+// PaymentService مع D1 (مثال أساسي)
+// ================================
+
+type paymentServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *paymentServiceImpl) CreatePayment(ctx context.Context, req PaymentCreateRequest) (*models.Payment, error) {
+	paymentID := fmt.Sprintf("payment_%d", time.Now().UnixNano())
+	payment := &models.Payment{
+		ID:        paymentID,
+		OrderID:   req.OrderID,
+		Amount:    req.Amount,
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO payments (id,order_id,amount,status,created_at,updated_at)
+		VALUES (?,?,?,?,?,?)`,
+		payment.ID, payment.OrderID, payment.Amount, payment.Status, payment.CreatedAt, payment.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return payment, nil
+}
+
+func (s *paymentServiceImpl) UpdatePaymentStatus(ctx context.Context, paymentID string, status string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE payments SET status=?, updated_at=? WHERE id=?", status, time.Now(), paymentID)
+	return err
+}
+
+func NewPaymentService(db *sql.DB) PaymentService {
+	return &paymentServiceImpl{db: db}
+}
+
+// ================================
+// UploadService (تخزين الملفات) - مجرد مثال، يعتمد على رابط URL
+// ================================
+
+type uploadServiceImpl struct{}
+
+func (s *uploadServiceImpl) UploadFile(ctx context.Context, fileName string, fileData []byte) (string, error) {
+	// هنا يمكن دمج مع S3 أو Cloudflare R2، الآن مجرد مثال
+	url := fmt.Sprintf("https://cdn.nawthtech.com/%s", fileName)
+	return url, nil
+}
+
+func NewUploadService() UploadService {
+	return &uploadServiceImpl{}
+}
+
+// ================================
+// NotificationService - مجرد مثال
+// ================================
+
+type notificationServiceImpl struct{}
+
+func (s *notificationServiceImpl) SendNotification(ctx context.Context, userID string, message string) error {
+	fmt.Printf("Notification to %s: %s\n", userID, message)
+	return nil
+}
+
+func NewNotificationService() NotificationService {
+	return &notificationServiceImpl{}
+}
+
+// ================================
+// AdminService - إدارة المستخدمين والخدمات
+// ================================
+
+type adminServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *adminServiceImpl) DeactivateUser(ctx context.Context, userID string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE users SET status=?, updated_at=? WHERE id=?", "inactive", time.Now(), userID)
+	return err
+}
+
+func (s *adminServiceImpl) DeactivateService(ctx context.Context, serviceID string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE services SET is_active=?, updated_at=? WHERE id=?", false, time.Now(), serviceID)
+	return err
+}
+
+func NewAdminService(db *sql.DB) AdminService {
+	return &adminServiceImpl{db: db}
+}
+
+// ================================
+// CacheService - مجرد مثال باستخدام map محلي
+// ================================
+
+type cacheServiceImpl struct {
+	store map[string]interface{}
+}
+
+func (c *cacheServiceImpl) Set(key string, value interface{}) {
+	c.store[key] = value
+}
+
+func (c *cacheServiceImpl) Get(key string) (interface{}, bool) {
+	val, ok := c.store[key]
+	return val, ok
+}
+
+func NewCacheService() CacheService {
+	return &cacheServiceImpl{store: make(map[string]interface{})}
+}
