@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"worker/src/middleware"
-	"worker/src/handlers"
+	"github.com/nawthtech/nawthtech/backend/worker/src/middleware"
+	"github.com/nawthtech/nawthtech/backend/worker/src/handlers"
 )
 
 func main() {
