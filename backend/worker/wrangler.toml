@@ -1,28 +1,20 @@
-name = "nawthtech-api"
-main = "worker/src/main.go"
-compatibility_date = "2025-12-09"
-type = "javascript" # مطلوب للـ Wrangler حتى لو الكود Go، سيعمل Go runtime
-account_id = ""    # ضع هنا Account ID الخاص بك على Cloudflare
-workers_dev = true
-route = ""
-zone_id = ""
+name = "nawthtech-worker"
+compatibility_date = "2025-01-01"
 
-[env.production]
-name = "nawthtech-api-prod"
+type = "javascript" # keep default; note: Cloudflare Go Workers require building to WASM; if you package Go, use Pages Functions or Service Workers with Go-wasm.
 
 [env.development]
-name = "nawthtech-api-dev"
+name = "nawthtech-worker-dev"
 
-# جميع متغيرات البيئة تُدار من Railway أو Cloudflare Dashboard
-# D1, JWT, SESSION وغيرها
+[env.production]
+name = "nawthtech-worker"
+
 [vars]
-ENVIRONMENT = ""           # تضعها في Railway Environment Variables
-API_VERSION = ""           # تضعها في Railway Environment Variables
-D1_DATABASE_URL = ""       # تضعها في Railway Environment Variables
-JWT_SECRET = ""            # تضعها في Railway Environment Variables
-SESSION_SECRET = ""        # تضعها في Railway Environment Variables
-CORS_ALLOWED_ORIGINS = ""  # تضعها في Railway Environment Variables
+ENVIRONMENT = "production"
+API_VERSION = "v1"
 
-[[secrets_stores]]
-binding = "SECRETS"
-id = ""  # ضع هنا معرف Secret Store إذا استخدمته
+# D1 binding (this tells Wrangler that your worker has a binding named DB)
+[[d1_databases]]
+binding = "DB"
+database_name = "nawthtech_d1"
+database_id = "" # optional - put actual ID in Cloudflare dashboard
