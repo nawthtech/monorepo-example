@@ -25,6 +25,32 @@ run:
 	@echo "🚀 تشغيل خادم التطوير..."
 	go run main.go server --env development
 
+# Email Management
+setup-email:
+	@echo "🚀 Setting up email routing..."
+	@go run cmd/email-setup/main.go -action=setup
+
+test-email:
+	@if [ -z "$(email)" ]; then \
+		echo "❌ Usage: make test-email email=test@example.com"; \
+		exit 1; \
+	fi
+	@go run cmd/email-setup/main.go -action=test -email=$(email)
+
+add-email:
+	@if [ -z "$(email)" ]; then \
+		echo "❌ Usage: make add-email email=user@example.com"; \
+		exit 1; \
+	fi
+	@go run cmd/email-setup/main.go -action=add-email -email=$(email)
+
+list-emails:
+	@go run cmd/email-setup/main.go -action=list
+
+# Run all setup
+setup-all: setup-email
+	@echo "✅ All services configured"
+
 # تشغيل الاختبارات
 test:
 	@echo "🧪 تشغيل الاختبارات..."
