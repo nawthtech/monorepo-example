@@ -17,8 +17,38 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
 	"github.com/nawthtech/nawthtech/backend/internal/handlers"
 	"github.com/nawthtech/nawthtech/backend/internal/services"
+	"github.com/gin-gonic/gin"
+	"github.com/nawthtech/backend/api/v1"
+	"github.com/nawthtech/backend/internal/email"
 )
 
+func main() {
+	// ... existing code
+	
+	// Initialize email service
+	emailService, err := email.NewService()
+	if err != nil {
+		log.Printf("⚠️ Email service not available: %v", err)
+	} else {
+		// Auto-setup email on startup (optional)
+		if os.Getenv("AUTO_SETUP_EMAIL") == "true" {
+			go func() {
+				if err := emailService.SetupEmailRouting(); err != nil {
+					log.Printf("⚠️ Failed to auto-setup email: %v", err)
+				}
+			}()
+		}
+	}
+	
+	// Setup routes
+	router := gin.Default()
+	apiV1 := router.Group("/api/v1")
+	v1.RegisterAuthRoutes(apiV1)
+	v1.RegisterUserRoutes(apiV1)
+	v1.RegisterEmailRoutes(apiV1) // ← Add this line
+	
+	// ... rest of the code
+}
 // initLogger تهيئة logger
 func initLogger() {
 	if slog.Default().Handler() == nil {
