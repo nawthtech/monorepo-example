@@ -1,111 +1,81 @@
-import type { IRequest } from 'itty-router';
-import type { Env, User } from '../types/database';
-import { errorResponse } from '../utils/responses';
-
-/**
- * Extract and verify JWT token
- */
-export async function verifyToken(token: string, secret: string): Promise<any> {
-  try {
-    // Split token
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token format');
-    }
-
-    // In production, use a proper JWT library like jose
-    // This is a simplified example
-    const payload = JSON.parse(atob(parts[1]));
-    
-    // Check expiration
-    if (payload.exp && Date.now() >= payload.exp * 1000) {
-      throw new Error('Token expired');
-    }
-
-    return payload;
-  } catch (error) {
-    throw new Error('Invalid token');
-  }
-}
-
 /**
  * Authentication middleware
- * Adds user to request if valid token provided
  */
+
+import type { IRequest } from 'itty-router';
+import type { Env, User } from '../types/database';
+import { verifyJWT } from '../utils/crypto';
+
 export async function authenticate(
   request: IRequest,
   env: Env
-): Promise<void | Response> {
-  try {
-    const authHeader = request.headers.get('Authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return; // No authentication, continue as guest
-    }
+): Promise<void> {
+  const authHeader = request.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return;
+  }
 
-    const token = authHeader.slice(7);
-    const payload = await verifyToken(token, env.JWT_SECRET);
+  const token = authHeader.slice(7);
+  
+  try {
+    const payload = await verifyJWT(token, env.JWT_SECRET);
     
     // Get user from database
     const user = await env.DB.prepare(
       'SELECT * FROM users WHERE id = ? AND deleted_at IS NULL'
     )
-      .bind(payload.sub)
+      .bind(payload.userId)
       .first<User>();
 
-    if (!user) {
-      return errorResponse('User not found', 401);
+    if (user) {
+      // Add user to request object
+      (request as any).user = user;
     }
-
-    // Update last login
-    await env.DB.prepare(
-      'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?'
-    ).bind(user.id).run();
-
-    // Add user to request
-    request.user = user;
   } catch (error) {
-    return errorResponse('Invalid authentication', 401);
+    console.error('Authentication error:', error);
+    // Don't throw, just leave user undefined
   }
 }
 
-/**
- * Require authentication middleware
- */
-export function requireAuth(
-  request: IRequest
-): Response | void {
-  if (!request.user) {
-    return errorResponse('Authentication required', 401);
+export function requireAuth(request: IRequest): User {
+  const user = (request as any).user as User | undefined;
+  
+  if (!user) {
+    throw {
+      status: 401,
+      message: 'Authentication required',
+      code: 'UNAUTHORIZED',
+    };
   }
+
+  return user;
 }
 
-/**
- * Require admin role middleware
- */
-export function requireAdmin(
-  request: IRequest
-): Response | void {
-  if (!request.user) {
-    return errorResponse('Authentication required', 401);
+export function requireAdmin(request: IRequest): User {
+  const user = requireAuth(request);
+  
+  if (user.role !== 'admin') {
+    throw {
+      status: 403,
+      message: 'Admin access required',
+      code: 'FORBIDDEN',
+    };
   }
 
-  if (request.user.role !== 'admin') {
-    return errorResponse('Admin access required', 403);
-  }
+  return user;
 }
 
-/**
- * Require moderator or admin role middleware
- */
-export function requireModerator(
-  request: IRequest
-): Response | void {
-  if (!request.user) {
-    return errorResponse('Authentication required', 401);
+export function requireEmailVerified(request: IRequest): User {
+  const user = requireAuth(request);
+  
+  if (!user.email_verified) {
+    throw {
+      status: 403,
+      message: 'Email verification required',
+      code: 'EMAIL_NOT_VERIFIED',
+    };
   }
 
-  if (!['admin', 'moderator'].includes(request.user.role)) {
-    return errorResponse('Moderator access required', 403);
-  }
+  return user;
 }
