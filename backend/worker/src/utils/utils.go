@@ -14,7 +14,8 @@ type D1Database struct {
 	DB     *d1.DB
 }
 
-func GetD1Database(dsn string) (*D1Database, error) {
+func GetD1Database() (*D1Database, error) {
+	dsn := os.Getenv("D1_DATABASE_URL")
 	client, err := d1.NewClient(dsn)
 	if err != nil {
 		return nil, err
