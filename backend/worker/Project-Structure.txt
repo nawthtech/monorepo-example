@@ -1,0 +1,12 @@
+worker/
+├── src/
+│   ├── index.ts              # Main entry point
+│   ├── handlers/             # Request handlers
+│   ├── middleware/           # Middleware functions
+│   ├── database/             # Database operations
+│   ├── services/             # Business logic
+│   ├── utils/                # Utility functions
+│   └── types/                # TypeScript types
+├── tests/                    # Test files
+├── migrations/               # Database migrations
+└── public/                   # Static files
