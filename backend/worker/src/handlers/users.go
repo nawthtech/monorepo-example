@@ -1,67 +1,113 @@
-package users
+package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"nawthtech-worker/utils"
+	"time"
+
+	"worker/src/utils"
 )
 
+// User يمثل هيكل بيانات المستخدم
 type User struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
+	ID       int64  `json:"id"`
 	Name     string `json:"name"`
-	Password string `json:"password,omitempty"`
+	Email    string `json:"email"`
+	Password string `json:"-"` // استبعاد كلمة السر من JSON
 }
 
-// GET /users/profile
-func GetProfileHandler(w http.ResponseWriter, r *http.Request) {
+// ResponseHelper هيكل للردود الموحدة
+type ResponseHelper struct {
+	Success bool        `json:"success"`
+	Error   string      `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+// GetProfileHandler يسترجع بيانات المستخدم بواسطة ID
+func GetProfileHandler(w http.ResponseWriter, r *http.Request, userID int64) {
 	db := utils.GetDatabase()
 
-	// مثال: المستخدم الحالي (في الإنتاج يأتي من JWT)
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "UNAUTHORIZED",
+	query := `SELECT id, name, email FROM users WHERE id = ? LIMIT 1`
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, ResponseHelper{
+			Success: false,
+			Error:   "DATABASE_ERROR",
+			Message: err.Error(),
 		})
 		return
 	}
 
-	// مثال استعلام D1
-db := utils.GetDatabase()
-results, err := db.Query("SELECT id, email, name FROM users WHERE id = ?", userID)
-	if err != nil || len(users) == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "USER_NOT_FOUND",
+	if len(rows) == 0 {
+		respondJSON(w, http.StatusNotFound, ResponseHelper{
+			Success: false,
+			Error:   "USER_NOT_FOUND",
 		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"data":    users[0],
+	user := User{
+		ID:    rows[0]["id"].(int64),
+		Name:  fmt.Sprintf("%v", rows[0]["name"]),
+		Email: fmt.Sprintf("%v", rows[0]["email"]),
+	}
+
+	respondJSON(w, http.StatusOK, ResponseHelper{
+		Success: true,
+		Data:    user,
 	})
 }
 
-// GET /users
+// GetUsersHandler يسترجع قائمة المستخدمين
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	db := utils.GetDatabase()
 
-	usersList, err := db.Query("SELECT id, email, name FROM users LIMIT 50")
+	query := `SELECT id, name, email FROM users LIMIT 50`
+	rows, err := db.Query(query)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "DB_ERROR",
+		respondJSON(w, http.StatusInternalServerError, ResponseHelper{
+			Success: false,
+			Error:   "DATABASE_ERROR",
+			Message: err.Error(),
 		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"data":    usersList,
+	users := []User{}
+	for _, row := range rows {
+		user := User{
+			ID:    row["id"].(int64),
+			Name:  fmt.Sprintf("%v", row["name"]),
+			Email: fmt.Sprintf("%v", row["email"]),
+		}
+		users = append(users, user)
+	}
+
+	respondJSON(w, http.StatusOK, ResponseHelper{
+		Success: true,
+		Data:    users,
 	})
+}
+
+// respondJSON تساعد على إرسال الردود بصيغة JSON
+func respondJSON(w http.ResponseWriter, status int, payload ResponseHelper) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(payload)
+}
+
+// ExtractUserIDFromRequest يمكن أن تُعدل لتستخرج ID المستخدم من JWT أو سياق request
+func ExtractUserIDFromRequest(r *http.Request) int64 {
+	// مثال: hardcoded للعرض فقط
+	return 1
+}
+
+// Middleware لاستخدام مع http.HandlerFunc إذا أردت
+func WithUserID(handler func(http.ResponseWriter, *http.Request, int64)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := ExtractUserIDFromRequest(r)
+		handler(w, r, userID)
+	}
 }
