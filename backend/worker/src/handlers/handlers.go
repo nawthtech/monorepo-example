@@ -1,74 +1,56 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
-	"os"
 	"time"
 
-	"nawthtech-worker/src/utils"
+	"worker/src/utils"
 )
 
-// ==========================
-// Response موحد
-// ==========================
-type JSONResponse struct {
+// ResponseHelper هيكل للرد الموحد
+type ResponseHelper struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Error   string      `json:"error,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func respondJSON(w http.ResponseWriter, status int, resp JSONResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(resp)
-}
+// ====== Health Handlers ======
 
-// ==========================
-// Middleware CORS موحد
-// ==========================
-func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", os.Getenv("CORS_ALLOWED_ORIGINS"))
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	}
-}
-
-// ==========================
-// Health Handlers
-// ==========================
-func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	dbHealth := utils.HealthCheck()
-
-	healthData := map[string]interface{}{
-		"status":      dbHealth.Status,
-		"database":    dbHealth.Type,
-		"timestamp":   time.Now().UTC().Format(time.RFC3339),
-		"environment": os.Getenv("ENVIRONMENT"),
-		"version":     os.Getenv("API_VERSION"),
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	status, err := utils.HealthCheck()
+	data := map[string]interface{}{
+		"status":      status,
+		"timestamp":   time.Now().UTC(),
 		"service":     "nawthtech-worker",
+		"environment": getEnv("ENVIRONMENT", "development"),
+		"version":     getEnv("API_VERSION", "v1"),
 	}
 
-	respondJSON(w, http.StatusOK, JSONResponse{
+	if err != nil {
+		writeJSON(w, http.Status503ServiceUnavailable, ResponseHelper{
+			Success: false,
+			Error:   "SERVICE_UNHEALTHY",
+			Message: err.Error(),
+			Data:    data,
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
-		Message: "Service is " + dbHealth.Status,
-		Data:    healthData,
+		Message: fmt.Sprintf("Service is %s", status),
+		Data:    data,
 	})
 }
 
-func HealthReadyHandler(w http.ResponseWriter, r *http.Request) {
-	dbHealth := utils.HealthCheck()
-	if dbHealth.Status != "healthy" {
-		respondJSON(w, http.StatusServiceUnavailable, JSONResponse{
+func HealthReady(w http.ResponseWriter, r *http.Request) {
+	status, err := utils.HealthCheck()
+	if err != nil || status != "healthy" {
+		writeJSON(w, http.StatusServiceUnavailable, ResponseHelper{
 			Success: false,
 			Error:   "SERVICE_NOT_READY",
 			Message: "Database is not ready",
@@ -76,112 +58,168 @@ func HealthReadyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]interface{}{
-		"status":    "ready",
-		"database":  dbHealth.Type,
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
-
-	respondJSON(w, http.StatusOK, JSONResponse{
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
 		Message: "Service is ready",
-		Data:    data,
+		Data: map[string]interface{}{
+			"status":    "ready",
+			"database":  "D1",
+			"timestamp": time.Now().UTC(),
+		},
 	})
 }
 
-// ==========================
-// Users Handlers
-// ==========================
-func GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID := r.Header.Get("X-User-ID") // استبدل حسب مصادقة JWT
+// ====== User Handlers ======
 
+func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-USER-ID")
 	if userID == "" {
-		respondJSON(w, http.StatusUnauthorized, JSONResponse{
+		writeJSON(w, http.StatusUnauthorized, ResponseHelper{
 			Success: false,
 			Error:   "UNAUTHORIZED",
 		})
 		return
 	}
 
-	user, err := utils.GetUserByID(ctx, userID)
-	if err != nil {
-		respondJSON(w, http.StatusNotFound, JSONResponse{
+	row := utils.QueryRow("SELECT id, name, email FROM users WHERE id = ?", userID)
+	var id, name, email string
+	if err := row.Scan(&id, &name, &email); err != nil {
+		writeJSON(w, http.StatusNotFound, ResponseHelper{
 			Success: false,
 			Error:   "USER_NOT_FOUND",
 		})
 		return
 	}
 
-	// اخفاء كلمة السر
-	user.Password = ""
-
-	respondJSON(w, http.StatusOK, JSONResponse{
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
-		Data:    user,
+		Data: map[string]string{
+			"id":    id,
+			"name":  name,
+			"email": email,
+		},
 	})
 }
 
-func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	users, err := utils.GetUsers(ctx, 50)
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	rows, err := utils.QueryRows("SELECT id, name, email FROM users LIMIT 50")
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, JSONResponse{
+		writeJSON(w, http.StatusInternalServerError, ResponseHelper{
 			Success: false,
-			Error:   "FAILED_FETCH_USERS",
+			Error:   "DB_ERROR",
+			Message: err.Error(),
 		})
 		return
 	}
+	defer rows.Close()
 
-	respondJSON(w, http.StatusOK, JSONResponse{
+	users := []map[string]string{}
+	for rows.Next() {
+		var id, name, email string
+		if err := rows.Scan(&id, &name, &email); err != nil {
+			log.Println("Row scan error:", err)
+			continue
+		}
+		users = append(users, map[string]string{
+			"id":    id,
+			"name":  name,
+			"email": email,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
 		Data:    users,
 	})
 }
 
-// ==========================
-// Services Handlers
-// ==========================
-func GetServiceByIDHandler(w http.ResponseWriter, r *http.Request, serviceID string) {
-	ctx := r.Context()
-	service, err := utils.GetServiceByID(ctx, serviceID)
+// ====== Services Handlers ======
+
+func GetServices(w http.ResponseWriter, r *http.Request) {
+	rows, err := utils.QueryRows("SELECT id, title, price FROM services LIMIT 50")
 	if err != nil {
-		respondJSON(w, http.StatusNotFound, JSONResponse{
+		writeJSON(w, http.StatusInternalServerError, ResponseHelper{
+			Success: false,
+			Error:   "DB_ERROR",
+			Message: err.Error(),
+		})
+		return
+	}
+	defer rows.Close()
+
+	services := []map[string]interface{}{}
+	for rows.Next() {
+		var id, title string
+		var price float64
+		if err := rows.Scan(&id, &title, &price); err != nil {
+			log.Println("Row scan error:", err)
+			continue
+		}
+		services = append(services, map[string]interface{}{
+			"id":    id,
+			"title": title,
+			"price": price,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, ResponseHelper{
+		Success: true,
+		Data:    services,
+	})
+}
+
+func GetServiceByID(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, ResponseHelper{
+			Success: false,
+			Error:   "INVALID_ID",
+		})
+		return
+	}
+
+	row := utils.QueryRow("SELECT id, title, price FROM services WHERE id = ?", id)
+	var title string
+	var price float64
+	if err := row.Scan(&id, &title, &price); err != nil {
+		writeJSON(w, http.StatusNotFound, ResponseHelper{
 			Success: false,
 			Error:   "SERVICE_NOT_FOUND",
 		})
 		return
 	}
 
-	respondJSON(w, http.StatusOK, JSONResponse{
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
-		Data:    service,
+		Data: map[string]interface{}{
+			"id":    id,
+			"title": title,
+			"price": price,
+		},
 	})
 }
 
-func GetServicesHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	services, err := utils.GetServices(ctx, 50)
-	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, JSONResponse{
-			Success: false,
-			Error:   "FAILED_FETCH_SERVICES",
-		})
-		return
-	}
+// ====== Test Handler ======
 
-	respondJSON(w, http.StatusOK, JSONResponse{
-		Success: true,
-		Data:    services,
-	})
-}
-
-// ==========================
-// Test Handler
-// ==========================
 func TestHandler(w http.ResponseWriter, r *http.Request) {
-	respondJSON(w, http.StatusOK, JSONResponse{
+	writeJSON(w, http.StatusOK, ResponseHelper{
 		Success: true,
-		Message: "Test endpoint working correctly",
+		Message: "Test endpoint working!",
 	})
+}
+
+// ====== Helpers ======
+
+func writeJSON(w http.ResponseWriter, status int, payload ResponseHelper) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(payload)
+}
+
+func getEnv(key, fallback string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	return v
 }
