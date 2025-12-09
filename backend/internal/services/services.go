@@ -294,3 +294,210 @@ func NewServiceContainer(d1db *sql.DB) *ServiceContainer {
 		Cache:        NewCacheService(),
 	}
 }
+
+package services
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/nawthtech/nawthtech/backend/internal/models"
+)
+
+// ================================
+// تطبيقات AuthService مع D1
+// ================================
+
+type authServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest) (*AuthResponse, error) {
+	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	user := &models.User{
+		ID:            userID,
+		Email:         req.Email,
+		Username:      req.Username,
+		Password:      "hashed_password", // يجب تشفير كلمة المرور
+		FirstName:     req.FirstName,
+		LastName:      req.LastName,
+		Phone:         req.Phone,
+		Role:          "user",
+		Status:        "active",
+		EmailVerified: false,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO users (id,email,username,password,first_name,last_name,phone,role,status,email_verified,created_at,updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.ID, user.Email, user.Username, user.Password, user.FirstName, user.LastName, user.Phone,
+		user.Role, user.Status, user.EmailVerified, user.CreatedAt, user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  "access_token_" + userID,
+		RefreshToken: "refresh_token_" + userID,
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+func (s *authServiceImpl) Login(ctx context.Context, req AuthLoginRequest) (*AuthResponse, error) {
+	row := s.db.QueryRowContext(ctx, "SELECT id,email,username,role,status,email_verified FROM users WHERE email = ?", req.Email)
+
+	user := &models.User{}
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.Role, &user.Status, &user.EmailVerified)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("المستخدم غير موجود")
+		}
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  "access_token_" + user.ID,
+		RefreshToken: "refresh_token_" + user.ID,
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+// ================================
+// تطبيقات UserService مع D1
+// ================================
+
+type userServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *userServiceImpl) GetProfile(ctx context.Context, userID string) (*models.User, error) {
+	row := s.db.QueryRowContext(ctx, "SELECT id,email,username,first_name,last_name,phone,avatar,role,status,email_verified,created_at,updated_at FROM users WHERE id = ?", userID)
+
+	user := &models.User{}
+	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.FirstName, &user.LastName,
+		&user.Phone, &user.Avatar, &user.Role, &user.Status, &user.EmailVerified,
+		&user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("المستخدم غير موجود")
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *userServiceImpl) UpdateProfile(ctx context.Context, userID string, req UserUpdateRequest) (*models.User, error) {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users SET first_name=?, last_name=?, phone=?, avatar=?, updated_at=?
+		WHERE id=?`,
+		req.FirstName, req.LastName, req.Phone, req.Avatar, time.Now(), userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetProfile(ctx, userID)
+}
+
+func (s *userServiceImpl) DeleteAccount(ctx context.Context, userID string) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id=?", userID)
+	return err
+}
+
+// ================================
+// تطبيقات ServiceService مع D1
+// ================================
+
+type serviceServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreateRequest) (*models.Service, error) {
+	serviceID := fmt.Sprintf("service_%d", time.Now().UnixNano())
+	service := &models.Service{
+		ID:          serviceID,
+		Title:       req.Title,
+		Description: req.Description,
+		Price:       req.Price,
+		Duration:    req.Duration,
+		CategoryID:  req.CategoryID,
+		ProviderID:  req.ProviderID,
+		Images:      req.Images,
+		Tags:        req.Tags,
+		IsActive:    true,
+		IsFeatured:  false,
+		Rating:      0,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO services (id,title,description,price,duration,category_id,provider_id,images,tags,is_active,is_featured,rating,created_at,updated_at)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		service.ID, service.Title, service.Description, service.Price, service.Duration, service.CategoryID,
+		service.ProviderID, serializeStrings(service.Images), serializeStrings(service.Tags),
+		service.IsActive, service.IsFeatured, service.Rating, service.CreatedAt, service.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return service, nil
+}
+
+// ================================
+// دوال مساعدة لتحويل slice إلى نص لتخزينه في D1
+// ================================
+
+func serializeStrings(arr []string) string {
+	result := ""
+	for i, s := range arr {
+		if i > 0 {
+			result += ","
+		}
+		result += s
+	}
+	return result
+}
+
+func deserializeStrings(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	return split(s, ",")
+}
+
+func split(s string, sep string) []string {
+	var result []string
+	for _, v := range []rune(s) {
+		result = append(result, string(v))
+	}
+	return result
+}
+
+// ================================
+// دوال إنشاء الخدمات الجديدة مع D1
+// ================================
+
+func NewAuthService(db *sql.DB) AuthService {
+	return &authServiceImpl{db: db}
+}
+
+func NewUserService(db *sql.DB) UserService {
+	return &userServiceImpl{db: db}
+}
+
+func NewServiceService(db *sql.DB) ServiceService {
+	return &serviceServiceImpl{db: db}
+}
+
+// يمكنك متابعة تحويل باقي الخدمات (Order, Category, Payment, Upload, Notification, Admin, Cache)
+// بنفس الطريقة مع `db.ExecContext` و `db.QueryContext` و `db.QueryRowContext`.
