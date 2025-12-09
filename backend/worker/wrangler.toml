@@ -1,23 +1,28 @@
 name = "nawthtech-api"
 main = "worker/src/main.go"
 compatibility_date = "2025-12-09"
-
-# استخدام Go
-type = "javascript"  # مطلوب من Cloudflare لكن الكود Go
+type = "javascript" # مطلوب للـ Wrangler حتى لو الكود Go، سيعمل Go runtime
+account_id = ""    # ضع هنا Account ID الخاص بك على Cloudflare
 workers_dev = true
-
-[build]
-command = "go build -o worker/src/main worker/src/main.go"
-
-[env.development]
-name = "nawthtech-api-dev"
+route = ""
+zone_id = ""
 
 [env.production]
 name = "nawthtech-api-prod"
 
-[[d1_databases]]
-binding = "D1"
-database_name = "nawthtech_d1"
-database_id = "bbf15aeb-0718-47c8-9723-d8a83f79e6cb"
+[env.development]
+name = "nawthtech-api-dev"
 
-# لا نضع أي متغيرات سرية هنا، كلها ستكون من Railway
+# جميع متغيرات البيئة تُدار من Railway أو Cloudflare Dashboard
+# D1, JWT, SESSION وغيرها
+[vars]
+ENVIRONMENT = ""           # تضعها في Railway Environment Variables
+API_VERSION = ""           # تضعها في Railway Environment Variables
+D1_DATABASE_URL = ""       # تضعها في Railway Environment Variables
+JWT_SECRET = ""            # تضعها في Railway Environment Variables
+SESSION_SECRET = ""        # تضعها في Railway Environment Variables
+CORS_ALLOWED_ORIGINS = ""  # تضعها في Railway Environment Variables
+
+[[secrets_stores]]
+binding = "SECRETS"
+id = ""  # ضع هنا معرف Secret Store إذا استخدمته
