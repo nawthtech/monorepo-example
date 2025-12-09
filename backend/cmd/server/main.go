@@ -21,7 +21,7 @@ func main() {
 	// تهيئة Slack client من environment variables
 	err := slack.Init(
 		slack.WithToken(os.Getenv("SLACK_TOKEN")),
-		slack.WithchannelURL(os.Getenv("SLACK_CHANNEL_ID")),
+		slack.WithchannelURL(os.Getenv("SLACK_CHANNEL_URL")),
 		slack.WithAppName("nawthtech-backend"),
 		slack.WithEnvironment(os.Getenv("RAILWAY_ENVIRONMENT")),
 	)
