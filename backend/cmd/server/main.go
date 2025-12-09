@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -9,11 +10,26 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/backend/internal/config"
-	"github.com/nawthtech/backend/internal/handlers"
-	"github.com/nawthtech/backend/internal/logger"
-	"github.com/nawthtech/backend/internal/middleware"
+	"github.com/nawthtech/nawthtech/backend/internal/config"
+	"github.com/nawthtech/nawthtech/backend/internal/handlers"
+	"github.com/nawthtech/nawthtech/backend/internal/logger"
+	"github.com/nawthtech/nawthtech/backend/internal/middleware"
+	"github.com/nawthtech/nawthtech/backend/internal/slack" 
 )
+
+func main() {
+	// تهيئة Slack client من environment variables
+	err := slack.Init(
+		slack.WithToken(os.Getenv("SLACK_TOKEN")),
+		slack.WithChannelID(os.Getenv("SLACK_CHANNEL_ID")),
+		slack.WithAppName("nawthtech-backend"),
+		slack.WithEnvironment(os.Getenv("RAILWAY_ENVIRONMENT")),
+	)
+	
+	if err != nil {
+		log.Printf("Failed to initialize Slack client: %v", err)
+	}
+}
 
 func initLogger(env string) {
 	logger.Init(env)
