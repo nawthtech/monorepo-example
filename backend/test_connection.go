@@ -61,7 +61,7 @@ func maskURI(uri string) string {
 	const passwordPlaceholder = "***"
 	start := "mongodb+srv://Nawthtech_db_user:"
 	end := "@nawthtech-cluster"
-	
+
 	if len(uri) > len(start)+len(end) {
 		passwordStart := len(start)
 		passwordEnd := len(uri) - len(end)
