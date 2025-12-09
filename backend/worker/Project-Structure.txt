@@ -1,12 +1,119 @@
 worker/
-├── src/
-│   ├── index.ts              # Main entry point
-│   ├── handlers/             # Request handlers
-│   ├── middleware/           # Middleware functions
-│   ├── database/             # Database operations
-│   ├── services/             # Business logic
-│   ├── utils/                # Utility functions
-│   └── types/                # TypeScript types
-├── tests/                    # Test files
-├── migrations/               # Database migrations
-└── public/                   # Static files
+├── 📁 src/
+│   ├── 📁 handlers/
+│   │   ├── 📁 api/
+│   │   │   └── 📁 v1/
+│   │   │       ├── 📄 auth.ts
+│   │   │       ├── 📄 services.ts
+│   │   │       └── 📄 ai.ts
+│   │   ├── 📁 webhooks/
+│   │   │   ├── 📄 email.ts
+│   │   │   └── 📄 stripe.ts
+│   │   ├── 📄 health.ts
+│   │   ├── 📄 static.ts
+│   │   └── 📄 notfound.ts
+│   │
+│   ├── 📁 middleware/
+│   │   ├── 📄 auth.ts
+│   │   ├── 📄 cors.ts
+│   │   └── 📄 validation.ts
+│   │
+│   ├── 📁 services/
+│   │   ├── 📁 ai/
+│   │   │   ├── 📄 gemini.ts
+│   │   │   ├── 📄 openai.ts
+│   │   │   └── 📄 index.ts
+│   │   ├── 📄 email.ts
+│   │   └── 📄 storage.ts
+│   │
+│   ├── 📁 utils/
+│   │   ├── 📄 crypto.ts
+│   │   ├── 📄 responses.ts
+│   │   └── 📄 validation.ts
+│   │
+│   ├── 📁 types/
+│   │   └── 📄 database.ts
+│   │
+│   ├── 📁 database/
+│   │   ├── 📁 queries/
+│   │   │   ├── 📄 users.ts
+│   │   │   ├── 📄 services.ts
+│   │   │   └── 📄 ai.ts
+│   │   ├── 📄 client.ts
+│   │   └── 📄 migrations.ts
+│   │
+│   └── 📄 index.ts
+│
+├── 📁 tests/
+│   ├── 📁 unit/
+│   │   ├── 📄 auth.test.ts
+│   │   ├── 📄 crypto.test.ts
+│   │   └── 📄 validation.test.ts
+│   │
+│   ├── 📁 integration/
+│   │   ├── 📄 api.test.ts
+│   │   ├── 📄 database.test.ts
+│   │   └── 📄 services.test.ts
+│   │
+│   ├── 📁 e2e/
+│   │   └── 📄 workflow.test.ts
+│   │
+│   └── 📁 __fixtures__/
+│       ├── 📄 test-data.ts
+│       └── 📄 mock-env.ts
+│
+├── 📁 migrations/
+│   ├── 📄 0001_initial.sql
+│   ├── 📄 0002_add_audit_logs.sql
+│   └── 📄 0003_add_api_keys.sql
+│
+├── 📁 public/
+│   ├── 📄 index.html
+│   ├── 📄 404.html
+│   ├── 📁 assets/
+│   │   ├── 📁 css/
+│   │   │   └── 📄 style.css
+│   │   ├── 📁 js/
+│   │   │   └── 📄 app.js
+│   │   └── 📁 images/
+│   │       ├── 📄 logo.png
+│   │       └── 📄 favicon.ico
+│   └── 📁 docs/
+│       ├── 📄 api.md
+│       └── 📄 getting-started.md
+│
+├── 📁 scripts/
+│   ├── 📄 deploy.sh
+│   ├── 📄 backup.sh
+│   ├── 📄 migrate.sh
+│   ├── 📄 health-check.sh
+│   ├── 📄 generate-usage-report.js
+│   └── 📄 cleanup-old-data.js
+│
+├── 📁 config/
+│   ├── 📄 environments/
+│   │   ├── 📄 development.json
+│   │   ├── 📄 staging.json
+│   │   └── 📄 production.json
+│   └── 📄 constants.ts
+│
+├── 📄 .env.example
+├── 📄 .env.local
+├── 📄 .gitignore
+├── 📄 .eslintrc.json
+├── 📄 .prettierrc
+├── 📄 .nvmrc
+├── 📄 .dockerignore
+├── 📄 package.json
+├── 📄 package-lock.json
+├── 📄 tsconfig.json
+├── 📄 wrangler.toml
+├── 📄 schema.sql
+├── 📄 README.md
+├── 📄 CHANGELOG.md
+├── 📄 CONTRIBUTING.md
+├── 📄 CODE_OF_CONDUCT.md
+├── 📄 LICENSE
+├── 📄 Dockerfile
+├── 📄 docker-compose.yml
+└── 📄 vitest.config.ts
