@@ -1,0 +1,388 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy.yml'
+  
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+  
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      skip_tests:
+        description: 'Skip tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  WORKER_DIR: './worker'
+  PROJECT_NAME: 'nawthtech-api'
+
+jobs:
+  # Job 1: Lint and Type Check
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKER_DIR }}/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm ci --audit=false
+          
+      - name: Run ESLint
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm run lint
+          
+      - name: Run TypeScript type check
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm run typecheck
+          
+      - name: Run Prettier check
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npx prettier --check src/
+
+  # Job 2: Run Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    if: github.event_name != 'workflow_dispatch' || !github.event.inputs.skip_tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKER_DIR }}/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm ci --audit=false
+          
+      - name: Run unit tests
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm test
+          
+      - name: Run integration tests
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm run test:integration
+          
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ${{ env.WORKER_DIR }}/coverage
+          flags: unittests
+          fail_ci_if_error: false
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ env.WORKER_DIR }}/test-results/
+          retention-days: 7
+
+  # Job 3: Build and Package
+  build:
+    name: Build Worker
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    
+    outputs:
+      build_hash: ${{ steps.hash.outputs.hash }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKER_DIR }}/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm ci --audit=false
+          
+      - name: Build worker
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          npm run build
+          
+      - name: Generate build hash
+        id: hash
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          echo "hash=$(git rev-parse --short HEAD)-$(date +%s)" >> $GITHUB_OUTPUT
+          
+      - name: Create build artifact
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          mkdir -p dist
+          cp -r src package.json wrangler.toml tsconfig.json schema.sql migrations dist/
+          
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-build
+          path: ${{ env.WORKER_DIR }}/dist
+          retention-days: 7
+
+  # Job 4: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' ||
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository ||
+      github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging-api.nawthtech.com
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ${{ env.WORKER_DIR }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Install Wrangler
+        run: npm install -g wrangler
+        
+      - name: Setup Cloudflare API Token
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          
+      - name: Deploy to Staging
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler deploy --env staging
+          
+      - name: Run database migrations
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler d1 migrations apply nawthtech-db --env staging
+          
+      - name: Health check staging
+        run: |
+          sleep 10  # Wait for deployment to complete
+          curl -f https://staging-api.nawthtech.com/health || exit 1
+          
+      - name: Notify deployment
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          username: 'GitHub Actions'
+          icon_emoji: ':rocket:'
+          text: 'Deployed to staging: ${{ github.sha }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 5: Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: 
+      - build
+      - deploy-staging
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' ||
+      github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment:
+      name: production
+      url: https://api.nawthtech.com
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ${{ env.WORKER_DIR }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Install Wrangler
+        run: npm install -g wrangler
+        
+      - name: Setup Cloudflare API Token
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          
+      - name: Create deployment snapshot
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler d1 execute nawthtech-db --remote --command "SELECT 'Backup started'"
+          # Add backup logic here
+          
+      - name: Deploy to Production
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler deploy --env production
+          
+      - name: Run database migrations
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler d1 migrations apply nawthtech-db --env production
+          
+      - name: Verify deployment
+        run: |
+          sleep 15  # Wait for deployment to complete
+          for i in {1..5}; do
+            if curl -f https://api.nawthtech.com/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 5
+          done
+          echo "Health check failed after 5 attempts"
+          exit 1
+          
+      - name: Invalidate cache
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+            
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes in this release
+            - Deployed to production
+            - Build: ${{ needs.build.outputs.build_hash }}
+            - SHA: ${{ github.sha }}
+          draft: false
+          prerelease: false
+          
+      - name: Notify successful deployment
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          username: 'GitHub Actions'
+          icon_emoji: ':rocket:'
+          text: 'Successfully deployed to production! :tada:'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#alerts'
+          username: 'GitHub Actions'
+          icon_emoji: ':warning:'
+          text: 'Deployment to production failed! :rotating_light:'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 6: Rollback (Manual)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.rollback_to || 'HEAD~1' }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Install Wrangler
+        run: npm install -g wrangler
+        
+      - name: Setup Cloudflare API Token
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          
+      - name: Rollback deployment
+        run: |
+          cd ${{ env.WORKER_DIR }}
+          wrangler deployments rollback --env production
+          
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#alerts'
+          username: 'GitHub Actions'
+          icon_emoji: ':rewind:'
+          text: 'Rolled back to previous version'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
