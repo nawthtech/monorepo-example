@@ -1,14 +1,29 @@
 // worker/src/handlers/users.js
-export const userHandlers = {
-  getProfile: async (request, env) => {
-    const userId = request.user?.id
+import { withDatabase } from '../utils/database.js'
 
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'UNAUTHORIZED' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
+export const userHandlers = {
+  getProfile: withDatabase(async (request, env) => {
+    const userId = request.user?.id
+    if (!userId) return new Response(JSON.stringify({ success: false, error: 'UNAUTHORIZED' }), { status: 401 })
+
+    const user = await request.db.queryOne(
+      `SELECT id, username, email, created_at FROM users WHERE id = ?`,
+      [userId]
+    )
+
+    if (!user) return new Response(JSON.stringify({ success: false, error: 'USER_NOT_FOUND' }), { status: 404 })
+
+    return new Response(JSON.stringify({ success: true, data: user }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }),
+
+  getUsers: withDatabase(async (request, env) => {
+    const users = await request.db.query(
+      `SELECT id, username, email, created_at FROM users LIMIT 50`
+    )
+
+    return new Response(JSON.stringify({ success: true, data: users }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  })
+}
 
     // الاتصال بقاعدة D1
     const db = env.D1('NAWTHTECH_DB')
