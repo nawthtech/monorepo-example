@@ -1,47 +1,69 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"worker/src/handlers"
+	"worker/src/middleware"
 	"worker/src/utils"
 )
 
-// envVariables تُخزن إعدادات البيئة
-var envVariables map[string]string
+// EnvVariables تُخزن إعدادات البيئة
+var EnvVariables map[string]string
 
 func init() {
-	envVariables = map[string]string{
+	EnvVariables = map[string]string{
 		"ENVIRONMENT": getEnv("ENVIRONMENT", "development"),
 		"API_VERSION": getEnv("API_VERSION", "v1"),
 	}
-}
 
-func main() {
 	// تهيئة اتصال D1
 	if err := utils.InitDatabase(); err != nil {
 		log.Fatalf("❌ Failed to initialize database: %v", err)
 	}
+}
 
-	// مسارات الخدمة
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CheckHealthHandler(w, r, envVariables)
-	})
+func main() {
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
-		handlers.ReadyHandler(w, r, envVariables)
-	})
+	// ✅ الصحة
+	mux.HandleFunc("/health", middleware.CORSMiddleware(handlers.CheckHealthHandler))
+	mux.HandleFunc("/health/live", middleware.CORSMiddleware(handlers.LiveHandler))
+	mux.HandleFunc("/health/ready", middleware.CORSMiddleware(handlers.ReadyHandler))
 
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		handlers.TestHandler(w, r, envVariables)
+	// ✅ المصادقة
+	mux.HandleFunc("/auth/register", middleware.CORSMiddleware(handlers.RegisterHandler))
+	mux.HandleFunc("/auth/login", middleware.CORSMiddleware(handlers.LoginHandler))
+	mux.HandleFunc("/auth/refresh", middleware.CORSMiddleware(handlers.RefreshHandler))
+	mux.HandleFunc("/auth/forgot-password", middleware.CORSMiddleware(handlers.ForgotPasswordHandler))
+
+	// ✅ المستخدمين (مسارات محمية)
+	mux.Handle("/user/profile", middleware.CORSMiddleware(middleware.AuthMiddleware(http.HandlerFunc(handlers.GetProfileHandler))))
+	mux.Handle("/user/profile/update", middleware.CORSMiddleware(middleware.AuthMiddleware(http.HandlerFunc(handlers.UpdateProfileHandler))))
+
+	// ✅ الخدمات
+	mux.HandleFunc("/services", middleware.CORSMiddleware(handlers.GetServicesHandler))
+	mux.HandleFunc("/services/", middleware.CORSMiddleware(handlers.GetServiceByIDHandler))
+
+	// ✅ اختبار
+	mux.HandleFunc("/test", middleware.CORSMiddleware(handlers.TestHandler))
+
+	// ✅ أي مسار غير معروف
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Not Found",
+		})
 	})
 
 	port := getEnv("PORT", "8787")
-	log.Printf("🚀 Worker running on port %s in %s mode", port, envVariables["ENVIRONMENT"])
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	log.Printf("🚀 Worker running on port %s in %s mode", port, EnvVariables["ENVIRONMENT"])
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatalf("❌ Server failed: %v", err)
 	}
 }
