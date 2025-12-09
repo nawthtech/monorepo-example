@@ -1,58 +1,54 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/cors"
+
+	"nawthtech/worker/src/config"
 	"nawthtech/worker/src/handlers"
 	"nawthtech/worker/src/middleware"
-	"nawthtech/worker/src/utils"
 )
 
 func main() {
-	// الاتصال بقاعدة D1
-	d1 := utils.GetD1()
-	if err := d1.Connect(); err != nil {
-		log.Fatalf("❌ Failed to connect to D1: %v", err)
-	}
-	defer d1.Disconnect(context.Background())
+	cfg := config.Load()
 
-	mux := http.NewServeMux()
+	router := chi.NewRouter()
 
-	// ✅ مسارات الصحة
-	mux.HandleFunc("/health", handlers.HealthHandler)
-	mux.HandleFunc("/health/ready", handlers.HealthReadyHandler)
-
-	// ✅ مسارات المستخدم
-	mux.Handle("/user/profile", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetProfileHandler)))
-
-	// ✅ مسارات الخدمات
-	mux.Handle("/services", http.HandlerFunc(handlers.GetServicesHandler))
-	mux.Handle("/services/", http.HandlerFunc(handlers.GetServiceByIDHandler))
-
-	// ✅ مسار الاختبار
-	mux.Handle("/test", http.HandlerFunc(handlers.TestHandler))
-
-	// ✅ مسار 404
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "NOT_FOUND",
-		})
+	// ✅ Middleware شامل
+	c := cors.New(cors.Options{
+		AllowedOrigins:   cfg.Cors.AllowedOrigins,
+		AllowedMethods:   cfg.Cors.AllowedMethods,
+		AllowedHeaders:   cfg.Cors.AllowedHeaders,
+		ExposedHeaders:   cfg.Cors.ExposedHeaders,
+		AllowCredentials: cfg.Cors.AllowCredentials,
 	})
+	router.Use(c.Handler)
+	router.Use(middleware.AuthMiddleware)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
-	fmt.Printf("🚀 Server running on port %s\n", port)
-	if err := http.ListenAndServe(":"+port, middleware.CORSMiddleware(mux)); err != nil {
-		log.Fatal(err)
-	}
+	// ✅ Health
+	router.Get("/health", handlers.HealthCheck)
+	router.Get("/health/live", handlers.HealthLive)
+	router.Get("/health/ready", handlers.HealthReady)
+
+	// ✅ Auth
+	router.Post("/auth/register", handlers.Register)
+	router.Post("/auth/login", handlers.Login)
+	router.Post("/auth/refresh", handlers.Refresh)
+	router.Post("/auth/forgot-password", handlers.ForgotPassword)
+
+	// ✅ User
+	router.Get("/user/profile", handlers.GetProfile)
+	router.Put("/user/profile", handlers.UpdateProfile)
+
+	// ✅ Services
+	router.Get("/services", handlers.GetServices)
+	router.Get("/services/{id}", handlers.GetServiceByID)
+
+	port := cfg.Port
+	log.Printf("🚀 Server running on port %s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
