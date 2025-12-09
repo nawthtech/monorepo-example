@@ -1,109 +1,86 @@
 package utils
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"net/http"
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/cloudflare/d1-go/d1"
 )
 
-// JSONResponse تسهيل ارسال JSON
-func JSONResponse(w http.ResponseWriter, status int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(payload)
+// ========== نوع حالة الصحة ==========
+type DBHealth struct {
+	Status string
+	Type   string
 }
 
-// ================= JWT =================
+// ========== دوال D1 ==========
+var d1DB *d1.DB
 
-func GenerateJWT(userID string, expDuration time.Duration) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", errors.New("JWT_SECRET environment variable is not set")
+func GetD1DB() *d1.DB {
+	if d1DB == nil {
+		dsn := os.Getenv("D1_DATABASE_URL")
+		d1DB = d1.MustConnect(dsn)
 	}
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"iat":     time.Now().Unix(),
-		"exp":     time.Now().Add(expDuration).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	return d1DB
 }
 
-func ValidateJWT(tokenString string) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", errors.New("JWT_SECRET environment variable is not set")
-	}
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return []byte(secret), nil
-	})
+// التحقق من صحة قاعدة البيانات
+func CheckDBHealth() DBHealth {
+	db := GetD1DB()
+	err := db.Ping()
 	if err != nil {
-		return "", err
+		return DBHealth{Status: "unhealthy", Type: "D1"}
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if userID, ok := claims["user_id"].(string); ok {
-			return userID, nil
-		}
-	}
-	return "", errors.New("invalid token claims")
+	return DBHealth{Status: "healthy", Type: "D1"}
 }
 
-// ================= Session Encryption =================
-
-func EncryptSession(data string) (string, error) {
-	secret := os.Getenv("SESSION_SECRET")
-	if secret == "" {
-		return "", errors.New("SESSION_SECRET environment variable is not set")
+// ========== دوال المستخدم ==========
+func GetUserByID(db *d1.DB, id string) (map[string]interface{}, error) {
+	row := db.QueryRow("SELECT id, email, name FROM users WHERE id = ?", id)
+	var uid, email, name string
+	err := row.Scan(&uid, &email, &name)
+	if err != nil {
+		return nil, errors.New("user not found")
 	}
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(data))
-	signature := h.Sum(nil)
-	encoded := base64.StdEncoding.EncodeToString([]byte(data))
-	signed := encoded + "." + base64.StdEncoding.EncodeToString(signature)
-	return signed, nil
+	return map[string]interface{}{
+		"id":    uid,
+		"email": email,
+		"name":  name,
+	}, nil
 }
 
-func DecryptSession(signed string) (string, error) {
-	secret := os.Getenv("SESSION_SECRET")
-	if secret == "" {
-		return "", errors.New("SESSION_SECRET environment variable is not set")
+// ========== دوال الخدمات ==========
+func GetAllServices(db *d1.DB) ([]map[string]interface{}, error) {
+	rows, _ := db.Query("SELECT id, title, description, price FROM services LIMIT 50")
+	defer rows.Close()
+	var services []map[string]interface{}
+	for rows.Next() {
+		var id, title, description string
+		var price float64
+		rows.Scan(&id, &title, &description, &price)
+		services = append(services, map[string]interface{}{
+			"id":          id,
+			"title":       title,
+			"description": description,
+			"price":       price,
+		})
 	}
-	parts := splitOnce(signed, ".")
-	if len(parts) != 2 {
-		return "", errors.New("invalid session format")
-	}
-	encodedData := parts[0]
-	signature := parts[1]
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(decodeBase64(encodedData)))
-	expectedSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	if !hmac.Equal([]byte(signature), []byte(expectedSig)) {
-		return "", errors.New("invalid session signature")
-	}
-	return decodeBase64(encodedData), nil
+	return services, nil
 }
 
-// Helpers
-func splitOnce(s, sep string) []string {
-	for i := 0; i < len(s); i++ {
-		if string(s[i]) == sep {
-			return []string{s[:i], s[i+1:]}
-		}
+func GetServiceByID(db *d1.DB, id string) (map[string]interface{}, error) {
+	row := db.QueryRow("SELECT id, title, description, price FROM services WHERE id = ?", id)
+	var sid, title, description string
+	var price float64
+	err := row.Scan(&sid, &title, &description, &price)
+	if err != nil {
+		return nil, errors.New("service not found")
 	}
-	return []string{s}
-}
-
-func decodeBase64(s string) string {
-	data, _ := base64.StdEncoding.DecodeString(s)
-	return string(data)
+	return map[string]interface{}{
+		"id":          sid,
+		"title":       title,
+		"description": description,
+		"price":       price,
+	}, nil
 }
