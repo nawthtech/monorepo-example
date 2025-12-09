@@ -29,7 +29,8 @@ func GetProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// مثال استعلام D1
-	users, err := db.Query("SELECT id, email, name FROM users WHERE id = ?", userID)
+db := utils.GetDatabase()
+results, err := db.Query("SELECT id, email, name FROM users WHERE id = ?", userID)
 	if err != nil || len(users) == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]interface{}{
