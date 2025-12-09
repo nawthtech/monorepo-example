@@ -15,18 +15,18 @@ type MockSlackAPI struct {
 	mock.Mock
 }
 
-func (m *MockSlackAPI) PostMessage(channelID string, options ...slack.MsgOption) (string, string, error) {
-	args := m.Called(channelID, options)
+func (m *MockSlackAPI) PostMessage(channelURL string, options ...slack.MsgOption) (string, string, error) {
+	args := m.Called(channelURL, options)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockSlackAPI) UpdateMessage(channelID, timestamp string, options ...slack.MsgOption) (string, string, string, error) {
-	args := m.Called(channelID, timestamp, options)
+func (m *MockSlackAPI) UpdateMessage(channelURL, timestamp string, options ...slack.MsgOption) (string, string, string, error) {
+	args := m.Called(channelURL, timestamp, options)
 	return args.String(0), args.String(1), args.String(2), args.Error(3)
 }
 
-func (m *MockSlackAPI) DeleteMessage(channelID, timestamp string) (string, string, error) {
-	args := m.Called(channelID, timestamp)
+func (m *MockSlackAPI) DeleteMessage(channelURL, timestamp string) (string, string, error) {
+	args := m.Called(channelURL, timestamp)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
@@ -41,7 +41,7 @@ func TestNewSlackClient(t *testing.T) {
 			name: "successful creation with token and channel",
 			options: []Option{
 				WithToken("test-token"),
-				WithChannelID("test-channel"),
+				WithchannelURL("test-channel"),
 				WithAppName("nawthtech"),
 				WithEnvironment("test"),
 			},
@@ -50,7 +50,7 @@ func TestNewSlackClient(t *testing.T) {
 		{
 			name: "missing token",
 			options: []Option{
-				WithChannelID("test-channel"),
+				WithchannelURL("test-channel"),
 			},
 			wantErr:     true,
 			errContains: "slack token is required",
@@ -59,7 +59,7 @@ func TestNewSlackClient(t *testing.T) {
 			name: "empty token",
 			options: []Option{
 				WithToken(""),
-				WithChannelID("test-channel"),
+				WithchannelURL("test-channel"),
 			},
 			wantErr:     true,
 			errContains: "slack token is required",
@@ -94,7 +94,7 @@ func TestSlackClient_PushMessage(t *testing.T) {
 	
 	client := &slackClient{
 		api:       mockAPI,
-		channelID: "test-channel",
+		channelURL: "test-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "test",
@@ -105,10 +105,10 @@ func TestSlackClient_PushMessage(t *testing.T) {
 			Return("test-channel", "1234567890.123456", nil).
 			Once()
 
-		channelID, timestamp, err := client.PushMessage("Hello, world!")
+		channelURL, timestamp, err := client.PushMessage("Hello, world!")
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "test-channel", channelID)
+		assert.Equal(t, "test-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -124,7 +124,7 @@ func TestSlackClient_PushMessage(t *testing.T) {
 		_, _, err := clientNoChannel.PushMessage("Hello, world!")
 		
 		assert.Error(t, err)
-		assert.Equal(t, ErrMissingChannelID, err)
+		assert.Equal(t, ErrMissingchannelURL, err)
 	})
 
 	t.Run("nil client", func(t *testing.T) {
@@ -151,7 +151,7 @@ func TestSlackClient_PushMessage(t *testing.T) {
 func TestSlackClient_Channel(t *testing.T) {
 	baseClient := &slackClient{
 		api:       slack.New("test-token"),
-		channelID: "default-channel",
+		channelURL: "default-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "production",
@@ -161,7 +161,7 @@ func TestSlackClient_Channel(t *testing.T) {
 		specificClient := baseClient.Channel("specific-channel")
 		
 		assert.NotNil(t, specificClient)
-		assert.Equal(t, "specific-channel", specificClient.channelID)
+		assert.Equal(t, "specific-channel", specificClient.channelURL)
 		assert.Equal(t, baseClient.api, specificClient.api)
 		assert.Equal(t, baseClient.token, specificClient.token)
 		assert.Equal(t, baseClient.appName, specificClient.appName)
@@ -181,7 +181,7 @@ func TestSlackClient_PushMessageToChannel(t *testing.T) {
 	
 	client := &slackClient{
 		api:       mockAPI,
-		channelID: "default-channel",
+		channelURL: "default-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "test",
@@ -192,10 +192,10 @@ func TestSlackClient_PushMessageToChannel(t *testing.T) {
 			Return("specific-channel", "1234567890.123456", nil).
 			Once()
 
-		channelID, timestamp, err := client.PushMessageToChannel("specific-channel", "Test message")
+		channelURL, timestamp, err := client.PushMessageToChannel("specific-channel", "Test message")
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "specific-channel", channelID)
+		assert.Equal(t, "specific-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -206,7 +206,7 @@ func TestSlackClient_SendAlert(t *testing.T) {
 	
 	client := &slackClient{
 		api:       mockAPI,
-		channelID: "alerts-channel",
+		channelURL: "alerts-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "production",
@@ -217,10 +217,10 @@ func TestSlackClient_SendAlert(t *testing.T) {
 			Return("alerts-channel", "1234567890.123456", nil).
 			Once()
 
-		channelID, timestamp, err := client.SendAlert("error", "Database Error", "Failed to connect to database")
+		channelURL, timestamp, err := client.SendAlert("error", "Database Error", "Failed to connect to database")
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "alerts-channel", channelID)
+		assert.Equal(t, "alerts-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -230,10 +230,10 @@ func TestSlackClient_SendAlert(t *testing.T) {
 			Return("alerts-channel", "1234567890.123456", nil).
 			Once()
 
-		channelID, timestamp, err := client.SendAlert("success", "Deployment Complete", "Backend deployed successfully")
+		channelURL, timestamp, err := client.SendAlert("success", "Deployment Complete", "Backend deployed successfully")
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "alerts-channel", channelID)
+		assert.Equal(t, "alerts-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -244,7 +244,7 @@ func TestSlackClient_SendDeploymentNotification(t *testing.T) {
 	
 	client := &slackClient{
 		api:       mockAPI,
-		channelID: "deployments-channel",
+		channelURL: "deployments-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "staging",
@@ -255,7 +255,7 @@ func TestSlackClient_SendDeploymentNotification(t *testing.T) {
 			Return("deployments-channel", "1234567890.123456", nil).
 			Once()
 
-		channelID, timestamp, err := client.SendDeploymentNotification(
+		channelURL, timestamp, err := client.SendDeploymentNotification(
 			"backend",
 			"v1.2.3",
 			"success",
@@ -264,7 +264,7 @@ func TestSlackClient_SendDeploymentNotification(t *testing.T) {
 		)
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "deployments-channel", channelID)
+		assert.Equal(t, "deployments-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -275,7 +275,7 @@ func TestSlackClient_SendErrorNotification(t *testing.T) {
 	
 	client := &slackClient{
 		api:       mockAPI,
-		channelID: "errors-channel",
+		channelURL: "errors-channel",
 		token:     "test-token",
 		appName:   "nawthtech",
 		env:       "production",
@@ -294,10 +294,10 @@ func TestSlackClient_SendErrorNotification(t *testing.T) {
 			"RequestID":  "req-456",
 		}
 
-		channelID, timestamp, err := client.SendErrorNotification(err, contextInfo)
+		channelURL, timestamp, err := client.SendErrorNotification(err, contextInfo)
 		
 		assert.NoError(t, err)
-		assert.Equal(t, "errors-channel", channelID)
+		assert.Equal(t, "errors-channel", channelURL)
 		assert.Equal(t, "1234567890.123456", timestamp)
 		mockAPI.AssertExpectations(t)
 	})
@@ -312,16 +312,16 @@ func TestIntegration(t *testing.T) {
 	// These tests require actual Slack credentials
 	// They should only run when SLACK_TOKEN and SLACK_CHANNEL are set
 	token := os.Getenv("SLACK_TOKEN")
-	channelID := os.Getenv("SLACK_CHANNEL")
+	channelURL := os.Getenv("SLACK_CHANNEL")
 
-	if token == "" || channelID == "" {
+	if token == "" || channelURL == "" {
 		t.Skip("Skipping integration test: SLACK_TOKEN or SLACK_CHANNEL not set")
 	}
 
 	t.Run("real slack integration", func(t *testing.T) {
 		client, err := New(
 			WithToken(token),
-			WithChannelID(channelID),
+			WithchannelURL(channelURL),
 			WithAppName("nawthtech-test"),
 			WithEnvironment("integration-test"),
 		)
@@ -352,7 +352,7 @@ func TestClientSingleton(t *testing.T) {
 		mockAPI := new(MockSlackAPI)
 		defaultClient = &slackClient{
 			api:       mockAPI,
-			channelID: "test-channel",
+			channelURL: "test-channel",
 			token:     "test-token",
 		}
 
