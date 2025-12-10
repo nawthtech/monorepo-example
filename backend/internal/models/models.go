@@ -72,3 +72,27 @@ type Payment struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type Notification struct {
+    ID        string    `json:"id"`
+    UserID    string    `json:"user_id"`
+    Title     string    `json:"title"`
+    Message   string    `json:"message"`
+    Read      bool      `json:"read"`
+    CreatedAt time.Time `json:"created_at"`
+}
+
+type Cart struct {
+    ID        string    `json:"id"`
+    UserID    string    `json:"user_id"`
+    Items     []CartItem `json:"items"`
+    Total     float64   `json:"total"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CartItem struct {
+    ProductID string  `json:"product_id"`
+    Quantity  int     `json:"quantity"`
+    Price     float64 `json:"price"`
+}
