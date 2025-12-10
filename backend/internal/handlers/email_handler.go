@@ -1,11 +1,10 @@
-// backend/internal/handlers/email_handler.go
 package handlers
 
 import (
 	"net/http"
 	
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/backend/internal/email"
+	"github.com/nawthtech/nawthtech/backend/internal/email"
 )
 
 type EmailHandler struct {
