@@ -432,14 +432,6 @@ func GetRequestIDFromContext(ctx context.Context) string {
 	return ""
 }
 
-// GetUserIDFromContext الحصول على معرف المستخدم من السياق
-func GetUserIDFromContext(ctx context.Context) string {
-	if userID, ok := ctx.Value("userID").(string); ok {
-		return userID
-	}
-	return ""
-}
-
 // GetUserIDFromGinContext الحصول على معرف المستخدم من سياق Gin
 func GetUserIDFromGinContext(c *gin.Context) string {
 	if userID, exists := c.Get("userID"); exists {
