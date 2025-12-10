@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#3A0CA3" />
-    <meta name="description" content="NawthTech - منصة الذكاء الاصطناعي المستقبلية لتطوير الأعمال الرقمية" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="description" content="NawthTech - منصة الذكاء الاصطناعي المتقدمة لتطوير الأعمال الرقمية" />
     
     <!-- SEO Meta Tags -->
-    <title>NawthTech - منصة الذكاء الاصطناعي المستقبلية</title>
-    <meta name="keywords" content="ذكاء اصطناعي, وسائل تواصل, متابعين, مشاهدات, تحليل, نمو, NawthTech, أعمال رقمية, متجر خدمات, AI, مستقبلية" />
+    <title>NawthTech - منصة الذكاء الاصطناعي المتقدمة</title>
+    <meta name="keywords" content="ذكاء اصطناعي, وسائل تواصل, متابعين, مشاهدات, تحليل, نمو, NawthTech, أعمال رقمية, متجر خدمات, AI, Sentry Theme" />
     
     <!-- Open Graph -->
-    <meta property="og:title" content="NawthTech - منصة الذكاء الاصطناعي المستقبلية" />
+    <meta property="og:title" content="NawthTech - منصة الذكاء الاصطناعي المتقدمة" />
     <meta property="og:description" content="منصة متكاملة لإدارة وتطوير أعمال وسائل التواصل الاجتماعي باستخدام الذكاء الاصطناعي المتقدم" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ar_SA" />
@@ -19,67 +19,45 @@
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="NawthTech - منصة الذكاء الاصطناعي المستقبلية" />
+    <meta name="twitter:title" content="NawthTech - منصة الذكاء الاصطناعي المتقدمة" />
     <meta name="twitter:description" content="منصة متكاملة لتحليل وتطوير استراتيجيات وسائل التواصل الاجتماعي باستخدام الذكاء الاصطناعي" />
     <meta name="twitter:image" content="/assets/og-image.jpg" />
     
-    <!-- Preload Critical Resources -->
-    <link rel="preload" href="/fonts/arabic/RB-Bold.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/english/Azonix.woff2" as="font" type="font/woff2" crossorigin>
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
-    
-    <!-- Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Styles -->
     <style>
-        /* Arabic Font Face */
-        @font-face {
-            font-family: 'RB Bold';
-            src: url('/fonts/arabic/RB-Bold.woff2') format('woff2');
-            font-weight: 700;
-            font-display: swap;
-        }
-        
-        @font-face {
-            font-family: 'RB Regular';
-            src: url('/fonts/arabic/RB-Regular.woff2') format('woff2');
-            font-weight: 400;
-            font-display: swap;
-        }
-        
-        @font-face {
-            font-family: 'Azonix';
-            src: url('/fonts/english/Azonix.woff2') format('woff2');
-            font-weight: 400;
-            font-display: swap;
-        }
-        
-        /* Root Variables - الهوية الجديدة */
+        /* Sentry Dark Theme Colors */
         :root {
-            --deep-purple: #3A0CA3;
-            --neon-cyan: #4BF2FF;
-            --electric-violet: #7209B7;
-            --soft-black: #0D0D0D;
-            --pure-white: #FFFFFF;
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-tertiary: #6e7681;
             
-            --gradient-futuristic: linear-gradient(135deg, var(--deep-purple) 0%, var(--electric-violet) 50%, var(--neon-cyan) 100%);
-            --gradient-purple: linear-gradient(135deg, var(--deep-purple) 0%, var(--electric-violet) 100%);
-            --gradient-cyan: linear-gradient(135deg, var(--neon-cyan) 0%, #00D4FF 100%);
-            --gradient-dark: linear-gradient(135deg, var(--soft-black) 0%, #1A1A2E 100%);
+            /* Accent Colors */
+            --accent-purple: #bc8cff;
+            --accent-pink: #ff7b72;
+            --accent-yellow: #e3b341;
+            --accent-green: #3fb950;
+            --accent-blue: #58a6ff;
+            --accent-red: #f85149;
+            --accent-cyan: #79c0ff;
             
-            --shadow-glow: 0 0 20px rgba(75, 242, 255, 0.3);
-            --shadow-glow-strong: 0 0 30px rgba(75, 242, 255, 0.5);
-            --shadow-card: 0 8px 32px rgba(58, 12, 163, 0.15);
-            --shadow-large: 0 15px 50px rgba(58, 12, 163, 0.25);
+            /* Gradients */
+            --gradient-purple: linear-gradient(135deg, var(--accent-purple) 0%, #7c3aed 100%);
+            --gradient-blue: linear-gradient(135deg, var(--accent-blue) 0%, #1f6feb 100%);
+            --gradient-dark: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            
+            /* Shadows */
+            --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(188, 140, 255, 0.15);
+            --shadow-glow-strong: 0 0 40px rgba(188, 140, 255, 0.25);
         }
         
-        /* Reset & Base Styles */
         * {
             margin: 0;
             padding: 0;
@@ -91,20 +69,28 @@
         }
         
         body {
-            font-family: 'RB Regular', 'Cairo', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             direction: rtl;
-            text-align: right;
-            margin: 0;
-            padding: 0;
-            background-color: var(--soft-black);
-            color: var(--pure-white);
-            line-height: 1.6;
             overflow-x: hidden;
+            line-height: 1.6;
         }
         
-        /* English Text Styles */
-        .english-text {
-            font-family: 'Azonix', sans-serif;
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
         }
         
         /* Loading Styles */
@@ -114,91 +100,64 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--gradient-dark);
+            background: var(--bg-primary);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: var(--pure-white);
             z-index: 9999;
-            font-family: 'RB Bold', sans-serif;
         }
         
         .loading-spinner {
-            width: 70px;
-            height: 70px;
-            border: 3px solid rgba(75, 242, 255, 0.3);
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--bg-tertiary);
             border-radius: 50%;
-            border-top-color: var(--neon-cyan);
+            border-top-color: var(--accent-purple);
             animation: spin 1s ease-in-out infinite;
             margin-bottom: 30px;
-            box-shadow: var(--shadow-glow);
         }
         
         .loading-screen h2 {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 3rem;
+            font-size: 2.5rem;
             margin-bottom: 15px;
-            background: var(--gradient-cyan);
+            background: var(--gradient-purple);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 20px rgba(75, 242, 255, 0.5);
         }
         
         .loading-screen p {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 1.3rem;
-            opacity: 0.9;
-            color: var(--neon-cyan);
+            font-size: 1.1rem;
+            color: var(--text-secondary);
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(75, 242, 255, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(75, 242, 255, 0.7); }
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        /* Main Content Styles */
+        /* Main Content */
         .main-content {
             min-height: 100vh;
-            background: var(--soft-black);
         }
         
         /* Header Styles */
         .main-header {
-            background: var(--gradient-futuristic);
-            color: var(--pure-white);
-            padding: 4rem 0;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6rem 2rem;
             text-align: center;
             position: relative;
-            overflow: hidden;
         }
         
         .main-header::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
             right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(75, 242, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(114, 9, 183, 0.1) 0%, transparent 50%);
-            z-index: 1;
-        }
-        
-        .header-content {
-            position: relative;
-            z-index: 2;
+            left: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
         }
         
         .logo-container {
@@ -207,45 +166,46 @@
             justify-content: center;
             gap: 2rem;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
         }
         
         .logo {
             width: 120px;
             height: 120px;
-            border-radius: 25px;
-            border: 3px solid rgba(75, 242, 255, 0.3);
-            box-shadow: var(--shadow-glow-strong);
-            animation: glow 2s ease-in-out infinite;
+            border-radius: 20px;
+            background: var(--gradient-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 900;
+            font-size: 2.5rem;
+            box-shadow: var(--shadow-glow);
         }
         
         .header-title {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 4rem;
+            font-size: 3.5rem;
+            font-weight: 800;
             margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, var(--pure-white), var(--neon-cyan));
+            background: var(--gradient-purple);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 30px rgba(75, 242, 255, 0.5);
         }
         
         .header-subtitle {
-            font-family: 'Azonix', sans-serif;
-            font-size: 1.8rem;
-            color: var(--neon-cyan);
+            font-size: 1.5rem;
+            color: var(--accent-blue);
             margin-bottom: 1.5rem;
-            letter-spacing: 2px;
-            text-shadow: 0 0 15px rgba(75, 242, 255, 0.5);
+            font-weight: 600;
         }
         
         .header-tagline {
-            font-family: 'RB Regular', sans-serif;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             max-width: 700px;
             margin: 0 auto 3rem;
-            opacity: 0.9;
+            color: var(--text-secondary);
             line-height: 1.8;
-            color: rgba(255, 255, 255, 0.8);
         }
         
         .header-cta {
@@ -256,76 +216,53 @@
         }
         
         .cta-button {
-            padding: 15px 35px;
+            padding: 14px 32px;
             border: none;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: bold;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            font-family: 'RB Bold', sans-serif;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        .cta-button:hover::before {
-            left: 100%;
         }
         
         .cta-primary {
-            background: var(--neon-cyan);
-            color: var(--soft-black);
-            box-shadow: var(--shadow-glow);
+            background: var(--gradient-purple);
+            color: var(--bg-primary);
         }
         
         .cta-primary:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-glow-strong);
-            background: #00E5FF;
         }
         
         .cta-secondary {
-            background: transparent;
-            color: var(--pure-white);
-            border: 2px solid var(--neon-cyan);
-            box-shadow: var(--shadow-glow);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
         
         .cta-secondary:hover {
-            background: var(--neon-cyan);
-            color: var(--soft-black);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-glow-strong);
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
         }
         
         /* Navigation Styles */
         .main-nav {
-            background: rgba(13, 13, 13, 0.95);
-            backdrop-filter: blur(15px);
-            padding: 1.2rem 2rem;
-            border-bottom: 1px solid rgba(75, 242, 255, 0.2);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
             position: sticky;
             top: 0;
             z-index: 1000;
         }
         
         .nav-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -333,98 +270,89 @@
         }
         
         .nav-logo {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 1.6rem;
-            color: var(--neon-cyan);
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 12px;
-            text-shadow: 0 0 10px rgba(75, 242, 255, 0.5);
+        }
+        
+        .nav-logo span {
+            background: var(--gradient-purple);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
         .nav-links {
             display: flex;
-            gap: 2.5rem;
+            gap: 1.5rem;
             align-items: center;
         }
         
         .nav-links a {
-            color: var(--pure-white);
+            color: var(--text-secondary);
             text-decoration: none;
-            font-family: 'RB Regular', sans-serif;
-            font-weight: 600;
-            padding: 10px 18px;
-            border-radius: 10px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
             transition: all 0.3s ease;
-            position: relative;
-            opacity: 0.9;
         }
         
         .nav-links a:hover {
-            color: var(--neon-cyan);
-            background: rgba(75, 242, 255, 0.1);
-            opacity: 1;
-            transform: translateY(-2px);
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
         }
         
         .nav-links a.active {
-            color: var(--neon-cyan);
-            background: rgba(75, 242, 255, 0.15);
-            box-shadow: 0 0 15px rgba(75, 242, 255, 0.3);
+            color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
         }
         
         .nav-links a.store-link {
-            background: var(--gradient-cyan);
-            color: var(--soft-black);
-            padding: 12px 25px;
-            border-radius: 25px;
-            font-weight: bold;
-            box-shadow: var(--shadow-glow);
+            background: var(--gradient-purple);
+            color: var(--bg-primary);
+            font-weight: 700;
         }
         
         .nav-links a.store-link:hover {
-            background: var(--gradient-purple);
-            color: var(--pure-white);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-glow-strong);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
         }
         
         /* Features Section */
         .features-section {
             padding: 6rem 2rem;
-            background: var(--soft-black);
+            background: var(--bg-primary);
             position: relative;
-        }
-        
-        .features-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            max-width: 1400px;
+            margin: 0 auto;
         }
         
         .section-title {
             text-align: center;
-            font-family: 'RB Bold', sans-serif;
-            font-size: 3.2rem;
-            background: var(--gradient-cyan);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 2.8rem;
+            font-weight: 800;
             margin-bottom: 1.5rem;
-            text-shadow: 0 0 20px rgba(75, 242, 255, 0.3);
+            color: var(--text-primary);
+        }
+        
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: var(--gradient-purple);
+            margin: 1rem auto;
+            border-radius: 2px;
         }
         
         .section-subtitle {
             text-align: center;
-            font-family: 'RB Regular', sans-serif;
-            font-size: 1.3rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 5rem;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
@@ -434,176 +362,131 @@
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-            gap: 3rem;
-            max-width: 1300px;
-            margin: 0 auto;
+            gap: 2rem;
         }
         
         .feature-card {
-            background: rgba(26, 26, 46, 0.6);
-            border-radius: 20px;
-            padding: 3rem 2.5rem;
-            border: 1px solid rgba(75, 242, 255, 0.1);
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2.5rem;
+            border: 1px solid var(--border-color);
             transition: all 0.4s ease;
             text-align: center;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }
         
         .feature-card::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
             right: 0;
-            height: 3px;
-            background: var(--gradient-cyan);
-        }
-        
-        .feature-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at center, rgba(75, 242, 255, 0.1) 0%, transparent 70%);
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
         
         .feature-card:hover {
-            transform: translateY(-15px) scale(1.02);
-            box-shadow: var(--shadow-glow-strong);
-            border-color: rgba(75, 242, 255, 0.3);
+            transform: translateY(-8px);
+            border-color: var(--accent-purple);
+            box-shadow: var(--shadow-card);
         }
         
-        .feature-card:hover::after {
+        .feature-card:hover::before {
             opacity: 1;
         }
         
         .feature-icon {
-            font-size: 4rem;
-            margin-bottom: 2rem;
-            display: inline-block;
-            background: var(--gradient-cyan);
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            background: var(--gradient-purple);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            filter: drop-shadow(0 0 10px rgba(75, 242, 255, 0.5));
         }
         
         .feature-title {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 1.8rem;
-            color: var(--pure-white);
-            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
         }
         
         .feature-description {
-            font-family: 'RB Regular', sans-serif;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-secondary);
             line-height: 1.8;
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
         }
         
         .feature-link {
-            color: var(--neon-cyan);
+            color: var(--accent-blue);
             text-decoration: none;
-            font-family: 'RB Bold', sans-serif;
+            font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             transition: all 0.3s ease;
             padding: 8px 16px;
-            border-radius: 8px;
-            background: rgba(75, 242, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(88, 166, 255, 0.1);
         }
         
         .feature-link:hover {
             gap: 12px;
-            background: rgba(75, 242, 255, 0.2);
-            box-shadow: 0 0 15px rgba(75, 242, 255, 0.3);
+            background: rgba(88, 166, 255, 0.2);
         }
         
         /* Store Preview Section */
         .store-preview {
             padding: 6rem 2rem;
-            background: var(--gradient-dark);
-            color: var(--pure-white);
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
             text-align: center;
             position: relative;
-            border-top: 1px solid rgba(75, 242, 255, 0.2);
-        }
-        
-        .store-preview::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 30% 70%, rgba(58, 12, 163, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(114, 9, 183, 0.2) 0%, transparent 50%);
-        }
-        
-        .store-preview .section-title {
-            color: var(--pure-white);
-        }
-        
-        .store-preview .section-subtitle {
-            color: rgba(255, 255, 255, 0.8);
         }
         
         .store-features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2.5rem;
+            gap: 2rem;
             max-width: 1000px;
-            margin: 4rem auto;
-            position: relative;
-            z-index: 2;
+            margin: 3rem auto;
         }
         
         .store-feature {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            padding: 2.5rem 2rem;
-            border-radius: 15px;
-            border: 1px solid rgba(75, 242, 255, 0.1);
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
             transition: all 0.3s ease;
         }
         
         .store-feature:hover {
-            transform: translateY(-5px);
-            border-color: rgba(75, 242, 255, 0.3);
-            box-shadow: var(--shadow-glow);
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
         }
         
         .store-feature h4 {
-            font-family: 'RB Bold', sans-serif;
-            font-size: 1.4rem;
-            margin-bottom: 1.2rem;
-            color: var(--neon-cyan);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
         }
         
         .store-feature p {
-            opacity: 0.9;
+            color: var(--text-secondary);
             line-height: 1.7;
-            color: rgba(255, 255, 255, 0.8);
         }
         
         /* Footer Styles */
         .site-footer {
-            background: var(--soft-black);
-            color: var(--pure-white);
-            padding: 5rem 0 2rem;
-            margin-top: 0;
-            font-family: 'RB Regular', sans-serif;
-            border-top: 1px solid rgba(75, 242, 255, 0.1);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 4rem 0 2rem;
+            border-top: 1px solid var(--border-color);
         }
         
         .footer-content {
@@ -612,83 +495,147 @@
             padding: 0 2rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 4rem;
+            gap: 3rem;
         }
         
         .footer-section h3 {
-            color: var(--neon-cyan);
-            margin-bottom: 2rem;
-            font-size: 1.5rem;
-            font-family: 'RB Bold', sans-serif;
-            text-shadow: 0 0 10px rgba(75, 242, 255, 0.3);
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-section h3::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 20px;
+            background: var(--accent-purple);
+            border-radius: 2px;
         }
         
         .footer-section p, 
         .footer-section a {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-secondary);
             text-decoration: none;
             line-height: 1.8;
             transition: all 0.3s ease;
-            font-family: 'RB Regular', sans-serif;
-            display: block;
             margin-bottom: 0.8rem;
+            display: block;
         }
         
         .footer-section a:hover {
-            color: var(--neon-cyan);
-            padding-right: 10px;
-            text-shadow: 0 0 8px rgba(75, 242, 255, 0.3);
+            color: var(--accent-blue);
+            padding-right: 8px;
         }
         
         .social-links {
             display: flex;
-            gap: 1.2rem;
-            margin-top: 2rem;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
         
         .social-links a {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 50px;
-            height: 50px;
-            background: rgba(75, 242, 255, 0.1);
-            border-radius: 50%;
-            text-align: center;
             transition: all 0.3s ease;
-            font-size: 1.3rem;
-            border: 1px solid rgba(75, 242, 255, 0.2);
+            border: 1px solid var(--border-color);
         }
         
         .social-links a:hover {
-            background: var(--neon-cyan);
-            color: var(--soft-black);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-glow);
+            background: var(--accent-blue);
+            color: var(--bg-primary);
+            transform: translateY(-2px);
         }
         
         .footer-bottom {
             text-align: center;
-            padding-top: 4rem;
-            margin-top: 4rem;
-            border-top: 1px solid rgba(75, 242, 255, 0.1);
-            font-family: 'RB Regular', sans-serif;
-            opacity: 0.7;
-            color: rgba(255, 255, 255, 0.6);
+            padding-top: 3rem;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+        }
+        
+        /* Status Indicator */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            margin-top: 2rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Badges */
+        .service-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(188, 140, 255, 0.15);
+            color: var(--accent-purple);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 0.5rem;
+            border: 1px solid rgba(188, 140, 255, 0.3);
+        }
+        
+        /* Platform Cards */
+        .platform-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        
+        .platform-badge {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
         }
         
         /* Responsive Design */
         @media (max-width: 768px) {
             .header-title {
-                font-size: 3rem;
+                font-size: 2.5rem;
             }
             
             .header-subtitle {
-                font-size: 1.4rem;
+                font-size: 1.2rem;
             }
             
             .section-title {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
             }
             
             .features-section,
@@ -701,7 +648,7 @@
             }
             
             .feature-card {
-                padding: 2.5rem 2rem;
+                padding: 2rem 1.5rem;
             }
             
             .header-cta {
@@ -716,42 +663,39 @@
             
             .nav-container {
                 flex-direction: column;
-                gap: 1.5rem;
+                gap: 1rem;
             }
             
             .nav-links {
-                gap: 1.2rem;
+                gap: 0.5rem;
                 flex-wrap: wrap;
                 justify-content: center;
             }
             
             .footer-content {
                 grid-template-columns: 1fr;
-                gap: 3rem;
+                gap: 2rem;
                 padding: 0 1rem;
             }
         }
         
         @media (max-width: 480px) {
             .header-title {
-                font-size: 2.5rem;
+                font-size: 2rem;
             }
             
             .logo {
-                width: 100px;
-                height: 100px;
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
             }
             
             .section-title {
-                font-size: 2.2rem;
+                font-size: 1.8rem;
             }
             
             .feature-card {
-                padding: 2rem 1.5rem;
-            }
-            
-            .features-grid {
-                grid-template-columns: 1fr;
+                padding: 1.5rem;
             }
         }
     </style>
@@ -761,7 +705,7 @@
     <div class="loading-screen">
         <div class="loading-spinner"></div>
         <h2>NawthTech</h2>
-        <p>جاري تحميل المنصة المستقبلية...</p>
+        <p>جاري تحميل المنصة...</p>
     </div>
 
     <!-- Main Content -->
@@ -770,115 +714,165 @@
         <nav class="main-nav">
             <div class="nav-container">
                 <a href="/" class="nav-logo">
-                    <img src="/assets/logo.png" alt="NawthTech" style="width: 45px; height: 45px;">
-                    NawthTech
+                    <div class="logo" style="width: 40px; height: 40px; font-size: 1.2rem;">NT</div>
+                    <span>NawthTech</span>
                 </a>
                 <div class="nav-links">
-                    <a href="/" class="active">🏠 الرئيسية</a>
-                    <a href="/services">🚀 الخدمات</a>
-                    <a href="/pricing">💎 الباقات</a>
-                    <a href="/about">ℹ️ عن الشركة</a>
-                    <a href="/contact">📞 اتصل بنا</a>
-                    <a href="/store" class="store-link">🛍️ المتجر</a>
+                    <a href="/" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+                    <a href="/services"><i class="fas fa-rocket"></i> الخدمات</a>
+                    <a href="/pricing"><i class="fas fa-gem"></i> الباقات</a>
+                    <a href="/about"><i class="fas fa-info-circle"></i> عن الشركة</a>
+                    <a href="/contact"><i class="fas fa-phone-alt"></i> اتصل بنا</a>
+                    <a href="/store" class="store-link"><i class="fas fa-store"></i> المتجر</a>
                 </div>
             </div>
         </nav>
 
         <!-- Header Section -->
         <header class="main-header">
-            <div class="header-content">
-                <div class="logo-container">
-                    <img src="/assets/logo.png" alt="NawthTech Logo" class="logo">
-                    <div>
-                        <h1 class="header-title">NawthTech</h1>
-                        <p class="header-subtitle english-text">FUTURISTIC AI PLATFORM</p>
-                    </div>
+            <div class="logo-container">
+                <div class="logo">NT</div>
+                <div>
+                    <h1 class="header-title">NawthTech</h1>
+                    <p class="header-subtitle">منصة الذكاء الاصطناعي المتقدمة</p>
                 </div>
-                <p class="header-tagline">منصة الذكاء الاصطناعي المستقبلية لتطوير الأعمال الرقمية وبناء المستقبل بتقنيات متقدمة</p>
-                <div class="header-cta">
-                    <a href="/store" class="cta-button cta-primary">
-                        🛍️ ابدأ الرحلة الآن
-                    </a>
-                    <a href="/services" class="cta-button cta-secondary">
-                        🤖 استكشف الذكاء الاصطناعي
-                    </a>
-                </div>
+            </div>
+            <p class="header-tagline">
+                منصة متكاملة تجمع بين أحدث تقنيات الذكاء الاصطناعي وأدوات إدارة الأعمال الرقمية 
+                لتمكين الأفراد والشركات من بناء وتطوير حضورهم الرقمي بفعالية وكفاءة غير مسبوقة
+            </p>
+            <div class="header-cta">
+                <a href="/store" class="cta-button cta-primary">
+                    <i class="fas fa-store"></i> ابدأ الرحلة الآن
+                </a>
+                <a href="/services" class="cta-button cta-secondary">
+                    <i class="fas fa-robot"></i> استكشف الذكاء الاصطناعي
+                </a>
+            </div>
+            
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>المنصة نشطة وجاهزة للاستخدام</span>
             </div>
         </header>
 
         <!-- Features Section -->
         <section class="features-section">
             <h2 class="section-title">✨ المميزات المتقدمة</h2>
-            <p class="section-subtitle">اكتشف القوة المستقبلية لمنصتنا المتكاملة للذكاء الاصطناعي وتطوير الأعمال الرقمية</p>
+            <p class="section-subtitle">اكتشف القوة الكاملة لمنصتنا المتكاملة للذكاء الاصطناعي وتطوير الأعمال الرقمية</p>
             
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3 class="feature-title">تجربة مستقبلية متكاملة</h3>
-                    <p class="feature-description">واجهة مستخدم حديثة مع تقنيات الواقع المعزز ولوحة تحكم ذكية متقدمة لإدارة جميع جوانب عملك الرقمي</p>
-                    <a href="/dashboard" class="feature-link">استكشف اللوحة المتقدمة →</a>
+                    <div class="feature-icon"><i class="fas fa-tachometer-alt"></i></div>
+                    <h3 class="feature-title">لوحة تحكم ذكية وشاملة</h3>
+                    <p class="feature-description">واجهة مستخدم حديثة مع تصميم Sentry Dark Theme، لوحة تحكم ذكية متقدمة لإدارة جميع جوانب عملك الرقمي</p>
+                    <span class="service-badge"><i class="fas fa-star"></i> مميز</span>
+                    <a href="/dashboard" class="feature-link">
+                        استكشف اللوحة المتقدمة
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3 class="feature-title">ذكاء اصطناعي مستقبلي</h3>
-                    <p class="feature-description">توليد محتوى ذكي متقدم، تحليل أداء باستخدام التعلم العميق، واقتراح استراتيجيات نمو باستخدام أحدث تقنيات الذكاء الاصطناعي</p>
-                    <a href="/ai-features" class="feature-link">اكتشف التقنيات →</a>
+                    <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                    <h3 class="feature-title">ذكاء اصطناعي متقدم</h3>
+                    <p class="feature-description">توليد محتوى ذكي، تحليل أداء باستخدام التعلم العميق، واقتراح استراتيجيات نمو باستخدام أحدث تقنيات الذكاء الاصطناعي</p>
+                    <span class="service-badge"><i class="fas fa-brain"></i> AI متقدم</span>
+                    <a href="/ai-features" class="feature-link">
+                        اكتشف التقنيات
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🛍️</div>
-                    <h3 class="feature-title">متجر خدمات مستقبلي</h3>
-                    <p class="feature-description">متجر متكامل ذكي لخدمات الترويج، زيادة المتابعين، وتحليل الأداء مع توصيات ذكية متقدمة وعروض حصرية</p>
-                    <a href="/store" class="feature-link">تصفح المتجر الذكي →</a>
+                    <div class="feature-icon"><i class="fas fa-shopping-cart"></i></div>
+                    <h3 class="feature-title">متجر خدمات متكامل</h3>
+                    <p class="feature-description">متجر ذكي لخدمات الترويج، زيادة المتابعين، وتحليل الأداء مع توصيات ذكية متقدمة وعروض حصرية</p>
+                    <span class="service-badge"><i class="fas fa-fire"></i> رائج</span>
+                    <a href="/store" class="feature-link">
+                        تصفح المتجر الذكي
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">💳</div>
-                    <h3 class="feature-title">نظام دفع مستقبلي</h3>
-                    <p class="feature-description">تكامل مع أحدث تقنيات الدفع العالمية مع إدارة محافظ رقمية وأرصدة وحماية متقدمة باستخدام البلوك تشين</p>
-                    <a href="/payment" class="feature-link">تعرف على التقنيات →</a>
+                    <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                    <h3 class="feature-title">نظام أمان متقدم</h3>
+                    <p class="feature-description">مصادقة متعددة العوامل، تشفير البيانات، مراقبة ذكية للأنشطة المشبوهة باستخدام الذكاء الاصطناعي</p>
+                    <span class="service-badge"><i class="fas fa-lock"></i> آمن</span>
+                    <a href="/security" class="feature-link">
+                        تعرف على الأمان المتقدم
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🎨</div>
-                    <h3 class="feature-title">تخصيص ذكي متقدم</h3>
-                    <p class="feature-description">محرر مواقع ويب ذكي مع تخصيص الألوان والثيمات والهيكل ديناميكياً باستخدام الذكاء الاصطناعي</p>
-                    <a href="/customization" class="feature-link">جرب التخصيص الذكي →</a>
+                    <div class="feature-icon"><i class="fas fa-palette"></i></div>
+                    <h3 class="feature-title">تخصيص كامل</h3>
+                    <p class="feature-description">محرر مواقع ويب مع تخصيص الألوان والثيمات والهيكل ديناميكياً باستخدام الذكاء الاصطناعي</p>
+                    <span class="service-badge"><i class="fas fa-cog"></i> قابل للتخصيص</span>
+                    <a href="/customization" class="feature-link">
+                        جرب التخصيص الذكي
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3 class="feature-title">نظام أمان مستقبلي</h3>
-                    <p class="feature-description">مصادقة حيوية متقدمة، تشفير كمي للبيانات، ومراقبة ذكية للأنشطة المشبوهة باستخدام الذكاء الاصطناعي</p>
-                    <a href="/security" class="feature-link">تعرف على الأمان المتقدم →</a>
+                    <div class="feature-icon"><i class="fas fa-chart-network"></i></div>
+                    <h3 class="feature-title">تحليلات متعمقة</h3>
+                    <p class="feature-description">تحليل أداء شامل مع تقارير تفصيلية وتنبؤات ذكية لتطوير استراتيجيات النمو الرقمي</p>
+                    <span class="service-badge"><i class="fas fa-chart-line"></i> تحليلات</span>
+                    <a href="/analytics" class="feature-link">
+                        تعرف على التحليلات
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
                 </div>
             </div>
         </section>
 
         <!-- Store Preview Section -->
         <section class="store-preview">
-            <h2 class="section-title">🛍️ متجر NawthTech المستقبلي</h2>
+            <h2 class="section-title">🛍️ متجر NawthTech المتقدم</h2>
             <p class="section-subtitle">اكتشف مجموعة واسعة من الخدمات الرقمية المدعومة بالذكاء الاصطناعي المتقدم</p>
             
             <div class="store-features">
                 <div class="store-feature">
-                    <h4>خدمات الوسائل الاجتماعية المتقدمة</h4>
+                    <h4><i class="fab fa-instagram"></i> خدمات الوسائل الاجتماعية المتقدمة</h4>
                     <p>زيادة المتابعين، التفاعل، والمشاهدات باستخدام خوارزميات ذكاء اصطناعي متطورة</p>
+                    <div class="platform-badges">
+                        <span class="platform-badge">Instagram</span>
+                        <span class="platform-badge">TikTok</span>
+                        <span class="platform-badge">Twitter</span>
+                    </div>
                 </div>
                 <div class="store-feature">
-                    <h4>تحليل المحتوى الذكي</h4>
+                    <h4><i class="fas fa-chart-bar"></i> تحليل المحتوى الذكي</h4>
                     <p>تحليل أداء المحتوى باستخدام التعلم العميق واقتراح تحسينات ذكية متقدمة</p>
+                    <div class="platform-badges">
+                        <span class="platform-badge">تحليلات</span>
+                        <span class="platform-badge">تقارير</span>
+                        <span class="platform-badge">تنبؤات</span>
+                    </div>
                 </div>
                 <div class="store-feature">
-                    <h4>استشارات النمو المستقبلية</h4>
+                    <h4><i class="fas fa-users"></i> استشارات النمو المستقبلية</h4>
                     <p>استشارات متخصصة باستخدام الذكاء الاصطناعي لتحسين استراتيجيات النمو الرقمي</p>
+                    <div class="platform-badges">
+                        <span class="platform-badge">استشارات</span>
+                        <span class="platform-badge">استراتيجيات</span>
+                        <span class="platform-badge">تدريب</span>
+                    </div>
                 </div>
             </div>
             
-            <a href="/store" class="cta-button cta-primary" style="background: var(--neon-cyan); color: var(--soft-black);">
-                🛒 ابدأ التسوق المستقبلي
+            <a href="/store" class="cta-button cta-primary">
+                <i class="fas fa-shopping-cart"></i> ابدأ التسوق الآن
             </a>
+            
+            <div class="status-indicator" style="margin-top: 2rem;">
+                <span class="status-dot"></span>
+                <span>أكثر من 5000+ خدمة متاحة</span>
+            </div>
         </section>
     </div>
 
@@ -887,16 +881,20 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h3>عن NawthTech</h3>
-                <p>منصة الذكاء الاصطناعي المستقبلية لتطوير الأعمال الرقمية وبناء المستقبل بتقنيات متقدمة وذكاء اصطناعي متطور.</p>
+                <p>منصة الذكاء الاصطناعي المتقدمة لتطوير الأعمال الرقمية باستخدام تصميم Sentry Dark Theme الحديث.</p>
+                <div class="status-indicator" style="display: inline-flex; margin-top: 1rem;">
+                    <span class="status-dot"></span>
+                    <span>نشط الآن</span>
+                </div>
             </div>
             
             <div class="footer-section">
                 <h3>روابط سريعة</h3>
-                <a href="/services">🚀 الخدمات</a>
-                <a href="/pricing">💎 الباقات</a>
-                <a href="/about">ℹ️ عن الشركة</a>
-                <a href="/contact">📞 اتصل بنا</a>
-                <a href="/store">🛍️ المتجر</a>
+                <a href="/services"><i class="fas fa-rocket"></i> الخدمات</a>
+                <a href="/pricing"><i class="fas fa-gem"></i> الباقات</a>
+                <a href="/about"><i class="fas fa-info-circle"></i> عن الشركة</a>
+                <a href="/contact"><i class="fas fa-phone-alt"></i> اتصل بنا</a>
+                <a href="/store"><i class="fas fa-store"></i> المتجر</a>
             </div>
             
             <div class="footer-section">
@@ -905,22 +903,27 @@
                 <a href="/store?category=content">تحليل المحتوى</a>
                 <a href="/store?category=growth">استشارات النمو</a>
                 <a href="/store?category=ai">خدمات الذكاء الاصطناعي</a>
+                <a href="/store?category=analytics">تحليلات متقدمة</a>
             </div>
             
             <div class="footer-section">
                 <h3>اتصل بنا</h3>
-                <p>📧 support@nawthtech.com</p>
-                <p>🌐 www.nawthtech.com</p>
+                <p><i class="fas fa-envelope"></i> support@nawthtech.com</p>
+                <p><i class="fas fa-globe"></i> www.nawthtech.com</p>
                 <div class="social-links">
-                    <a href="https://instagram.com/nawthtech" title="إنستغرام">📱</a>
-                    <a href="https://twitter.com/nawthtech" title="تويتر">🐦</a>
-                    <a href="https://linkedin.com/company/nawthtech" title="لينكد إن">💼</a>
+                    <a href="https://instagram.com/nawthtech" title="إنستغرام"><i class="fab fa-instagram"></i></a>
+                    <a href="https://twitter.com/nawthtech" title="تويتر"><i class="fab fa-twitter"></i></a>
+                    <a href="https://linkedin.com/company/nawthtech" title="لينكد إن"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://github.com/nawthtech" title="GitHub"><i class="fab fa-github"></i></a>
                 </div>
             </div>
         </div>
         
         <div class="footer-bottom">
-            <p>© 2024 NawthTech. جميع الحقوق محفوظة | منصة الذكاء الاصطناعي المستقبلية</p>
+            <p>© 2024 NawthTech. جميع الحقوق محفوظة | منصة الذكاء الاصطناعي المتقدمة</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-tertiary);">
+                مصمم بـ <i class="fas fa-heart" style="color: var(--accent-red);"></i> باستخدام Sentry Dark Theme
+            </p>
         </div>
     </footer>
 
@@ -936,29 +939,21 @@
                         loadingScreen.style.display = 'none';
                     }, 500);
                 }
-            }, 1500);
+            }, 1000);
         });
 
-        // Add floating animation to feature cards
+        // Add slide-in animation to feature cards
         document.addEventListener('DOMContentLoaded', function() {
             const featureCards = document.querySelectorAll('.feature-card');
             featureCards.forEach((card, index) => {
-                card.style.animationDelay = `${index * 0.1}s`;
-                card.style.animation = 'float 3s ease-in-out infinite';
-            });
-        });
-
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
             });
         });
 
@@ -970,8 +965,20 @@
             navLinks.forEach(link => {
                 if (link.getAttribute('href') === currentPage) {
                     link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
+                }
+            });
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }
             });
         });
