@@ -189,6 +189,8 @@ const CloudflareManagement: React.FC = () => {
     معدل القراءة: {cloudflareMetrics?.kv?.readRate || 0}/ثانية
   </Text>
 </Card>
+</SimpleGrid>
+
 
       {/* Workers Management */}
        <Card withBorder mb="md">
