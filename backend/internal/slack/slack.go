@@ -15,7 +15,7 @@ type SlackClient interface {
 	PushMessageWithAttachments(text string, attachments []slack.Attachment) (string, string, error)
 	PushMessageToChannel(channel, text string) (string, string, error)
 	UpdateMessage(channelURL, timestamp, text string) (string, string, string, error)
-	DeleteMessage(channelURL, timestamp string) (string, error)
+	DeleteMessage(channelURL, timestamp string) (string, error) // غيرت لـ (string, error)
 }
 
 type slackClient struct {
@@ -77,11 +77,12 @@ func Init(options ...Option) error {
 }
 
 // Client returns the default client instance
-func Client() *slackClient {
+func Client() SlackClient { // غيرت نوع الإرجاع لـ SlackClient
 	if defaultClient == nil {
 		log.Println("[WARN] Slack client not initialized, returning nil")
+		return nil
 	}
-	return nil
+	return defaultClient
 }
 
 // WithToken sets the Slack bot token
@@ -117,7 +118,7 @@ func WithEnvironment(env string) Option {
 }
 
 // Channel returns a new client instance with the specified channel
-func (c *slackClient) Channel(channelURL string) *slackClient {
+func (c *slackClient) Channel(channelURL string) SlackClient { // غيرت نوع الإرجاع
 	if c == nil {
 		return nil
 	}
@@ -227,18 +228,29 @@ func (c *slackClient) UpdateMessage(channelURL, timestamp, text string) (string,
 	return channelURL, timestamp, newTimestamp, nil
 }
 
-// DeleteMessage deletes a message
-func (c *slackClient) DeleteMessage(channelURL, timestamp string) (string, string, error) {
+// DeleteMessage deletes a message - التصحيح الرئيسي هنا
+func (c *slackClient) DeleteMessage(channelURL, timestamp string) (string, error) {
 	if c == nil || c.api == nil {
-		return "", "", ErrClientNotInitialized
+		return "", ErrClientNotInitialized
 	}
 
-	newTimestamp, err := c.api.DeleteMessage(channelURL, timestamp)
+	// وفقاً لمكتبة slack-go/slack، DeleteMessage ترجع error فقط
+	// إذا كانت ترجع timestamp، استخدم:
+	// _, _, err := c.api.DeleteMessage(channelURL, timestamp)
+	// return "deleted", err
+	
+	// أو إذا كانت ترجع string:
+	// response, err := c.api.DeleteMessage(channelURL, timestamp)
+	// return response, err
+
+	// بناءً على الخطأ: "c.api.DeleteMessage returns 3 values"
+	// إذن المكتبة ترجع 3 قيم
+	_, _, err := c.api.DeleteMessage(channelURL, timestamp)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to delete message: %w", err)
+		return "", fmt.Errorf("failed to delete message: %w", err)
 	}
 
-	return channelURL, newTimestamp, nil
+	return "deleted", nil
 }
 
 // SendAlert sends an alert message with alert formatting
@@ -376,4 +388,24 @@ func (c *slackClient) SendErrorNotification(err error, contextInfo map[string]st
 	}
 
 	return c.PushMessageWithAttachments("", []slack.Attachment{attachment})
+}
+
+// Helper Functions
+
+// DefaultPushMessage uses the default client to push a message
+func DefaultPushMessage(text string) (string, string, error) {
+	client := Client()
+	if client == nil {
+		return "", "", ErrClientNotInitialized
+	}
+	return client.PushMessage(text)
+}
+
+// DefaultSendAlert uses the default client to send an alert
+func DefaultSendAlert(alertType, title, message string) (string, string, error) {
+	client := Client()
+	if client == nil {
+		return "", "", ErrClientNotInitialized
+	}
+	return client.SendAlert(alertType, title, message)
 }
