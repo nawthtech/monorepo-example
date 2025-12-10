@@ -171,27 +171,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **📧 Email**: support@nawthtech.com  
 **🌐 Website**: www.nawthtech.com  
-** <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-    <defs>
-        <radialGradient id="instaSimple" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" stop-color="#f9ce34"/>
-            <stop offset="50%" stop-color="#ee2a7b"/>
-            <stop offset="100%" stop-color="#6228d7"/>
-        </radialGradient>
-    </defs>
-    
-    <!-- Background -->
-    <rect width="24" height="24" rx="8" fill="url(#instaSimple)"/>
-    
-    <!-- Outer circle -->
-    <circle cx="12" cy="12" r="7.5" stroke="#fff" stroke-width="1.5" fill="none"/>
-    
-    <!-- Inner circle -->
-    <circle cx="12" cy="12" r="4" stroke="#fff" stroke-width="1.5" fill="none"/>
-    
-    <!-- Top right dot -->
-    <circle cx="17" cy="7" r="1" fill="#fff"/>
-</svg> Instagram**: [@nawthtech](https://instagram.com/nawthtech)  
+**  Instagram**: [@nawthtech](https://instagram.com/nawthtech)  
 **🐦 Twitter**: [@nawthtech](https://twitter.com/nawthtech)  
 
 ## 🚀 Start Your Smart Digital Growth Journey
