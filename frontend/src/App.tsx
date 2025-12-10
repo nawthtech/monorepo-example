@@ -1,165 +1,392 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
-import { mc } from "./assets/mc";
-import './App.css'
+// frontend/src/App.tsx
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { Provider } from 'react-redux';
-import { store } from './store';
+import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'react-hot-toast';
+import { ErrorBoundary } from 'react-error-boundary';
+import * as Sentry from '@sentry/react';
 
-// مكونات بسيطة مع data-testid للاختبارات
-const AIDashboard = () => (
-  <div data-testid="ai-dashboard" style={{ padding: '2rem' }}>
-    <h2>لوحة تحكم الذكاء الاصطناعي</h2>
-    <p>الصفحة الرئيسية لأدوات الذكاء الاصطناعي</p>
-  </div>
-);
+// Mantine UI Framework
+import { MantineProvider, createTheme, LoadingOverlay } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import { ModalsProvider } from '@mantine/modals';
 
-const ContentGenerator = () => (
-  <div data-testid="content-generator" style={{ padding: '2rem' }}>
-    <h2>مولد المحتوى</h2>
-    <p>أداة توليد المحتوى باستخدام الذكاء الاصطناعي</p>
-  </div>
-);
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
+import { AIProvider } from './contexts/AIContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ServicesProvider } from './contexts/ServicesContext';
 
-const MediaStudio = () => (
-  <div data-testid="media-studio" style={{ padding: '2rem' }}>
-    <h2>استوديو الوسائط</h2>
-    <p>أداة إنشاء الوسائط باستخدام الذكاء الاصطناعي</p>
-  </div>
-);
+// Core Components
+import Layout from './components/Layout/Layout';
+import Header from './components/Layout/Header';
+import Sidebar from './components/Layout/Sidebar';
+import Navbar from './components/Layout/Navbar';
+import Footer from './components/Layout/Footer';
+import LoadingScreen from './components/Common/LoadingScreen';
+import ErrorFallback from './components/Common/ErrorFallback';
+import MaintenanceMode from './components/Common/MaintenanceMode';
 
-const StrategyPlanner = () => (
-  <div data-testid="strategy-planner" style={{ padding: '2rem' }}>
-    <h2>مخطط الاستراتيجيات</h2>
-    <p>أداة تخطيط الاستراتيجيات باستخدام الذكاء الاصطناعي</p>
-  </div>
-);
+// Lazy-loaded Pages (Code Splitting)
+const HomePage = lazy(() => import('./pages/HomePage'));
+const StorePage = lazy(() => import('./pages/StorePage'));
+const ServiceDetailPage = lazy(() => import('./pages/ServiceDetailPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const AIStudioPage = lazy(() => import('./pages/AIStudioPage'));
+const ContentStudioPage = lazy(() => import('./pages/ContentStudioPage'));
+const VideoStudioPage = lazy(() => import('./pages/VideoStudioPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const StrategyPage = lazy(() => import('./pages/StrategyPage'));
+const OrdersPage = lazy(() => import('./pages/OrdersPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
-// Theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#7A3EF0',
-    },
-    secondary: {
-      main: '#00F6FF',
-    },
-    background: {
-      default: '#f8fafc',
-    },
-  },
-  typography: {
-    fontFamily: [
-      'Noto Sans Arabic',
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-    h1: {
-      fontWeight: 700,
-    },
-    h2: {
-      fontWeight: 600,
-    },
-    h3: {
-      fontWeight: 600,
-    },
-  },
-  direction: 'rtl',
+// Sentry Configuration
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+  integrations: [
+    new Sentry.BrowserTracing({
+      tracePropagationTargets: [window.location.origin],
+    }),
+    new Sentry.Replay(),
+  ],
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
 });
 
-function App() {
-  const [messages, setMessages] = useState<string[]>([]);
-  const [isConnectionOpen, setIsConnectionOpen] = useState(false);
+// Create Query Client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      cacheTime: 1000 * 60 * 30, // 30 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-  const onToggleConnection = useCallback(() => {
-    setIsConnectionOpen((isOpen) => !isOpen);
-  }, []);
+// Mantine Theme Configuration (Sentry Dark Theme)
+const theme = createTheme({
+  colors: {
+    dark: [
+      '#0d1117', // Primary background
+      '#161b22', // Secondary background
+      '#21262d', // Tertiary background
+      '#30363d', // Border color
+      '#484f58',
+      '#6e7681',
+      '#8b949e',
+      '#c9d1d9',
+      '#f0f6fc', // Primary text
+    ],
+    purple: ['#bc8cff', '#7c3aed', '#6e2cc9'],
+    blue: ['#58a6ff', '#1f6feb', '#0d419d'],
+    green: ['#3fb950', '#238636', '#196127'],
+    red: ['#f85149', '#da3633', '#b62324'],
+    yellow: ['#e3b341', '#d29922', '#bb8009'],
+  },
+  primaryColor: 'purple',
+  primaryShade: 6,
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Roboto", sans-serif',
+  headings: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontWeight: '700',
+  },
+  components: {
+    Button: {
+      defaultProps: {
+        radius: 'md',
+      },
+      styles: {
+        root: {
+          fontWeight: 600,
+        },
+      },
+    },
+    Card: {
+      styles: {
+        root: {
+          backgroundColor: '#161b22',
+          border: '1px solid #30363d',
+        },
+      },
+    },
+    Input: {
+      styles: {
+        input: {
+          backgroundColor: '#0d1117',
+          borderColor: '#30363d',
+          '&:focus': {
+            borderColor: '#58a6ff',
+          },
+        },
+      },
+    },
+  },
+});
 
+// Main App Component
+const App: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [servicesStatus, setServicesStatus] = useState<Record<string, any>>({});
+
+  // Initialize application
   useEffect(() => {
-    if (!isConnectionOpen) return;
+    const initializeApp = async () => {
+      try {
+        // Check maintenance mode from Cloudflare KV
+        const maintenanceRes = await fetch('/api/system/status');
+        const systemStatus = await maintenanceRes.json();
+        
+        if (systemStatus.maintenanceMode) {
+          setIsMaintenance(true);
+          setIsLoading(false);
+          return;
+        }
 
-    const eventSource = new EventSource(import.meta.env.VITE_BACKEND_HOST + "/sse");
+        // Initialize services
+        const servicesResponse = await fetch('/api/services/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
 
-    eventSource.onopen = () => {
-      console.log("[SSE] Connection established");
-    };
+        if (servicesResponse.ok) {
+          const servicesData = await servicesResponse.json();
+          setServicesStatus(servicesData);
+        }
 
-    eventSource.onmessage = (event) => {
-      setMessages((messages) => [...messages, event.data]);
-    };
+        // Load user session if exists
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          // Validate token with backend
+          await fetch('/api/auth/validate', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
 
-    eventSource.onerror = (event) => {
-      console.error("[SSE] Error:", event);
-
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.log("[SSE] Connection closed because of an error");
-        setIsConnectionOpen(false);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        Sentry.captureException(error);
+        setIsLoading(false);
       }
     };
 
-    const cleanup = () => {
-      console.log("[SSE] Closing connection");
-      eventSource.close();
-      window.removeEventListener("beforeunload", cleanup);
+    initializeApp();
+
+    // Setup service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+
+    // Setup real-time notifications via WebSocket
+    const setupWebSocket = () => {
+      const ws = new WebSocket(import.meta.env.VITE_WS_URL || 'wss://ws.nawthtech.com');
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        ws.send(JSON.stringify({ type: 'subscribe', channels: ['notifications', 'orders'] }));
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data);
+      };
+
+      return ws;
     };
 
-    window.addEventListener("beforeunload", cleanup);
+    const ws = setupWebSocket();
 
-    return cleanup;
-  }, [isConnectionOpen]);
+    // Cleanup
+    return () => {
+      ws.close();
+    };
+  }, []);
 
-  useEffect(() => {
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
+  const handleWebSocketMessage = (data: any) => {
+    switch (data.type) {
+      case 'notification':
+        // Handle real-time notification
+        break;
+      case 'order_update':
+        // Handle order status update
+        break;
+      case 'ai_progress':
+        // Handle AI processing progress
+        break;
+    }
+  };
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (isMaintenance) {
+    return <MaintenanceMode />;
+  }
 
   return (
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router>
-          <div className="app-container">
-            <Routes>
-              <Route path="/" element={<Navigate to="/ai" />} />
-              <Route path="/ai" element={<AIDashboard />} />
-              <Route path="/ai/content" element={<ContentGenerator />} />
-              <Route path="/ai/media" element={<MediaStudio />} />
-              <Route path="/ai/strategy" element={<StrategyPlanner />} />
-            </Routes>
-            
-            {/* SSE Quotes Section */}
-            <div className="sse-quotes" style={{ display: 'none' }}>
-              <h1 className="text-4xl font-semibold">Here's some unnecessary quotes for you to read...</h1>
+    <Sentry.ErrorBoundary fallback={ErrorFallback}>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <MantineProvider theme={theme} defaultColorScheme="dark">
+            <ModalsProvider>
+              <Notifications position="top-right" limit={5} />
+              <Router>
+                <AuthProvider>
+                  <CartProvider>
+                    <AIProvider>
+                      <NotificationProvider>
+                        <ThemeProvider>
+                          <ServicesProvider>
+                            <ErrorBoundary FallbackComponent={ErrorFallback}>
+                              <div className="app-container">
+                                <Header />
+                                <div className="app-content">
+                                  <Sidebar />
+                                  <main className="main-content">
+                                    <Navbar />
+                                    <Suspense fallback={<LoadingOverlay visible />}>
+                                      <Routes>
+                                        {/* Public Routes */}
+                                        <Route path="/" element={<HomePage />} />
+                                        <Route path="/store" element={<StorePage />} />
+                                        <Route path="/store/service/:id" element={<ServiceDetailPage />} />
+                                        <Route path="/cart" element={<CartPage />} />
+                                        <Route path="/login" element={<LoginPage />} />
+                                        <Route path="/register" element={<RegisterPage />} />
+                                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-              {messages.map((message, index, elements) => (
-                <Fragment key={index}>
-                  <p className={mc("duration-200", index + 1 !== elements.length ? "opacity-40" : "scale-105 font-bold")}>{message}</p>
-                </Fragment>
-              ))}
+                                        {/* Protected Routes */}
+                                        <Route path="/checkout" element={
+                                          <ProtectedRoute>
+                                            <CheckoutPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/dashboard" element={
+                                          <ProtectedRoute>
+                                            <DashboardPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/ai-studio" element={
+                                          <ProtectedRoute>
+                                            <AIStudioPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/content-studio" element={
+                                          <ProtectedRoute>
+                                            <ContentStudioPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/video-studio" element={
+                                          <ProtectedRoute>
+                                            <VideoStudioPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/analytics" element={
+                                          <ProtectedRoute>
+                                            <AnalyticsPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/strategies" element={
+                                          <ProtectedRoute>
+                                            <StrategyPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/orders" element={
+                                          <ProtectedRoute>
+                                            <OrdersPage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/profile" element={
+                                          <ProtectedRoute>
+                                            <ProfilePage />
+                                          </ProtectedRoute>
+                                        } />
+                                        <Route path="/settings" element={
+                                          <ProtectedRoute>
+                                            <SettingsPage />
+                                          </ProtectedRoute>
+                                        } />
 
-              <button 
-                className={mc("hover:opacity-75 duration-200 font-bold text-lg", isConnectionOpen ? "text-[#f06b6b]" : "text-[#6bf06b]")} 
-                onClick={onToggleConnection}
-                data-testid="quotes-button"
-              >
-                {isConnectionOpen ? "Stop" : "Start"} Quotes
-              </button>
+                                        {/* Admin Routes */}
+                                        <Route path="/admin/*" element={
+                                          <AdminRoute>
+                                            <AdminDashboard />
+                                          </AdminRoute>
+                                        } />
 
-              <div className="h-96 w-full" />
-            </div>
-          </div>
-        </Router>
-      </ThemeProvider>
-    </Provider>
+                                        {/* Catch-all route */}
+                                        <Route path="*" element={<Navigate to="/" replace />} />
+                                      </Routes>
+                                    </Suspense>
+                                  </main>
+                                </div>
+                                <Footer />
+                              </div>
+                            </ErrorBoundary>
+                          </ServicesProvider>
+                        </ThemeProvider>
+                      </NotificationProvider>
+                    </AIProvider>
+                  </CartProvider>
+                </AuthProvider>
+              </Router>
+              <Toaster 
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    background: '#161b22',
+                    color: '#f0f6fc',
+                    border: '1px solid #30363d',
+                  },
+                }}
+              />
+            </ModalsProvider>
+          </MantineProvider>
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        </QueryClientProvider>
+      </HelmetProvider>
+    </Sentry.ErrorBoundary>
   );
-}
+};
+
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('auth_token');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Admin Route Component
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('auth_token');
+  const userRole = localStorage.getItem('user_role');
+  
+  if (!token || userRole !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 export default App;
