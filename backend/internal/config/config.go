@@ -9,9 +9,10 @@ type Config struct {
 	Port        string `mapstructure:"port"`
 	WorkerURL   string `mapstructure:"worker_url"`
 	WorkerKey   string `mapstructure:"worker_key"`
+}
 
 	// قسم المصادقة
-    Auth struct {
+type Auth struct {
         JWTSecret         string `mapstructure:"jwt_secret"`
         JWTExpiration     int    `mapstructure:"jwt_expiration"`      // أضف هذا
         RefreshExpiration int    `mapstructure:"refresh_expiration"`  // أضف هذا
