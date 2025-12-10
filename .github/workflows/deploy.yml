@@ -215,7 +215,7 @@ jobs:
       - name: Run database migrations
         run: |
           cd ${{ env.WORKER_DIR }}
-          wrangler d1 migrations apply nawthtech-db --env staging
+          wrangler d1 migrations apply nawthtech-db1 --env staging
           
       - name: Health check staging
         run: |
