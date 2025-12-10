@@ -46,7 +46,7 @@ Deployments/ #files
 
 ```bash
 
-Git clone https://github.com/nawthtech/backend.git
+Git clone https://github.com/nawthtech/nawthtech/backend.git
 
 Cd backend
 
