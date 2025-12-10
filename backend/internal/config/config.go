@@ -80,11 +80,14 @@ func Load() *Config {
 	config.WorkerKey = os.Getenv("WORKER_API_KEY")
 
 	// Auth - JWT Secret
-	config.Auth.JWTSecret = os.Getenv("JWT_SECRET")
-	if config.Auth.JWTSecret == "" {
-		// قيمة افتراضية للتطوير فقط
-		config.Auth.JWTSecret = "dev-secret-key-change-in-production"
-	}
+config.Auth.JWTSecret = os.Getenv("JWT_SECRET")
+if config.Auth.JWTSecret == "" {
+    config.Auth.JWTSecret = "dev-secret-key-change-in-production"
+}
+
+// إضافة القيم الافتراضية
+config.Auth.JWTExpiration = 24 * 60 * 60 // 24 ساعة بالثواني
+config.Auth.RefreshExpiration = 7 * 24 * 60 * 60 // 7 أيام
 
 	// CORS
 	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
