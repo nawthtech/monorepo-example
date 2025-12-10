@@ -2,7 +2,7 @@
 
 # 🚀 NawthTech Platform
 
-<img src="/assets/logo.png" alt="NawthTech Logo" width="200" />
+<img src="/public/logo.svg" alt="NawthTech Logo" width="200" />
 
 ### **Integrated Artificial Intelligence Platform for Digital Business Development**
 
@@ -12,6 +12,7 @@
 [![React](https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org)
 [![Vite](https://img.shields.io/badge/Vite-4+-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev)
 [![MongoDB](https://img.shields.io/badge/MongoDB-5+-47A248?style=for-the-badge&logo=mongodb)](https://mongodb.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -19,57 +20,84 @@
 
 ## 📖 Overview
 
-**NawthTech** is a comprehensive and innovative platform that combines the latest artificial intelligence technologies and digital business management tools to enable individuals and companies to build and develop their digital presence with unprecedented effectiveness and efficiency.
+**NawthTech** is a comprehensive and innovative platform that combines cutting-edge artificial intelligence technologies with digital business management tools. We empower individuals and companies to build and develop their digital presence with unprecedented effectiveness and efficiency using our Sentry Dark Theme inspired interface.
 
-## 🏗️ Project Structure
-
-nawthtech-platform/
-backend/
-# Go Backend API
-Server
-frontend
-# React + Vite
-Frontend
-infrastructure/ # Deployment &
-Infrastructure
-docs/ assets/
-# Documentation
-# Media Assets
-
-
-## ✨ Features
+## ✨ Core Features
 
 ### 🎯 **Complete User Experience**
-- 📊 Smart Dashboard
-- 👤 Profile & Account Management
-- 📝 Order Tracking System
-- 🎨 Modern UI/UX
-- 🌐 Multilingual Support
-- 🎭 Light/Dark Themes
+- 📊 **Smart Dashboard**: Real-time insights and analytics in modern dark interface
+- 👤 **Profile & Account Management**: Full control with elegant user interface
+- 📝 **Order Tracking System**: Monitor services with beautiful timeline visualization
+- 🎨 **Modern UI/UX**: Dark theme with gradient accents and smooth animations
+- 🌐 **Multilingual Support**: RTL support for Arabic with English interface
+- 🎭 **Theme System**: Sentry-inspired dark theme with customizable colors
 
 ### 🤖 **Advanced AI Integration**
-- 🧠 Intelligent Content Generation
-- 📈 Performance Analytics
-- 🎯 Custom Growth Strategies
-- 🔍 Audience & Trend Analysis
-- ✍️ Multilingual Writing Assistant
-- 🖼️ Image Processing & Optimization
+- 🧠 **Intelligent Content Generation**: AI-powered content creation with smart suggestions
+- 📈 **Performance Analytics**: Deep insights with beautiful chart visualizations
+- 🎯 **Custom Growth Strategies**: Personalized business strategies powered by AI
+- 🔍 **Audience & Trend Analysis**: Market intelligence with smart data visualization
+- ✍️ **Multilingual Writing Assistant**: AI writing support in Arabic and English
+- 🖼️ **Image Processing & Optimization**: Automated media enhancement
 
 ### 🛍️ **Digital Services Marketplace**
-- 📦 Content & Growth Services
-- 👥 Follower & Engagement Boost
-- 📊 Advanced Analytics Packages
-- 🎯 Multi-Platform Services
-- ⚡ Fast Delivery
-- 🏆 Exclusive Offers
+- 📦 **Content & Growth Services**: Social media services with modern card designs
+- 👥 **Follower & Engagement Boost**: Organic growth with real-time statistics
+- 📊 **Advanced Analytics Packages**: In-depth performance tracking
+- 🎯 **Multi-Platform Services**: Support for Instagram, TikTok, Twitter, YouTube, Facebook
+- ⚡ **Fast Delivery**: Quick service delivery with status indicators
+- 🏆 **Exclusive Offers**: Featured services with special badges
 
 ### 💳 **Secure Payment System**
-- 🔒 International Payment Gateways
-- 💰 Wallet & Balance Management
-- 🧾 Interactive Invoices
-- 🛡️ Transaction Protection
-- 🔄 Refund System
-- 📱 Mobile Payments
+- 🔒 **International Payment Gateways**: Secure transactions with modern UI
+- 💰 **Wallet & Balance Management**: Elegant balance interface
+- 🧾 **Interactive Invoices**: Beautiful invoice design with gradient elements
+- 🛡️ **Transaction Protection**: Advanced security with visual indicators
+- 🔄 **Refund System**: Transparent process with status tracking
+- 📱 **Mobile Payments**: Responsive payment interface
+
+### 🎨 **Complete Customization**
+- 🌐 **Modern Interface**: Dark theme with customizable accent colors
+- 🎨 **Gradient System**: Purple-blue gradients matching Sentry design
+- 📱 **Responsive Design**: Works perfectly on all devices
+- 🖼️ **Media Integration**: Modern media upload interface
+- ⚙️ **Settings Panel**: Dark theme settings with visual preview
+- 🔧 **Drag & Drop**: Modern interaction patterns
+
+### 🛡️ **Advanced Security System**
+- 🔐 **Modern Authentication**: Clean login interface with dark theme
+- 🛡️ **Activity Monitoring**: Beautiful activity logs with color coding
+- 📊 **Security Dashboard**: Modern security overview
+- 🔒 **Encryption**: Secure with visual security indicators
+- 🚀 **Backup System**: Modern backup interface
+- 📝 **Audit Logs**: Beautifully formatted logs
+
+## 🎨 Brand Identity (Sentry Dark Theme Inspired)
+
+NawthTech features a sophisticated dark theme design inspired by Sentry's modern interface:
+
+### **Color Palette**
+- 🟣 **Purple Gradient**: `#bc8cff` → `#7c3aed` - Primary brand color
+- 🔵 **Blue Gradient**: `#58a6ff` → `#1f6feb` - Accent and information
+- 🟢 **Green**: `#3fb950` - Success and positive actions
+- 🔴 **Red**: `#f85149` - Errors and warnings
+- 🟡 **Yellow**: `#e3b341` - Warnings and highlights
+- ⚫ **Dark Background**: `#0d1117` - Primary background
+- 🔳 **Secondary Dark**: `#161b22` - Cards and panels
+- ⚪ **Light Text**: `#f0f6fc` - Primary text
+- 🔘 **Secondary Text**: `#8b949e` - Secondary text
+
+### **Typography**
+- **Primary Font**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', sans-serif`
+- **Arabic Support**: Full RTL support with proper Arabic font rendering
+- **Font Weights**: Clean weight system (400, 500, 600, 700, 800)
+
+### **Design Elements**
+- **Gradients**: Smooth linear gradients for buttons and accents
+- **Shadows**: Subtle shadows with glow effects
+- **Borders**: Clean 1px borders with consistent radius
+- **Animations**: Smooth transitions and hover effects
+- **Cards**: Modern card design with gradient highlights
 
 ## 🚀 Quick Start
 
@@ -85,30 +113,22 @@ docs/ assets/
 git clone https://github.com/nawthtech/platform.git
 cd nawthtech-platform
 
-2. **Install Dependencies
 make install
-
-3. **Start Development Environment
 make dev
 
-The application will be available at:
-Frontend: http://localhost:3000 •
-Backend API: http://localhost:8080 •
-API Documentation: http:// • localhost:8080/api/v1/docs
-Manual Setup
-Backend (Go)
+### Backend
 cd backend
 cp .env.example .env
 # Edit .env with your settings
 make run
 
-Frontend (React)
+### Frontend
 cd frontend
 cp .env.example .env
 npm install
 npm run dev
 
-Available Commands
+### Available Command 
 # Development
 make dev          # Full development environment
 make backend      # Backend only
@@ -131,64 +151,36 @@ make clean        # Clean build files
 make logs         # View application logs
 make health       # Health check
 
-Architecture
-Backend (Go)
-Framework: Gin Web Framework •
-Database: MongoDB •
-Authentication: JWT Tokens •
-File Storage: Cloudinary •
-CDN: Cloudflare •
-Email: Office 365 SMTP •
-API: RESTful + WebSocket •
-Frontend (React)
-Framework: React 18 •
-Build Tool: Vite •
-Styling: CSS Modules + Theme System • State Management: React Context + •
-Hooks
-HTTP Client: Axios •
-Routing: React Router •
+## 🤝 Contributing
 
-Infrastructure
-Web Server: Caddy •
-Containerization: Docker •
-Orchestration: Kubernetes (Optional) •
-Monitoring: Prometheus + Grafana •
-Brand Identity
-Colors
-Purple x Neon Cyan (Futuristic Al)
+We welcome contributions! Please see our Contributing Guide for details on how to:
+- Report bugs
+- Suggest features
+- Submit pull requests
+- Improve documentation
 
-Deep Purple - #3A0CA3
-• Neon Cyan - #4BF2FF
-• Electric Violet — #7209B7
-• Soft Black - #0D0DOD
-• White — #FFFFFF
-Fonts
-RB Bold - Arabic Texts •
-Azonix - English & Other Languages •
+## 📄 License
 
-Contributing
-We welcome contributions! Please see our
-Contributing Guide for details.
-• License
-This project is licensed under the MIT
-License - see the LICENSE file for details.
-Contact Us
-Email: support@nawthtech.com
-Website: www.nawthtech.com
-Instagram: @nawthtech
-Twitter: @nawthtech
-LinkedIn: NawthTech
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
 
 <div align="center">
 
-Start Your Smart Digital
-Growth Journey
-We're here to help you achieve your digital
-goals and turn ideas into reality
-<img src="/assets/logo.png"
-alt="NawthTech Logo" width="150" />
-Thank you for choosing NawthTech as your digital growth partner
-+
-</div>
-,,,
+## 📞 Contact Us
 
+**📧 Email**: support@nawthtech.com  
+**🌐 Website**: www.nawthtech.com  
+**📱 Instagram**: [@nawthtech](https://instagram.com/nawthtech)  
+**🐦 Twitter**: [@nawthtech](https://twitter.com/nawthtech)  
+**💼 LinkedIn**: [NawthTech](https://linkedin.com/company/nawthtech)
+
+## 🚀 Start Your Smart Digital Growth Journey
+
+*We're here to help you achieve your digital goals and turn ideas into reality with our modern AI-powered platform*
+
+<img src="/assets/logo.png" alt="NawthTech Logo" width="150" />
+
+**✨ Thank you for choosing NawthTech as your digital growth partner ✨**
+
+</div>
