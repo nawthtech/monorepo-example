@@ -1,6 +1,6 @@
 /**
  * Admin API Service for NawthTech Dashboard
- * Integrates with Go backend in monorepo
+ * Integrates with Go backend and Cloudflare services
  */
 
 import { api } from './api';
@@ -8,6 +8,7 @@ import type { PaginationParams, ApiResponse } from './api';
 
 // ==================== TYPES ====================
 export interface DashboardStats {
+  // Core Metrics
   totalUsers: number;
   totalOrders: number;
   totalRevenue: number;
@@ -21,28 +22,151 @@ export interface DashboardStats {
   growthRate: number;
   averageOrderValue: number;
   customerSatisfaction: number;
-  monthlyRecurringRevenue?: number;
-  churnRate?: number;
-  lifetimeValue?: number;
+  
+  // AI Metrics
+  totalAIRequests: number;
+  successfulAIRequests: number;
+  aiProcessingTime: number;
+  videoGenerationRequests: number;
+  imageGenerationRequests: number;
+  textGenerationRequests: number;
+  
+  // Platform Metrics
+  cloudflareRequests: number;
+  cloudflareBandwidth: number;
+  cloudinaryUploads: number;
+  slackNotifications: number;
+  sentryErrors: number;
+  
+  // Business Metrics
+  monthlyRecurringRevenue: number;
+  churnRate: number;
+  lifetimeValue: number;
+  customerAcquisitionCost: number;
+  returnOnInvestment: number;
 }
 
-export interface StoreMetrics {
-  totalProducts: number;
-  lowStockItems: number;
-  storeRevenue: number;
-  storeOrders: number;
-  averageOrderValue: number;
-  topSellingCategory: string;
+export interface ServiceMetrics {
+  serviceId: string;
+  name: string;
+  category: string;
+  platform: string;
+  
+  // Usage Metrics
+  totalOrders: number;
+  completedOrders: number;
+  pendingOrders: number;
+  revenueGenerated: number;
+  averageRating: number;
+  
+  // AI Metrics
+  aiProcessingTime: number;
+  successRate: number;
+  errorRate: number;
+  
+  // Inventory
+  stockLevel: number;
+  lowStock: boolean;
+  restockNeeded: boolean;
+  
+  // Performance
+  conversionRate: number;
   customerSatisfaction: number;
   returnRate: number;
-  inventoryValue: number;
-  bestSellingProduct?: string;
-  worstSellingProduct?: string;
-  revenueTrend: 'up' | 'down' | 'stable';
+  
+  // Platform Specific
+  platformMetrics?: {
+    instagram?: {
+      followers: number;
+      engagement: number;
+      reach: number;
+    };
+    tiktok?: {
+      views: number;
+      likes: number;
+      shares: number;
+    };
+    twitter?: {
+      tweets: number;
+      retweets: number;
+      mentions: number;
+    };
+    youtube?: {
+      views: number;
+      subscribers: number;
+      watchTime: number;
+    };
+  };
+}
+
+export interface AIDashboardMetrics {
+  // General AI Stats
+  totalRequests: number;
+  totalSuccessfulRequests: number;
+  totalFailedRequests: number;
+  averageProcessingTime: number;
+  totalCost: number;
+  
+  // Model-Specific Stats
+  gemini: {
+    requests: number;
+    successRate: number;
+    averageTime: number;
+    cost: number;
+  };
+  openai: {
+    requests: number;
+    successRate: number;
+    averageTime: number;
+    cost: number;
+  };
+  ollama: {
+    requests: number;
+    successRate: number;
+    averageTime: number;
+    cost: number;
+  };
+  huggingface: {
+    requests: number;
+    successRate: number;
+    averageTime: number;
+    cost: number;
+  };
+  
+  // Stability AI Stats
+  stability: {
+    imageRequests: number;
+    videoRequests: number;
+    successRate: number;
+    averageTime: number;
+    cost: number;
+  };
+  
+  // Video Generation Stats
+  videoGeneration: {
+    totalRequests: number;
+    lumaRequests: number;
+    runwayRequests: number;
+    pikaRequests: number;
+    geminiVeoRequests: number;
+    successRate: number;
+    averageDuration: number;
+    cost: number;
+  };
+  
+  // Usage by Category
+  usageByCategory: {
+    contentGeneration: number;
+    imageProcessing: number;
+    videoGeneration: number;
+    analytics: number;
+    validation: number;
+  };
 }
 
 export interface Order {
   id: string;
+  orderNumber: string;
   user: {
     id: string;
     name: string;
@@ -53,16 +177,38 @@ export interface Order {
     id: string;
     name: string;
     category: string;
+    platform: string;
+    aiPowered: boolean;
   };
   amount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'refunded';
   date: string;
   type: string;
   category: string;
-  paymentMethod?: string;
-  paymentStatus?: 'paid' | 'pending' | 'failed';
+  paymentMethod: string;
+  paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
   notes?: string;
   attachments?: string[];
+  
+  // AI Processing Details
+  aiProcessing?: {
+    model?: string;
+    processingTime?: number;
+    cost?: number;
+    qualityScore?: number;
+    validationStatus?: 'pending' | 'approved' | 'rejected';
+    validationNotes?: string;
+  };
+  
+  // Video Generation Specific
+  videoGeneration?: {
+    platform: 'luma' | 'runway' | 'pika' | 'gemini-veo' | 'stability';
+    duration: number;
+    resolution: string;
+    format: string;
+    outputUrl?: string;
+    previewUrl?: string;
+  };
 }
 
 export interface UserActivity {
@@ -72,11 +218,13 @@ export interface UserActivity {
     name: string;
     email: string;
     avatar?: string;
+    role: string;
   };
   action: string;
   service?: {
     id: string;
     name: string;
+    category: string;
   };
   time: string;
   ip: string;
@@ -104,6 +252,11 @@ export interface SystemAlert {
   actionRequired: boolean;
   service?: string;
   metadata?: Record<string, any>;
+  
+  // Service Specific
+  source?: 'cloudflare' | 'cloudinary' | 'sentry' | 'slack' | 'ai' | 'payment' | 'database';
+  assignedTo?: string;
+  priority?: number;
 }
 
 export interface UserReport {
@@ -118,6 +271,22 @@ export interface UserReport {
   totalSpent: number;
   subscriptionPlan?: string;
   tags?: string[];
+  
+  // AI Usage
+  aiUsage?: {
+    totalRequests: number;
+    videoGenerationRequests: number;
+    imageGenerationRequests: number;
+    textGenerationRequests: number;
+    totalCost: number;
+  };
+  
+  // Platform Preferences
+  preferredPlatforms?: string[];
+  
+  // Billing
+  billingCycle?: 'monthly' | 'quarterly' | 'yearly';
+  nextBillingDate?: string;
 }
 
 export interface RevenueReport {
@@ -126,24 +295,58 @@ export interface RevenueReport {
   orders: number;
   averageOrderValue: number;
   growth: number;
-  expenses?: number;
-  profit?: number;
-  margin?: number;
+  expenses: number;
+  profit: number;
+  margin: number;
+  
+  // AI Revenue Breakdown
+  aiRevenue: number;
+  serviceRevenue: number;
+  subscriptionRevenue: number;
+  
+  // Platform Revenue
+  platformRevenue?: {
+    instagram?: number;
+    tiktok?: number;
+    twitter?: number;
+    youtube?: number;
+    facebook?: number;
+  };
 }
 
 export interface DashboardData {
   stats: DashboardStats;
-  storeMetrics: StoreMetrics;
+  serviceMetrics: ServiceMetrics[];
   recentOrders: Order[];
   userActivity: UserActivity[];
   systemAlerts: SystemAlert[];
   revenueTrend: RevenueReport[];
   topUsers: UserReport[];
-  performanceMetrics?: {
+  
+  // AI Dashboard
+  aiMetrics: AIDashboardMetrics;
+  
+  // Performance Metrics
+  performanceMetrics: {
     responseTime: number;
     uptime: number;
     errorRate: number;
     serverLoad: number;
+    
+    // Cloudflare Metrics
+    cloudflare: {
+      requests: number;
+      bandwidth: number;
+      cacheHitRate: number;
+      securityEvents: number;
+    };
+    
+    // Sentry Metrics
+    sentry: {
+      totalErrors: number;
+      unresolvedErrors: number;
+      usersAffected: number;
+    };
   };
 }
 
@@ -155,6 +358,8 @@ export interface AnalyticsFilters {
   service?: string;
   userGroup?: string;
   status?: string;
+  platform?: string;
+  aiModel?: string;
 }
 
 export interface ExportOptions {
@@ -166,17 +371,50 @@ export interface ExportOptions {
 }
 
 export interface AdminSettings {
+  // General Settings
   siteMaintenance: boolean;
   registrationEnabled: boolean;
   emailNotifications: boolean;
   autoBackup: boolean;
   backupFrequency: 'daily' | 'weekly' | 'monthly';
+  
+  // Security Settings
   maxLoginAttempts: number;
   sessionTimeout: number;
   apiRateLimit: number;
   cacheEnabled: boolean;
   cacheDuration: number;
   securityLevel: 'low' | 'medium' | 'high' | 'strict';
+  
+  // AI Settings
+  aiEnabled: boolean;
+  defaultAIModel: 'gemini' | 'openai' | 'ollama' | 'huggingface';
+  aiRateLimit: number;
+  videoGenerationEnabled: boolean;
+  imageGenerationEnabled: boolean;
+  
+  // Cloudflare Settings
+  cloudflare: {
+    cacheEnabled: boolean;
+    workersEnabled: boolean;
+    d1Enabled: boolean;
+    kvEnabled: boolean;
+  };
+  
+  // Cloudinary Settings
+  cloudinary: {
+    uploadEnabled: boolean;
+    autoOptimize: boolean;
+    transformationEnabled: boolean;
+  };
+  
+  // Service Settings
+  serviceLimits: {
+    maxOrdersPerDay: number;
+    maxAiRequestsPerDay: number;
+    maxVideoDuration: number;
+    maxFileSize: number;
+  };
 }
 
 // ==================== ADMIN API SERVICE ====================
@@ -204,11 +442,11 @@ export const adminAPI = {
     );
   },
 
-  getStoreMetrics: async (
+  getAIDashboardMetrics: async (
     filters: AnalyticsFilters = { timeRange: 'month' }
-  ): Promise<ApiResponse<StoreMetrics>> => {
-    return api.get<StoreMetrics>(
-      { category: 'admin', endpoint: 'dashboard/store-metrics' },
+  ): Promise<ApiResponse<AIDashboardMetrics>> => {
+    return api.get<AIDashboardMetrics>(
+      { category: 'admin', endpoint: 'dashboard/ai-metrics' },
       {
         params: filters,
       }
@@ -238,6 +476,8 @@ export const adminAPI = {
       dateTo?: string;
       userId?: string;
       serviceId?: string;
+      platform?: string;
+      aiModel?: string;
     } = {}
   ): Promise<ApiResponse<Order[]>> => {
     return api.getPaginated<Order>(
@@ -274,6 +514,50 @@ export const adminAPI = {
     );
   },
 
+  // ==================== AI MANAGEMENT ====================
+  getAIRequests: async (
+    params: PaginationParams & {
+      model?: string;
+      type?: string;
+      status?: string;
+      userId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    } = {}
+  ): Promise<ApiResponse<any>> => {
+    return api.getPaginated(
+      { category: 'admin', endpoint: 'ai/requests' },
+      params
+    );
+  },
+
+  getVideoGenerationRequests: async (
+    params: PaginationParams & {
+      platform?: string;
+      status?: string;
+      userId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    } = {}
+  ): Promise<ApiResponse<any>> => {
+    return api.getPaginated(
+      { category: 'admin', endpoint: 'ai/video-requests' },
+      params
+    );
+  },
+
+  retryAIRequest: async (requestId: string): Promise<ApiResponse<any>> => {
+    return api.post<any>(
+      { category: 'admin', endpoint: `ai/requests/${requestId}/retry` }
+    );
+  },
+
+  cancelAIRequest: async (requestId: string): Promise<ApiResponse<any>> => {
+    return api.delete<any>(
+      { category: 'admin', endpoint: `ai/requests/${requestId}` }
+    );
+  },
+
   // ==================== USERS ====================
   getUserActivity: async (
     limit: number = 10,
@@ -296,6 +580,7 @@ export const adminAPI = {
       role?: string;
       dateFrom?: string;
       dateTo?: string;
+      platform?: string;
     } = {}
   ): Promise<ApiResponse<UserReport[]>> => {
     return api.getPaginated<UserReport>(
@@ -350,28 +635,25 @@ export const adminAPI = {
     );
   },
 
-  getUserGrowthReport: async (
+  getAIAnalytics: async (
     filters: AnalyticsFilters
-  ): Promise<ApiResponse<{ period: string; newUsers: number; activeUsers: number; churnedUsers: number }[]>> => {
-    return api.get(
-      { category: 'admin', endpoint: 'analytics/user-growth' },
+  ): Promise<ApiResponse<any>> => {
+    return api.get<any>(
+      { category: 'admin', endpoint: 'analytics/ai' },
       {
         params: filters,
       }
     );
   },
 
-  getServiceAnalytics: async (
-    serviceId?: string,
+  getPlatformAnalytics: async (
+    platform: string,
     filters?: AnalyticsFilters
   ): Promise<ApiResponse<any>> => {
-    return api.get(
-      { category: 'admin', endpoint: 'analytics/services' },
+    return api.get<any>(
+      { category: 'admin', endpoint: `analytics/platform/${platform}` },
       {
-        params: {
-          serviceId,
-          ...filters,
-        },
+        params: filters,
       }
     );
   },
@@ -382,6 +664,7 @@ export const adminAPI = {
       severity?: SystemAlert['severity'];
       resolved?: boolean;
       type?: SystemAlert['type'];
+      source?: SystemAlert['source'];
     } = {}
   ): Promise<ApiResponse<SystemAlert[]>> => {
     return api.getPaginated<SystemAlert>(
@@ -404,15 +687,73 @@ export const adminAPI = {
   },
 
   getSystemMetrics: async (): Promise<ApiResponse<{
+    // Server Metrics
     cpuUsage: number;
     memoryUsage: number;
     diskUsage: number;
     activeConnections: number;
     responseTime: number;
     uptime: number;
+    
+    // Cloudflare Metrics
+    cloudflare: {
+      requests: number;
+      bandwidth: number;
+      cacheHitRate: number;
+      securityEvents: number;
+      workerInvocations: number;
+    };
+    
+    // AI Service Status
+    aiServices: {
+      gemini: boolean;
+      openai: boolean;
+      ollama: boolean;
+      huggingface: boolean;
+      stability: boolean;
+      luma: boolean;
+      runway: boolean;
+      pika: boolean;
+      geminiVeo: boolean;
+    };
+    
+    // External Services
+    externalServices: {
+      cloudinary: boolean;
+      slack: boolean;
+      sentry: boolean;
+      email: boolean;
+      database: boolean;
+    };
   }>> => {
     return api.get(
       { category: 'admin', endpoint: 'system/metrics' }
+    );
+  },
+
+  // ==================== CLOUDFLARE MANAGEMENT ====================
+  getCloudflareMetrics: async (): Promise<ApiResponse<{
+    analytics: any;
+    workers: any;
+    d1: any;
+    kv: any;
+    r2: any;
+  }>> => {
+    return api.get(
+      { category: 'admin', endpoint: 'cloudflare/metrics' }
+    );
+  },
+
+  purgeCloudflareCache: async (): Promise<ApiResponse<{ purged: boolean }>> => {
+    return api.post<{ purged: boolean }>(
+      { category: 'admin', endpoint: 'cloudflare/cache/purge' }
+    );
+  },
+
+  deployWorker: async (workerName: string, script: string): Promise<ApiResponse<{ deployed: boolean }>> => {
+    return api.post<{ deployed: boolean }>(
+      { category: 'admin', endpoint: 'cloudflare/workers/deploy' },
+      { workerName, script }
     );
   },
 
@@ -432,9 +773,24 @@ export const adminAPI = {
     );
   },
 
+  updateAISettings: async (
+    settings: {
+      enabled?: boolean;
+      defaultModel?: string;
+      rateLimit?: number;
+      videoGeneration?: boolean;
+      imageGeneration?: boolean;
+    }
+  ): Promise<ApiResponse<AdminSettings>> => {
+    return api.put<AdminSettings>(
+      { category: 'admin', endpoint: 'settings/ai' },
+      settings
+    );
+  },
+
   // ==================== EXPORT & BACKUP ====================
   exportReport: async (
-    type: 'orders' | 'users' | 'revenue' | 'analytics' | 'all',
+    type: 'orders' | 'users' | 'revenue' | 'analytics' | 'ai' | 'all',
     options: ExportOptions,
     filters?: AnalyticsFilters
   ): Promise<ApiResponse<{ url: string; filename: string; expiresAt: string }>> => {
@@ -448,8 +804,33 @@ export const adminAPI = {
     );
   },
 
-  createBackup: async (): Promise<ApiResponse<{ backupId: string; createdAt: string; size: number }>> => {
-    return api.post<{ backupId: string; createdAt: string; size: number }>(
+  exportAIData: async (
+    model: string,
+    options: ExportOptions
+  ): Promise<ApiResponse<{ url: string; filename: string; expiresAt: string }>> => {
+    return api.post<{ url: string; filename: string; expiresAt: string }>(
+      { category: 'admin', endpoint: 'export/ai' },
+      {
+        model,
+        options,
+      }
+    );
+  },
+
+  createBackup: async (): Promise<ApiResponse<{ 
+    backupId: string; 
+    createdAt: string; 
+    size: number;
+    location: string;
+    type: 'full' | 'incremental';
+  }>> => {
+    return api.post<{ 
+      backupId: string; 
+      createdAt: string; 
+      size: number;
+      location: string;
+      type: 'full' | 'incremental';
+    }>(
       { category: 'admin', endpoint: 'backup' }
     );
   },
@@ -467,6 +848,7 @@ export const adminAPI = {
       status: Order['status'];
       category: string;
       assignedTo: string;
+      priority: number;
     }>
   ): Promise<ApiResponse<{ updated: number; failed: number; details: any[] }>> => {
     return api.post<{ updated: number; failed: number; details: any[] }>(
@@ -481,6 +863,7 @@ export const adminAPI = {
       status: UserReport['status'];
       role: string;
       subscriptionPlan: string;
+      aiRateLimit: number;
     }>
   ): Promise<ApiResponse<{ updated: number; failed: number; details: any[] }>> => {
     return api.post<{ updated: number; failed: number; details: any[] }>(
@@ -494,7 +877,7 @@ export const adminAPI = {
     notification: {
       title: string;
       message: string;
-      type: 'email' | 'push' | 'both';
+      type: 'email' | 'push' | 'both' | 'slack';
       data?: Record<string, any>;
     }
   ): Promise<ApiResponse<{ sent: number; failed: number }>> => {
@@ -505,7 +888,7 @@ export const adminAPI = {
   },
 
   // ==================== UTILITIES ====================
-  clearCache: async (cacheType?: 'all' | 'data' | 'images' | 'api'): Promise<ApiResponse<{ cleared: string[] }>> => {
+  clearCache: async (cacheType?: 'all' | 'data' | 'images' | 'api' | 'ai'): Promise<ApiResponse<{ cleared: string[] }>> => {
     return api.post<{ cleared: string[] }>(
       { category: 'admin', endpoint: 'cache/clear' },
       { cacheType }
@@ -522,6 +905,26 @@ export const adminAPI = {
     );
   },
 
+  sendTestSlack: async (
+    channel: string,
+    message: string
+  ): Promise<ApiResponse<{ message: string }>> => {
+    return api.post<{ message: string }>(
+      { category: 'admin', endpoint: 'test/slack' },
+      { channel, message }
+    );
+  },
+
+  testAIService: async (
+    service: string,
+    prompt?: string
+  ): Promise<ApiResponse<any>> => {
+    return api.post<any>(
+      { category: 'admin', endpoint: 'test/ai' },
+      { service, prompt }
+    );
+  },
+
   checkSystemHealth: async (): Promise<ApiResponse<{
     status: 'healthy' | 'degraded' | 'unhealthy';
     components: {
@@ -531,11 +934,31 @@ export const adminAPI = {
       email: boolean;
       api: boolean;
       auth: boolean;
+      
+      // AI Services
+      gemini: boolean;
+      openai: boolean;
+      ollama: boolean;
+      huggingface: boolean;
+      stability: boolean;
+      
+      // Video Services
+      luma: boolean;
+      runway: boolean;
+      pika: boolean;
+      geminiVeo: boolean;
+      
+      // External Services
+      cloudflare: boolean;
+      cloudinary: boolean;
+      slack: boolean;
+      sentry: boolean;
     };
     issues: Array<{
       component: string;
       issue: string;
-      severity: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      recommendedAction: string;
     }>;
     lastCheck: string;
   }>> => {
@@ -552,6 +975,7 @@ export const adminAPI = {
       startDate?: string;
       endDate?: string;
       ip?: string;
+      service?: string;
     } = {}
   ): Promise<ApiResponse<UserActivity[]>> => {
     return api.getPaginated<UserActivity>(
@@ -562,10 +986,11 @@ export const adminAPI = {
 
   getErrorLogs: async (
     params: PaginationParams & {
-      level?: 'error' | 'warning' | 'info';
+      level?: 'error' | 'warning' | 'info' | 'debug';
       startDate?: string;
       endDate?: string;
       service?: string;
+      source?: string;
     } = {}
   ): Promise<ApiResponse<Array<{
     id: string;
@@ -573,12 +998,28 @@ export const adminAPI = {
     level: string;
     message: string;
     service: string;
+    source: string;
     stackTrace?: string;
     userId?: string;
     ip?: string;
+    metadata?: Record<string, any>;
   }>>> => {
     return api.getPaginated(
       { category: 'admin', endpoint: 'error-logs' },
+      params
+    );
+  },
+
+  getAIErrorLogs: async (
+    params: PaginationParams & {
+      model?: string;
+      type?: string;
+      startDate?: string;
+      endDate?: string;
+    } = {}
+  ): Promise<ApiResponse<any>> => {
+    return api.getPaginated(
+      { category: 'admin', endpoint: 'error-logs/ai' },
       params
     );
   },
@@ -591,27 +1032,34 @@ export const adminHelpers = {
    */
   formatChartData: (
     data: DashboardData,
-    chartType: 'line' | 'bar' | 'pie' | 'donut'
+    chartType: 'line' | 'bar' | 'pie' | 'donut' | 'radar'
   ): any[] => {
     switch (chartType) {
       case 'line':
         return data.revenueTrend.map(item => ({
           period: item.period,
           revenue: item.revenue,
-          orders: item.orders,
+          aiRevenue: item.aiRevenue,
+          serviceRevenue: item.serviceRevenue,
         }));
       case 'bar':
         return [
           { name: 'Users', value: data.stats.totalUsers },
           { name: 'Orders', value: data.stats.totalOrders },
           { name: 'Revenue', value: data.stats.totalRevenue },
-          { name: 'Services', value: data.stats.activeServices },
+          { name: 'AI Requests', value: data.stats.totalAIRequests },
+          { name: 'Video Generations', value: data.stats.videoGenerationRequests },
         ];
       case 'pie':
-        return Object.entries(data.systemAlerts.reduce((acc, alert) => {
-          acc[alert.type] = (acc[alert.type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)).map(([type, count]) => ({ type, count }));
+        return Object.entries(data.aiMetrics.usageByCategory).map(([category, count]) => ({ 
+          category, 
+          count 
+        }));
+      case 'radar':
+        return Object.entries(data.performanceMetrics.cloudflare).map(([key, value]) => ({
+          metric: key,
+          value: typeof value === 'number' ? value : 0,
+        }));
       default:
         return [];
     }
@@ -638,7 +1086,7 @@ export const adminHelpers = {
         changes[key] = {
           value: currentVal,
           change: parseFloat(change.toFixed(2)),
-          trend: change > 0 ? 'up' : change < 0 ? 'down' : 'stable',
+          trend: change > 5 ? 'up' : change < -5 ? 'down' : 'stable',
         };
       }
     });
@@ -682,6 +1130,14 @@ export const adminHelpers = {
       return true;
     }
 
+    // Check specific AI permissions
+    if (requiredPermission.startsWith('ai.')) {
+      const aiPermission = requiredPermission.split('.')[1];
+      if (userPermissions.includes(`ai.${aiPermission}`)) {
+        return true;
+      }
+    }
+
     return false;
   },
 
@@ -702,15 +1158,116 @@ export const adminHelpers = {
           errors.push('Start date must be before end date');
         }
 
-        // Limit custom range to 1 year
-        const maxRange = 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
+        // Limit custom range to 2 years for AI analytics
+        const maxRange = 2 * 365 * 24 * 60 * 60 * 1000;
         if (end.getTime() - start.getTime() > maxRange) {
-          errors.push('Custom time range cannot exceed 1 year');
+          errors.push('Custom time range cannot exceed 2 years for detailed analytics');
         }
       }
     }
 
     return errors;
+  },
+
+  /**
+   * Format AI model display name
+   */
+  formatAIModelName: (model: string): string => {
+    const modelNames: Record<string, string> = {
+      'gemini': 'Google Gemini',
+      'openai': 'OpenAI GPT',
+      'ollama': 'Ollama LLM',
+      'huggingface': 'Hugging Face',
+      'stability': 'Stability AI',
+      'luma': 'Luma AI',
+      'runway': 'Runway ML',
+      'pika': 'Pika Labs',
+      'gemini-veo': 'Gemini Veo',
+    };
+
+    return modelNames[model] || model;
+  },
+
+  /**
+   * Calculate AI cost estimate
+   */
+  estimateAICost: (
+    model: string,
+    requests: number,
+    type: 'text' | 'image' | 'video'
+  ): number => {
+    const costPerRequest: Record<string, number> = {
+      'gemini-text': 0.001,
+      'openai-text': 0.002,
+      'ollama-text': 0.0001,
+      'huggingface-text': 0.0005,
+      'stability-image': 0.01,
+      'stability-video': 0.05,
+      'luma-video': 0.02,
+      'runway-video': 0.03,
+      'pika-video': 0.015,
+      'gemini-veo-video': 0.04,
+    };
+
+    const key = `${model}-${type}`;
+    return (costPerRequest[key] || 0.001) * requests;
+  },
+
+  /**
+   * Get service icon based on platform
+   */
+  getServiceIcon: (platform: string): string => {
+    const icons: Record<string, string> = {
+      'instagram': '📸',
+      'tiktok': '🎵',
+      'twitter': '🐦',
+      'youtube': '🎥',
+      'facebook': '📘',
+      'ai': '🤖',
+      'video': '🎬',
+      'image': '🖼️',
+      'analytics': '📊',
+    };
+
+    return icons[platform.toLowerCase()] || '📦';
+  },
+
+  /**
+   * Format currency
+   */
+  formatCurrency: (amount: number, currency: string = 'SAR'): string => {
+    return new Intl.NumberFormat('ar-SA', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  },
+
+  /**
+   * Format large numbers
+   */
+  formatNumber: (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  },
+
+  /**
+   * Get severity color
+   */
+  getSeverityColor: (severity: SystemAlert['severity']): string => {
+    const colors: Record<SystemAlert['severity'], string> = {
+      'low': '#3fb950',
+      'medium': '#e3b341',
+      'high': '#ff7b72',
+      'critical': '#f85149',
+    };
+    return colors[severity];
   },
 };
 
