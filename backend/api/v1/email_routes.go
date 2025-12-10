@@ -3,7 +3,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/nawthtech/backend/internal/handlers"
+	"github.com/nawthtech/nawthtech/backend/internal/handlers"
 )
 
 func RegisterEmailRoutes(router *gin.RouterGroup) {
