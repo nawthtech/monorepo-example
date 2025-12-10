@@ -17,9 +17,6 @@ type Auth struct {
         JWTExpiration     int    `mapstructure:"jwt_expiration"`      // أضف هذا
         RefreshExpiration int    `mapstructure:"refresh_expiration"`  // أضف هذا
     } `mapstructure:"auth"`
-    // ...
-}
-	} `mapstructure:"auth"`
 
 	// أقسام إضافية (اختيارية)
 	CORS struct {
