@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	
-	"nawthtech/internal/email"
+	"github.com/nawthtech/nawthtech/internal/email"
 )
 
 func main() {
