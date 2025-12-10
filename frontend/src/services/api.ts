@@ -1,619 +1,349 @@
-/**
- * API service for making HTTP requests to the NawthTech backend
- * Compatible with Go backend in monorepo
- */
+import axios from 'axios';
+import * as Sentry from '@sentry/react';
 
-import { settings } from '../config';
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// ==================== TYPES ====================
-export interface ApiResponse<T = any> {
-  data: T;
-  status: number;
-  success: boolean;
-  message?: string;
-  meta?: {
-    pagination?: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-    [key: string]: any;
-  };
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  search?: string;
-}
-
-export interface UploadProgressEvent {
-  loaded: number;
-  total: number;
-  percentage: number;
-}
-
-export type UploadProgressCallback = (progress: UploadProgressEvent) => void;
-
-export interface ErrorResponse {
-  message: string;
-  status: number;
-  errors?: Record<string, string[]>;
-  timestamp: string;
-  path?: string;
-}
-
-export interface RequestConfig {
-  headers?: Record<string, string>;
-  params?: Record<string, any>;
-  timeout?: number;
-  signal?: AbortSignal;
-  formData?: boolean;
-  onUploadProgress?: UploadProgressCallback;
-}
-
-// ==================== API CLIENT ====================
-class APIClient {
-  private baseURL: string;
-  private defaultHeaders: Record<string, string>;
-
-  constructor() {
-    this.baseURL = settings.api.baseURL;
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Language': settings.localization.defaultLanguage,
-    };
-  }
-
-  // ==================== TOKEN MANAGEMENT ====================
-  private getAuthToken(): string | null {
-    // Try different storage locations
-    const token = 
-      localStorage.getItem('nawthtech_auth_token') ||
-      sessionStorage.getItem('nawthtech_auth_token') ||
-      document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth_token='))
-        ?.split('=')[1] || 
-      null;
-
-    return token;
-  }
-
-  private getAuthHeaders(): Record<string, string> {
-    const token = this.getAuthToken();
-    const headers: Record<string, string> = {};
-
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Add CSRF token if enabled
-    if (settings.security.csrf.enabled) {
-      const csrfToken = this.getCsrfToken();
-      if (csrfToken) {
-        headers[settings.security.csrf.headerName] = csrfToken;
-      }
-    }
-
-    return headers;
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  private getCsrfToken(): string | null {
-    return document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrf_token='))
-      ?.split('=')[1] || null;
-  }
-
-  // ==================== REQUEST BUILDING ====================
-  private buildUrl(
-    endpoint: string | { category: string; endpoint: string },
-    params?: Record<string, any>
-  ): string {
-    let url: string;
-
-    if (typeof endpoint === 'string') {
-      url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
-    } else {
-      // Access endpoints dynamically
-      const endpoints = settings.api.endpoints as any;
-      const endpointPath = endpoints[endpoint.category]?.[endpoint.endpoint];
-      
-      if (!endpointPath) {
-        throw new Error(`Endpoint not found: ${endpoint.category}.${endpoint.endpoint}`);
-      }
-      
-      url = `${this.baseURL}${endpointPath}`;
-    }
-
-    // Add query parameters
-    if (params && Object.keys(params).length > 0) {
-      const queryParams = new URLSearchParams();
-      
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            value.forEach(v => queryParams.append(`${key}[]`, String(v)));
-          } else if (typeof value === 'object') {
-            queryParams.append(key, JSON.stringify(value));
-          } else {
-            queryParams.append(key, String(value));
-          }
-        }
-      });
-
-      const queryString = queryParams.toString();
-      if (queryString) {
-        url += `${url.includes('?') ? '&' : '?'}${queryString}`;
-      }
-    }
-
-    return url;
-  }
-
-  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType?.includes('application/json');
-    const status = response.status;
-
-    // Handle errors
-    if (!response.ok) {
-      let errorData: any;
-
-      try {
-        errorData = isJson ? await response.json() : await response.text();
-      } catch {
-        errorData = { message: `HTTP ${status}: ${response.statusText}` };
-      }
-
-      throw {
-        message: errorData.message || `Request failed with status ${status}`,
-        status,
-        errors: errorData.errors,
-        timestamp: new Date().toISOString(),
-        path: response.url,
-      } as ErrorResponse;
-    }
-
-    // Handle successful responses
-    if (status === 204 || response.headers.get('content-length') === '0') {
-      return {
-        data: null as T,
-        status,
-        success: true,
-        message: 'No content',
-      };
-    }
-
-    const data = isJson ? await response.json() : await response.text();
-
-    return {
-      data,
-      status,
-      success: true,
-      message: data?.message,
-      meta: data?.meta,
-    };
-  }
-
-  // ==================== CORE REQUEST METHOD ====================
-  async request<T = any>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    endpoint: string | { category: string; endpoint: string },
-    data?: any,
-    config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    const {
-      headers = {},
-      params,
-      timeout = settings.api.timeout,
-      signal,
-      formData = false,
-      onUploadProgress,
-    } = config || {};
-
-    // Build request configuration
-    const authHeaders = this.getAuthHeaders();
-    const requestHeaders: Record<string, string> = {
-      ...this.defaultHeaders,
-      ...authHeaders,
-      ...headers,
-    };
-
-    // Remove Content-Type for FormData
-    if (formData && requestHeaders['Content-Type']) {
-      delete requestHeaders['Content-Type'];
-    }
-
-    // Build URL
-    const url = this.buildUrl(endpoint, params);
-
-    // Prepare request config
-    const requestConfig: RequestInit = {
-      method,
-      headers: requestHeaders,
-      credentials: 'include', // Important for cookies with Go backend
-      signal,
-    };
-
-    // Handle request body
-    if (data && method !== 'GET' && method !== 'DELETE') {
-      if (formData) {
-        requestConfig.body = data;
-      } else {
-        requestConfig.body = JSON.stringify(data);
-      }
-    }
-
-    // Handle upload progress
-    if (onUploadProgress && data instanceof FormData) {
-      const xhr = new XMLHttpRequest();
-      
-      return new Promise((resolve, reject) => {
-        xhr.open(method, url);
-        
-        // Set headers
-        Object.entries(requestHeaders).forEach(([key, value]) => {
-          xhr.setRequestHeader(key, value);
-        });
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable && onUploadProgress) {
-            onUploadProgress({
-              loaded: event.loaded,
-              total: event.total,
-              percentage: Math.round((event.loaded / event.total) * 100),
-            });
-          }
-        };
-
-        xhr.onload = () => {
-          const response = new Response(xhr.responseText, {
-            status: xhr.status,
-            statusText: xhr.statusText,
-            headers: new Headers(
-              xhr.getAllResponseHeaders()
-                .split('\r\n')
-                .filter(Boolean)
-                .reduce((acc: Record<string, string>, line) => {
-                  const [key, value] = line.split(': ');
-                  if (key && value) {
-                    acc[key] = value;
-                  }
-                  return acc;
-                }, {})
-            ),
-          });
-
-          this.handleResponse<T>(response).then(resolve).catch(reject);
-        };
-
-        xhr.onerror = () => {
-          reject({
-            message: 'Network error',
-            status: 0,
-            timestamp: new Date().toISOString(),
-          } as ErrorResponse);
-        };
-
-        xhr.ontimeout = () => {
-          reject({
-            message: 'Request timeout',
-            status: 408,
-            timestamp: new Date().toISOString(),
-          } as ErrorResponse);
-        };
-
-        xhr.timeout = timeout;
-        xhr.send(requestConfig.body as any);
-      });
-    }
-
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
-    if (signal) {
-      signal.addEventListener('abort', () => controller.abort());
-    }
-
-    try {
-      const response = await fetch(url, {
-        ...requestConfig,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      return await this.handleResponse<T>(response);
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw {
-          message: 'Request timeout',
-          status: 408,
-          timestamp: new Date().toISOString(),
-        } as ErrorResponse;
-      }
-
-      throw {
-        message: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-        timestamp: new Date().toISOString(),
-      } as ErrorResponse;
-    }
-  }
-
-  // ==================== HTTP METHODS ====================
-  get<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    config?: Omit<RequestConfig, 'formData' | 'onUploadProgress'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>('GET', endpoint, undefined, config);
-  }
-
-  post<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    data?: any,
-    config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>('POST', endpoint, data, config);
-  }
-
-  put<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    data?: any,
-    config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>('PUT', endpoint, data, config);
-  }
-
-  patch<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    data?: any,
-    config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>('PATCH', endpoint, data, config);
-  }
-
-  delete<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    config?: Omit<RequestConfig, 'formData' | 'onUploadProgress'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>('DELETE', endpoint, undefined, config);
-  }
-
-  // ==================== SPECIALIZED METHODS ====================
-  async uploadFile<T = any>(
-    file: File,
-    additionalData?: Record<string, any>,
-    onProgress?: UploadProgressCallback
-  ): Promise<ApiResponse<T>> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    if (additionalData) {
-      Object.entries(additionalData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value);
-        }
-      });
-    }
-
-    return this.post<T>(
-      { category: 'media', endpoint: 'upload' },
-      formData,
-      {
-        formData: true,
-        onUploadProgress: onProgress,
-      }
-    );
-  }
-
-  async uploadFiles<T = any>(
-    files: File[],
-    additionalData?: Record<string, any>,
-    onProgress?: UploadProgressCallback
-  ): Promise<ApiResponse<T>> {
-    const formData = new FormData();
-
-    files.forEach((file, index) => {
-      formData.append(`files[${index}]`, file);
-    });
-
-    if (additionalData) {
-      Object.entries(additionalData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value);
-        }
-      });
-    }
-
-    return this.post<T>(
-      { category: 'media', endpoint: 'upload' },
-      formData,
-      {
-        formData: true,
-        onUploadProgress: onProgress,
-      }
-    );
-  }
-
-  async downloadFile(
-    endpoint: string | { category: string; endpoint: string },
-    filename?: string,
-    config?: Omit<RequestConfig, 'formData' | 'onUploadProgress'>
-  ): Promise<void> {
-    const response = await this.get<Blob>(endpoint, {
-      ...config,
-      headers: {
-        ...config?.headers,
-        'Accept': 'application/octet-stream',
-      },
-    });
-
-    const blob = new Blob([response.data], { type: response.data.type });
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename || 'download';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
-  }
-
-  async getPaginated<T = any>(
-    endpoint: string | { category: string; endpoint: string },
-    params: PaginationParams = {},
-    config?: Omit<RequestConfig, 'formData' | 'onUploadProgress'>
-  ): Promise<ApiResponse<T[]>> {
-    const { page = 1, limit = 10, sortBy, sortOrder, search, ...restParams } = params;
-
-    const queryParams: Record<string, any> = {
-      page,
-      limit,
-      ...restParams,
-    };
-
-    if (sortBy) {
-      queryParams.sort_by = sortBy;
-    }
-
-    if (sortOrder) {
-      queryParams.sort_order = sortOrder;
-    }
-
-    if (search) {
-      queryParams.search = search;
-    }
-
-    return this.get<T[]>(endpoint, {
-      ...config,
-      params: queryParams,
-    });
-  }
-}
-
-// ==================== HELPER FUNCTIONS ====================
-export const apiHelpers = {
-  /**
-   * Fetch with retry logic
-   */
-  async fetchWithRetry<T = any>(
-    fn: () => Promise<ApiResponse<T>>,
-    maxRetries: number = settings.api.retryAttempts,
-    initialDelay: number = 1000
-  ): Promise<ApiResponse<T>> {
-    let lastError: ErrorResponse;
-    
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        return await fn();
-      } catch (error: unknown) {
-        const typedError = error as ErrorResponse;
-        lastError = typedError;
-        
-        // Don't retry on 4xx errors (except 429 - Too Many Requests)
-        if (typedError.status >= 400 && typedError.status < 500 && typedError.status !== 429) {
-          throw error;
-        }
-
-        // Wait before retrying (with exponential backoff)
-        if (attempt < maxRetries - 1) {
-          const delay = initialDelay * Math.pow(2, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_role');
+      window.location.href = '/login';
     }
     
-    throw lastError!;
+    Sentry.captureException(error);
+    return Promise.reject(error);
+  }
+);
+
+// AI Services
+export const aiService = {
+  // Gemini
+  async generateWithGemini(prompt: string, options?: any) {
+    const response = await api.post('/ai/gemini/generate', { prompt, ...options });
+    return response.data;
   },
 
-  /**
-   * Create cancelable request
-   */
-  createCancelableRequest() {
-    const controller = new AbortController();
-    
-    return {
-      signal: controller.signal,
-      cancel: () => controller.abort(),
-    };
+  // OpenAI
+  async generateWithOpenAI(prompt: string, model = 'gpt-4') {
+    const response = await api.post('/ai/openai/generate', { prompt, model });
+    return response.data;
   },
 
-  /**
-   * Debounced API call
-   */
-  createDebouncedApiCall<T = any>(
-    fn: (...args: any[]) => Promise<ApiResponse<T>>,
-    delay: number = settings.performance.debounce.search
-  ) {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let abortController: AbortController | null = null;
-    
-    return (...args: any[]): Promise<ApiResponse<T>> => {
-      return new Promise((resolve, reject) => {
-        if (abortController) {
-          abortController.abort();
-        }
-        
-        abortController = new AbortController();
-        
-        clearTimeout(timeoutId);
-        
-        timeoutId = setTimeout(async () => {
-          try {
-            const result = await fn(...args);
-            abortController = null;
-            resolve(result);
-          } catch (error) {
-            abortController = null;
-            reject(error);
-          }
-        }, delay);
-      });
-    };
+  // Ollama
+  async generateWithOllama(prompt: string, model = 'llama2') {
+    const response = await api.post('/ai/ollama/generate', { prompt, model });
+    return response.data;
   },
 
-  /**
-   * Validate file before upload
-   */
-  validateFile(file: File): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    const maxSize = settings.upload.maxFileSize;
-    const allowedTypes = [
-      ...settings.upload.allowedImageTypes,
-      ...settings.upload.allowedDocumentTypes,
-      ...settings.upload.allowedVideoTypes,
-    ];
+  // Hugging Face
+  async generateWithHuggingFace(prompt: string, model: string) {
+    const response = await api.post('/ai/huggingface/generate', { prompt, model });
+    return response.data;
+  },
 
-    // Check file size
-    if (file.size > maxSize) {
-      errors.push(`File size exceeds ${maxSize / 1024 / 1024}MB limit`);
-    }
+  // Stability AI
+  async generateImageWithStability(prompt: string, options?: any) {
+    const response = await api.post('/ai/stability/generate-image', { prompt, ...options });
+    return response.data;
+  },
 
-    // Check file type
-    if (!allowedTypes.includes(file.type)) {
-      errors.push(`File type ${file.type} is not allowed`);
-    }
+  async generateVideoWithStability(prompt: string, options?: any) {
+    const response = await api.post('/ai/stability/generate-video', { prompt, ...options });
+    return response.data;
+  },
 
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
+  // Video Generation Services
+  async generateVideoWithGeminiVeo(prompt: string, options?: any) {
+    const response = await api.post('/ai/video/gemini-veo', { prompt, ...options });
+    return response.data;
+  },
+
+  async generateVideoWithLuma(prompt: string, options?: any) {
+    const response = await api.post('/ai/video/luma', { prompt, ...options });
+    return response.data;
+  },
+
+  async generateVideoWithRunway(prompt: string, options?: any) {
+    const response = await api.post('/ai/video/runway', { prompt, ...options });
+    return response.data;
+  },
+
+  async generateVideoWithPika(prompt: string, options?: any) {
+    const response = await api.post('/ai/video/pika', { prompt, ...options });
+    return response.data;
+  },
+
+  // AI Validation
+  async validateContent(content: string, type: string) {
+    const response = await api.post('/ai/validation/content', { content, type });
+    return response.data;
+  },
+
+  async validateOrder(orderData: any) {
+    const response = await api.post('/ai/validation/order', orderData);
+    return response.data;
   },
 };
 
-// ==================== API INSTANCE ====================
-export const api = new APIClient();
+// Store Services
+export const storeService = {
+  async getServices(filters?: any) {
+    const response = await api.get('/store/services', { params: filters });
+    return response.data;
+  },
 
-// ==================== EXPORT ====================
+  async getServiceById(id: string) {
+    const response = await api.get(`/store/services/${id}`);
+    return response.data;
+  },
+
+  async createOrder(orderData: any) {
+    const response = await api.post('/store/orders', orderData);
+    return response.data;
+  },
+
+  async getCart() {
+    const response = await api.get('/store/cart');
+    return response.data;
+  },
+
+  async addToCart(item: any) {
+    const response = await api.post('/store/cart/items', item);
+    return response.data;
+  },
+
+  async updateCartItem(id: string, quantity: number) {
+    const response = await api.patch(`/store/cart/items/${id}`, { quantity });
+    return response.data;
+  },
+
+  async removeCartItem(id: string) {
+    const response = await api.delete(`/store/cart/items/${id}`);
+    return response.data;
+  },
+};
+
+// Cloudinary Services
+export const cloudinaryService = {
+  async uploadImage(file: File, options?: any) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+    }
+
+    const response = await api.post('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async uploadVideo(file: File, options?: any) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+    }
+
+    const response = await api.post('/upload/video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+};
+
+// Payment Services
+export const paymentService = {
+  async createPaymentIntent(amount: number, currency: string = 'SAR') {
+    const response = await api.post('/payments/create-intent', { amount, currency });
+    return response.data;
+  },
+
+  async confirmPayment(paymentId: string) {
+    const response = await api.post('/payments/confirm', { paymentId });
+    return response.data;
+  },
+
+  async getPaymentMethods() {
+    const response = await api.get('/payments/methods');
+    return response.data;
+  },
+};
+
+// Email Services (Cloudflare Workers)
+export const emailService = {
+  async sendWelcomeEmail(email: string, name: string) {
+    const response = await api.post('/email/welcome', { email, name });
+    return response.data;
+  },
+
+  async sendOrderConfirmation(orderId: string) {
+    const response = await api.post('/email/order-confirmation', { orderId });
+    return response.data;
+  },
+
+  async sendPasswordReset(email: string) {
+    const response = await api.post('/email/password-reset', { email });
+    return response.data;
+  },
+
+  async sendNotification(email: string, subject: string, body: string) {
+    const response = await api.post('/email/notification', { email, subject, body });
+    return response.data;
+  },
+};
+
+// Slack Integration
+export const slackService = {
+  async sendMessage(channel: string, message: string) {
+    const response = await api.post('/slack/message', { channel, message });
+    return response.data;
+  },
+
+  async sendOrderNotification(orderData: any) {
+    const response = await api.post('/slack/order-notification', orderData);
+    return response.data;
+  },
+
+  async sendErrorNotification(error: Error, context?: any) {
+    const response = await api.post('/slack/error-notification', { error, context });
+    return response.data;
+  },
+};
+
+// Analytics Services
+export const analyticsService = {
+  async trackEvent(event: string, properties?: any) {
+    const response = await api.post('/analytics/track', { event, properties });
+    return response.data;
+  },
+
+  async getDashboardStats(period: string = '30d') {
+    const response = await api.get('/analytics/dashboard', { params: { period } });
+    return response.data;
+  },
+
+  async getUserAnalytics(userId: string) {
+    const response = await api.get(`/analytics/user/${userId}`);
+    return response.data;
+  },
+
+  async getStoreAnalytics() {
+    const response = await api.get('/analytics/store');
+    return response.data;
+  },
+};
+
+// Content Services
+export const contentService = {
+  async generateContent(prompt: string, options?: any) {
+    const response = await api.post('/content/generate', { prompt, ...options });
+    return response.data;
+  },
+
+  async analyzeContent(content: string) {
+    const response = await api.post('/content/analyze', { content });
+    return response.data;
+  },
+
+  async optimizeContent(content: string, target: string) {
+    const response = await api.post('/content/optimize', { content, target });
+    return response.data;
+  },
+
+  async getContentHistory() {
+    const response = await api.get('/content/history');
+    return response.data;
+  },
+};
+
+// Strategy Services
+export const strategyService = {
+  async createStrategy(data: any) {
+    const response = await api.post('/strategies/create', data);
+    return response.data;
+  },
+
+  async analyzeStrategy(data: any) {
+    const response = await api.post('/strategies/analyze', data);
+    return response.data;
+  },
+
+  async updateStrategyProgress(strategyId: string, progress: number) {
+    const response = await api.patch(`/strategies/${strategyId}/progress`, { progress });
+    return response.data;
+  },
+
+  async getStrategies() {
+    const response = await api.get('/strategies');
+    return response.data;
+  },
+};
+
+// Report Services
+export const reportService = {
+  async generateReport(type: string, data: any) {
+    const response = await api.post('/reports/generate', { type, data });
+    return response.data;
+  },
+
+  async getReport(reportId: string) {
+    const response = await api.get(`/reports/${reportId}`);
+    return response.data;
+  },
+
+  async getReportList() {
+    const response = await api.get('/reports');
+    return response.data;
+  },
+};
+
+// Service Manager
+export const serviceManager = {
+  async initializeServices() {
+    const response = await api.post('/services/initialize');
+    return response.data;
+  },
+
+  async getServiceStatus() {
+    const response = await api.get('/services/status');
+    return response.data;
+  },
+
+  async healthCheck() {
+    const response = await api.get('/services/health');
+    return response.data;
+  },
+};
+
 export default api;
