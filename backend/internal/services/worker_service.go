@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nawthtech/backend/internal/config"
-	"github.com/nawthtech/backend/internal/logger"
+	"github.com/nawthtech/nawthtech/backend/internal/config"
+	"github.com/nawthtech/nawthtech/backend/internal/logger"
 )
 
 type WorkerService struct {
