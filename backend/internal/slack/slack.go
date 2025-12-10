@@ -228,7 +228,7 @@ func (c *slackClient) UpdateMessage(channelURL, timestamp, text string) (string,
 }
 
 // DeleteMessage deletes a message
-func (c *slackClient) DeleteMessage(channelURL, timestamp string) (string, error) {
+func (c *slackClient) DeleteMessage(channelURL, timestamp string) (string, string, error) {
 	if c == nil || c.api == nil {
 		return "", "", ErrClientNotInitialized
 	}
