@@ -81,7 +81,7 @@ func Client() *slackClient {
 	if defaultClient == nil {
 		log.Println("[WARN] Slack client not initialized, returning nil")
 	}
-	return defaultClient
+	return nil
 }
 
 // WithToken sets the Slack bot token
