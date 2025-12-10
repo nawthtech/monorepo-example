@@ -11,7 +11,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=for-the-badge&logo=go)](https://golang.org)
 [![React](https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org)
 [![Vite](https://img.shields.io/badge/Vite-4+-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev)
-[![MongoDB](https://img.shields.io/badge/MongoDB-5+-47A248?style=for-the-badge&logo=mongodb)](https://mongodb.com)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-D1-5+-47A248?style=for-the-badge&logo=cloudflare)](https://cloudflare.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
