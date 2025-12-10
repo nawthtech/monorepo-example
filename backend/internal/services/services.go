@@ -3,14 +3,13 @@ package services
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
- "errors"
 	"strings"
 	"time"
 
 	"github.com/nawthtech/nawthtech/backend/internal/models"
 )
-
 
 // ================================
 // هياكل المعاملات المحدثة
@@ -22,6 +21,141 @@ type (
 		Limit  int    `json:"limit"`
 		Rating int    `json:"rating"`
 		SortBy string `json:"sort_by"`
+	}
+
+	AuthRegisterRequest struct {
+		Email     string `json:"email"`
+		Username  string `json:"username"`
+		Password  string `json:"password"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Phone     string `json:"phone"`
+	}
+
+	AuthLoginRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	AuthResponse struct {
+		User         *models.User `json:"user"`
+		AccessToken  string       `json:"access_token"`
+		RefreshToken string       `json:"refresh_token"`
+		ExpiresAt    time.Time    `json:"expires_at"`
+	}
+
+	TokenClaims struct {
+		UserID string `json:"user_id"`
+		Email  string `json:"email"`
+		Role   string `json:"role"`
+		Exp    int64  `json:"exp"`
+	}
+
+	ChangePasswordRequest struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+
+	UserUpdateRequest struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Phone     string `json:"phone"`
+		Avatar    string `json:"avatar"`
+	}
+
+	UserQueryParams struct {
+		Page  int    `json:"page"`
+		Limit int    `json:"limit"`
+		Role  string `json:"role"`
+	}
+
+	UserStats struct {
+		TotalOrders   int     `json:"total_orders"`
+		TotalSpent    float64 `json:"total_spent"`
+		ActiveSince   string  `json:"active_since"`
+		ServicesCount int     `json:"services_count"`
+	}
+
+	ServiceCreateRequest struct {
+		Title       string   `json:"title"`
+		Description string   `json:"description"`
+		Price       float64  `json:"price"`
+		Duration    int      `json:"duration"`
+		CategoryID  string   `json:"category_id"`
+		ProviderID  string   `json:"provider_id"`
+		Images      []string `json:"images"`
+		Tags        []string `json:"tags"`
+	}
+
+	ServiceUpdateRequest struct {
+		Title       string   `json:"title"`
+		Description string   `json:"description"`
+		Price       float64  `json:"price"`
+		Duration    int      `json:"duration"`
+		CategoryID  string   `json:"category_id"`
+		Images      []string `json:"images"`
+		Tags        []string `json:"tags"`
+		IsActive    bool     `json:"is_active"`
+		IsFeatured  bool     `json:"is_featured"`
+	}
+
+	ServiceQueryParams struct {
+		Page       int     `json:"page"`
+		Limit      int     `json:"limit"`
+		CategoryID string  `json:"category_id"`
+		ProviderID string  `json:"provider_id"`
+		MinPrice   float64 `json:"min_price"`
+		MaxPrice   float64 `json:"max_price"`
+		IsActive   bool    `json:"is_active"`
+		IsFeatured bool    `json:"is_featured"`
+	}
+
+	CategoryCreateRequest struct {
+		Name  string `json:"name"`
+		Slug  string `json:"slug"`
+		Image string `json:"image"`
+	}
+
+	CategoryUpdateRequest struct {
+		Name     string `json:"name"`
+		Slug     string `json:"slug"`
+		Image    string `json:"image"`
+		IsActive bool   `json:"is_active"`
+	}
+
+	CategoryQueryParams struct {
+		Page     int  `json:"page"`
+		Limit    int  `json:"limit"`
+		IsActive bool `json:"is_active"`
+	}
+
+	CategoryNode struct {
+		Category  *models.Category `json:"category"`
+		Children  []CategoryNode   `json:"children"`
+		Services  int              `json:"services_count"`
+	}
+
+	OrderCreateRequest struct {
+		UserID    string  `json:"user_id"`
+		ServiceID string  `json:"service_id"`
+		Amount    float64 `json:"amount"`
+		Notes     string  `json:"notes"`
+	}
+
+	OrderQueryParams struct {
+		Page   int    `json:"page"`
+		Limit  int    `json:"limit"`
+		Status string `json:"status"`
+		UserID string `json:"user_id"`
+	}
+
+	OrderStats struct {
+		TotalOrders   int     `json:"total_orders"`
+		PendingOrders int     `json:"pending_orders"`
+		Completed     int     `json:"completed_orders"`
+		Cancelled     int     `json:"cancelled_orders"`
+		TotalRevenue  float64 `json:"total_revenue"`
+		AvgOrderValue float64 `json:"avg_order_value"`
 	}
 )
 
@@ -148,29 +282,13 @@ type (
 		db *sql.DB
 	}
 
-	paymentServiceImpl struct {
-		db *sql.DB
-	}
-
-	uploadServiceImpl struct {
-		db *sql.DB
-	}
-
-	notificationServiceImpl struct {
-		db *sql.DB
-	}
-
-	adminServiceImpl struct {
-		db *sql.DB
-	}
-
 	cacheServiceImpl struct {
 		store map[string]interface{}
 	}
 )
 
 // ================================
-// أمثلة على تنفيذ AuthService باستخدام D1
+// تطبيقات AuthService باستخدام D1
 // ================================
 
 func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest) (*AuthResponse, error) {
@@ -221,153 +339,39 @@ func (s *authServiceImpl) Login(ctx context.Context, req AuthLoginRequest) (*Aut
 	}, nil
 }
 
-// ================================
-// دوال الإنشاء باستخدام D1
-// ================================
-
-func NewAuthService(db *sql.DB) AuthService {
-	return &authServiceImpl{db: db}
+func (s *authServiceImpl) Logout(ctx context.Context, token string) error {
+	// تنفيذ تسجيل الخروج
+	return nil
 }
 
-func NewUserService(db *sql.DB) UserService {
-	return &userServiceImpl{db: db}
+func (s *authServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error) {
+	// تنفيذ تحديث الرمز
+	return nil, fmt.Errorf("not implemented")
 }
 
-func NewServiceService(db *sql.DB) ServiceService {
-	return &serviceServiceImpl{db: db}
+func (s *authServiceImpl) VerifyToken(ctx context.Context, token string) (*TokenClaims, error) {
+	// تنفيذ التحقق من الرمز
+	return nil, fmt.Errorf("not implemented")
 }
 
-func NewCategoryService(db *sql.DB) CategoryService {
-	return &categoryServiceImpl{db: db}
+func (s *authServiceImpl) ForgotPassword(ctx context.Context, email string) error {
+	// تنفيذ نسيان كلمة المرور
+	return fmt.Errorf("not implemented")
 }
 
-func NewOrderService(db *sql.DB) OrderService {
-	return &orderServiceImpl{db: db}
+func (s *authServiceImpl) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	// تنفيذ إعادة تعيين كلمة المرور
+	return fmt.Errorf("not implemented")
 }
 
-func NewPaymentService(db *sql.DB) PaymentService {
-	return &paymentServiceImpl{db: db}
-}
-
-func NewUploadService(db *sql.DB) UploadService {
-	return &uploadServiceImpl{db: db}
-}
-
-func NewNotificationService(db *sql.DB) NotificationService {
-	return &notificationServiceImpl{db: db}
-}
-
-func NewAdminService(db *sql.DB) AdminService {
-	return &adminServiceImpl{db: db}
-}
-
-func NewCacheService() CacheService {
-	return &cacheServiceImpl{store: make(map[string]interface{})}
+func (s *authServiceImpl) ChangePassword(ctx context.Context, userID string, req ChangePasswordRequest) error {
+	// تنفيذ تغيير كلمة المرور
+	return fmt.Errorf("not implemented")
 }
 
 // ================================
-// Service Container مع D1
+// تطبيقات UserService
 // ================================
-
-type ServiceContainer struct {
-	Auth         AuthService
-	User         UserService
-	Service      ServiceService
-	Category     CategoryService
-	Order        OrderService
-	Payment      PaymentService
-	Upload       UploadService
-	Notification NotificationService
-	Admin        AdminService
-	Cache        CacheService
-}
-
-func NewServiceContainer(d1db *sql.DB) *ServiceContainer {
-	return &ServiceContainer{
-		Auth:         NewAuthService(d1db),
-		User:         NewUserService(d1db),
-		Service:      NewServiceService(d1db),
-		Category:     NewCategoryService(d1db),
-		Order:        NewOrderService(d1db),
-		Payment:      NewPaymentService(d1db),
-		Upload:       NewUploadService(d1db),
-		Notification: NewNotificationService(d1db),
-		Admin:        NewAdminService(d1db),
-		Cache:        NewCacheService(),
-	}
-}
-
-
-// ================================
-// تطبيقات AuthService مع D1
-// ================================
-
-type authServiceImpl struct {
-	db *sql.DB
-}
-
-func (s *authServiceImpl) Register(ctx context.Context, req AuthRegisterRequest) (*AuthResponse, error) {
-	userID := fmt.Sprintf("user_%d", time.Now().UnixNano())
-	user := &models.User{
-		ID:            userID,
-		Email:         req.Email,
-		Username:      req.Username,
-		Password:      "hashed_password", // يجب تشفير كلمة المرور
-		FirstName:     req.FirstName,
-		LastName:      req.LastName,
-		Phone:         req.Phone,
-		Role:          "user",
-		Status:        "active",
-		EmailVerified: false,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}
-
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO users (id,email,username,password,first_name,last_name,phone,role,status,email_verified,created_at,updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.ID, user.Email, user.Username, user.Password, user.FirstName, user.LastName, user.Phone,
-		user.Role, user.Status, user.EmailVerified, user.CreatedAt, user.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &AuthResponse{
-		User:         user,
-		AccessToken:  "access_token_" + userID,
-		RefreshToken: "refresh_token_" + userID,
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
-	}, nil
-}
-
-func (s *authServiceImpl) Login(ctx context.Context, req AuthLoginRequest) (*AuthResponse, error) {
-	row := s.db.QueryRowContext(ctx, "SELECT id,email,username,role,status,email_verified FROM users WHERE email = ?", req.Email)
-
-	user := &models.User{}
-	err := row.Scan(&user.ID, &user.Email, &user.Username, &user.Role, &user.Status, &user.EmailVerified)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("المستخدم غير موجود")
-		}
-		return nil, err
-	}
-
-	return &AuthResponse{
-		User:         user,
-		AccessToken:  "access_token_" + user.ID,
-		RefreshToken: "refresh_token_" + user.ID,
-		ExpiresAt:    time.Now().Add(24 * time.Hour),
-	}, nil
-}
-
-// ================================
-// تطبيقات UserService مع D1
-// ================================
-
-type userServiceImpl struct {
-	db *sql.DB
-}
 
 func (s *userServiceImpl) GetProfile(ctx context.Context, userID string) (*models.User, error) {
 	row := s.db.QueryRowContext(ctx, "SELECT id,email,username,first_name,last_name,phone,avatar,role,status,email_verified,created_at,updated_at FROM users WHERE id = ?", userID)
@@ -388,9 +392,9 @@ func (s *userServiceImpl) GetProfile(ctx context.Context, userID string) (*model
 }
 
 func (s *userServiceImpl) UpdateProfile(ctx context.Context, userID string, req UserUpdateRequest) (*models.User, error) {
-	_, err := s.db.ExecContext(ctx, `
-		UPDATE users SET first_name=?, last_name=?, phone=?, avatar=?, updated_at=?
-		WHERE id=?`,
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET first_name=?, last_name=?, phone=?, avatar=?, updated_at=?
+		 WHERE id=?`,
 		req.FirstName, req.LastName, req.Phone, req.Avatar, time.Now(), userID,
 	)
 	if err != nil {
@@ -399,18 +403,32 @@ func (s *userServiceImpl) UpdateProfile(ctx context.Context, userID string, req 
 	return s.GetProfile(ctx, userID)
 }
 
+func (s *userServiceImpl) UpdateAvatar(ctx context.Context, userID string, avatarURL string) error {
+	_, err := s.db.ExecContext(ctx,
+		"UPDATE users SET avatar=?, updated_at=? WHERE id=?",
+		avatarURL, time.Now(), userID,
+	)
+	return err
+}
+
 func (s *userServiceImpl) DeleteAccount(ctx context.Context, userID string) error {
 	_, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id=?", userID)
 	return err
 }
 
-// ================================
-// تطبيقات ServiceService مع D1
-// ================================
-
-type serviceServiceImpl struct {
-	db *sql.DB
+func (s *userServiceImpl) SearchUsers(ctx context.Context, query string, params UserQueryParams) ([]models.User, error) {
+	// تنفيذ البحث
+	return []models.User{}, nil
 }
+
+func (s *userServiceImpl) GetUserStats(ctx context.Context, userID string) (*UserStats, error) {
+	// تنفيذ الحصول على الإحصائيات
+	return &UserStats{}, nil
+}
+
+// ================================
+// تطبيقات ServiceService
+// ================================
 
 func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreateRequest) (*models.Service, error) {
 	serviceID := fmt.Sprintf("service_%d", time.Now().UnixNano())
@@ -431,9 +449,9 @@ func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreat
 		UpdatedAt:   time.Now(),
 	}
 
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO services (id,title,description,price,duration,category_id,provider_id,images,tags,is_active,is_featured,rating,created_at,updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO services (id,title,description,price,duration,category_id,provider_id,images,tags,is_active,is_featured,rating,created_at,updated_at)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		service.ID, service.Title, service.Description, service.Price, service.Duration, service.CategoryID,
 		service.ProviderID, serializeStrings(service.Images), serializeStrings(service.Tags),
 		service.IsActive, service.IsFeatured, service.Rating, service.CreatedAt, service.UpdatedAt,
@@ -445,112 +463,53 @@ func (s *serviceServiceImpl) CreateService(ctx context.Context, req ServiceCreat
 	return service, nil
 }
 
-// ================================
-// دوال مساعدة لتحويل slice إلى نص لتخزينه في D1
-// ================================
-
-func serializeStrings(arr []string) string {
-	result := ""
-	for i, s := range arr {
-		if i > 0 {
-			result += ","
-		}
-		result += s
-	}
-	return result
+func (s *serviceServiceImpl) GetServiceByID(ctx context.Context, serviceID string) (*models.Service, error) {
+	// تنفيذ الحصول على الخدمة
+	return &models.Service{}, nil
 }
 
-func deserializeStrings(s string) []string {
-	if s == "" {
-		return []string{}
-	}
-	return split(s, ",")
+func (s *serviceServiceImpl) UpdateService(ctx context.Context, serviceID string, req ServiceUpdateRequest) (*models.Service, error) {
+	// تنفيذ تحديث الخدمة
+	return &models.Service{}, nil
 }
 
-func split(s string, sep string) []string {
-	var result []string
-	for _, v := range []rune(s) {
-		result = append(result, string(v))
-	}
-	return result
+func (s *serviceServiceImpl) DeleteService(ctx context.Context, serviceID string) error {
+	// تنفيذ حذف الخدمة
+	return nil
 }
 
-// ================================
-// دوال إنشاء الخدمات الجديدة مع D1
-// ================================
-
-func NewAuthService(db *sql.DB) AuthService {
-	return &authServiceImpl{db: db}
+func (s *serviceServiceImpl) GetServices(ctx context.Context, params ServiceQueryParams) ([]models.Service, error) {
+	// تنفيذ الحصول على الخدمات
+	return []models.Service{}, nil
 }
 
-func NewUserService(db *sql.DB) UserService {
-	return &userServiceImpl{db: db}
+func (s *serviceServiceImpl) SearchServices(ctx context.Context, query string, params ServiceQueryParams) ([]models.Service, error) {
+	// تنفيذ البحث في الخدمات
+	return []models.Service{}, nil
 }
 
-func NewServiceService(db *sql.DB) ServiceService {
-	return &serviceServiceImpl{db: db}
+func (s *serviceServiceImpl) GetFeaturedServices(ctx context.Context) ([]models.Service, error) {
+	// تنفيذ الحصول على الخدمات المميزة
+	return []models.Service{}, nil
+}
+
+func (s *serviceServiceImpl) GetSimilarServices(ctx context.Context, serviceID string) ([]models.Service, error) {
+	// تنفيذ الحصول على خدمات مشابهة
+	return []models.Service{}, nil
 }
 
 // ================================
-// OrderService مع D1
+// تطبيقات CategoryService
 // ================================
 
-type orderServiceImpl struct {
-	db *sql.DB
+func (s *categoryServiceImpl) GetCategories(ctx context.Context, params CategoryQueryParams) ([]models.Category, error) {
+	// تنفيذ الحصول على الفئات
+	return []models.Category{}, nil
 }
 
-func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateRequest) (*models.Order, error) {
-	orderID := fmt.Sprintf("order_%d", time.Now().UnixNano())
-	order := &models.Order{
-		ID:         orderID,
-		UserID:     req.UserID,
-		ServiceID:  req.ServiceID,
-		Status:     "pending",
-		Amount:     req.Amount,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
-	}
-
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO orders (id,user_id,service_id,status,amount,created_at,updated_at)
-		VALUES (?,?,?,?,?,?,?)`,
-		order.ID, order.UserID, order.ServiceID, order.Status, order.Amount, order.CreatedAt, order.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return order, nil
-}
-
-func (s *orderServiceImpl) GetOrder(ctx context.Context, orderID string) (*models.Order, error) {
-	row := s.db.QueryRowContext(ctx, "SELECT id,user_id,service_id,status,amount,created_at,updated_at FROM orders WHERE id=?", orderID)
-	order := &models.Order{}
-	err := row.Scan(&order.ID, &order.UserID, &order.ServiceID, &order.Status, &order.Amount, &order.CreatedAt, &order.UpdatedAt)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("الطلب غير موجود")
-		}
-		return nil, err
-	}
-	return order, nil
-}
-
-func (s *orderServiceImpl) UpdateOrderStatus(ctx context.Context, orderID string, status string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE orders SET status=?, updated_at=? WHERE id=?", status, time.Now(), orderID)
-	return err
-}
-
-func NewOrderService(db *sql.DB) OrderService {
-	return &orderServiceImpl{db: db}
-}
-
-// ================================
-// CategoryService مع D1
-// ================================
-
-type categoryServiceImpl struct {
-	db *sql.DB
+func (s *categoryServiceImpl) GetCategoryByID(ctx context.Context, categoryID string) (*models.Category, error) {
+	// تنفيذ الحصول على الفئة
+	return &models.Category{}, nil
 }
 
 func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCreateRequest) (*models.Category, error) {
@@ -565,9 +524,9 @@ func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCr
 		UpdatedAt: time.Now(),
 	}
 
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO categories (id,name,slug,image,is_active,created_at,updated_at)
-		VALUES (?,?,?,?,?,?,?)`,
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO categories (id,name,slug,image,is_active,created_at,updated_at)
+		 VALUES (?,?,?,?,?,?,?)`,
 		category.ID, category.Name, category.Slug, category.Image, category.IsActive, category.CreatedAt, category.UpdatedAt,
 	)
 	if err != nil {
@@ -577,320 +536,150 @@ func (s *categoryServiceImpl) CreateCategory(ctx context.Context, req CategoryCr
 	return category, nil
 }
 
-func (s *categoryServiceImpl) ListCategories(ctx context.Context) ([]*models.Category, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id,name,slug,image,is_active,created_at,updated_at FROM categories WHERE is_active=1")
+func (s *categoryServiceImpl) UpdateCategory(ctx context.Context, categoryID string, req CategoryUpdateRequest) (*models.Category, error) {
+	// تنفيذ تحديث الفئة
+	return &models.Category{}, nil
+}
+
+func (s *categoryServiceImpl) DeleteCategory(ctx context.Context, categoryID string) error {
+	// تنفيذ حذف الفئة
+	return nil
+}
+
+func (s *categoryServiceImpl) GetCategoryTree(ctx context.Context) ([]CategoryNode, error) {
+	// تنفيذ الحصول على شجرة الفئات
+	return []CategoryNode{}, nil
+}
+
+// ================================
+// تطبيقات OrderService
+// ================================
+
+func (s *orderServiceImpl) CreateOrder(ctx context.Context, req OrderCreateRequest) (*models.Order, error) {
+	orderID := fmt.Sprintf("order_%d", time.Now().UnixNano())
+	order := &models.Order{
+		ID:         orderID,
+		UserID:     req.UserID,
+		ServiceID:  req.ServiceID,
+		Status:     "pending",
+		Amount:     req.Amount,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO orders (id,user_id,service_id,status,amount,created_at,updated_at)
+		 VALUES (?,?,?,?,?,?,?)`,
+		order.ID, order.UserID, order.ServiceID, order.Status, order.Amount, order.CreatedAt, order.UpdatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var categories []*models.Category
-	for rows.Next() {
-		c := &models.Category{}
-		err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Image, &c.IsActive, &c.CreatedAt, &c.UpdatedAt)
-		if err != nil {
-			return nil, err
+	return order, nil
+}
+
+func (s *orderServiceImpl) GetOrderByID(ctx context.Context, orderID string) (*models.Order, error) {
+	row := s.db.QueryRowContext(ctx,
+		"SELECT id,user_id,service_id,status,amount,created_at,updated_at FROM orders WHERE id=?",
+		orderID,
+	)
+	order := &models.Order{}
+	err := row.Scan(&order.ID, &order.UserID, &order.ServiceID, &order.Status, &order.Amount, &order.CreatedAt, &order.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("الطلب غير موجود")
 		}
-		categories = append(categories, c)
+		return nil, err
 	}
-	return categories, nil
+	return order, nil
+}
+
+func (s *orderServiceImpl) GetUserOrders(ctx context.Context, userID string, params OrderQueryParams) ([]models.Order, error) {
+	// تنفيذ الحصول على طلبات المستخدم
+	return []models.Order{}, nil
+}
+
+func (s *orderServiceImpl) UpdateOrderStatus(ctx context.Context, orderID string, status string, notes string) (*models.Order, error) {
+	// تنفيذ تحديث حالة الطلب
+	return &models.Order{}, nil
+}
+
+func (s *orderServiceImpl) CancelOrder(ctx context.Context, orderID string, reason string) (*models.Order, error) {
+	// تنفيذ إلغاء الطلب
+	return &models.Order{}, nil
+}
+
+func (s *orderServiceImpl) GetOrderStats(ctx context.Context, timeframe string) (*OrderStats, error) {
+	// تنفيذ الحصول على إحصائيات الطلبات
+	return &OrderStats{}, nil
+}
+
+// ================================
+// تطبيقات CacheService
+// ================================
+
+func (c *cacheServiceImpl) Get(key string) (interface{}, error) {
+	val, ok := c.store[key]
+	if !ok {
+		return nil, fmt.Errorf("key not found")
+	}
+	return val, nil
+}
+
+func (c *cacheServiceImpl) Set(key string, value interface{}, expiration time.Duration) error {
+	c.store[key] = value
+	// يمكن إضافة منطق انتهاء الصلاحية هنا
+	return nil
+}
+
+func (c *cacheServiceImpl) Delete(key string) error {
+	delete(c.store, key)
+	return nil
+}
+
+func (c *cacheServiceImpl) Exists(key string) (bool, error) {
+	_, ok := c.store[key]
+	return ok, nil
+}
+
+func (c *cacheServiceImpl) Flush() error {
+	c.store = make(map[string]interface{})
+	return nil
+}
+
+// ================================
+// دوال مساعدة
+// ================================
+
+func serializeStrings(arr []string) string {
+	return strings.Join(arr, ",")
+}
+
+// ================================
+// دوال الإنشاء
+// ================================
+
+func NewAuthService(db *sql.DB) AuthService {
+	return &authServiceImpl{db: db}
+}
+
+func NewUserService(db *sql.DB) UserService {
+	return &userServiceImpl{db: db}
+}
+
+func NewServiceService(db *sql.DB) ServiceService {
+	return &serviceServiceImpl{db: db}
 }
 
 func NewCategoryService(db *sql.DB) CategoryService {
 	return &categoryServiceImpl{db: db}
 }
 
-// ================================
-// PaymentService مع D1 (مثال أساسي)
-// ================================
-
-type paymentServiceImpl struct {
-	db *sql.DB
-}
-
-func (s *paymentServiceImpl) CreatePayment(ctx context.Context, req PaymentCreateRequest) (*models.Payment, error) {
-	paymentID := fmt.Sprintf("payment_%d", time.Now().UnixNano())
-	payment := &models.Payment{
-		ID:        paymentID,
-		OrderID:   req.OrderID,
-		Amount:    req.Amount,
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO payments (id,order_id,amount,status,created_at,updated_at)
-		VALUES (?,?,?,?,?,?)`,
-		payment.ID, payment.OrderID, payment.Amount, payment.Status, payment.CreatedAt, payment.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return payment, nil
-}
-
-func (s *paymentServiceImpl) UpdatePaymentStatus(ctx context.Context, paymentID string, status string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE payments SET status=?, updated_at=? WHERE id=?", status, time.Now(), paymentID)
-	return err
-}
-
-func NewPaymentService(db *sql.DB) PaymentService {
-	return &paymentServiceImpl{db: db}
-}
-
-// ================================
-// UploadService (تخزين الملفات) - مجرد مثال، يعتمد على رابط URL
-// ================================
-
-type uploadServiceImpl struct{}
-
-func (s *uploadServiceImpl) UploadFile(ctx context.Context, fileName string, fileData []byte) (string, error) {
-	// هنا يمكن دمج مع S3 أو Cloudflare R2، الآن مجرد مثال
-	url := fmt.Sprintf("https://cdn.nawthtech.com/%s", fileName)
-	return url, nil
-}
-
-func NewUploadService() UploadService {
-	return &uploadServiceImpl{}
-}
-
-// ================================
-// NotificationService - مجرد مثال
-// ================================
-
-type notificationServiceImpl struct{}
-
-func (s *notificationServiceImpl) SendNotification(ctx context.Context, userID string, message string) error {
-	fmt.Printf("Notification to %s: %s\n", userID, message)
-	return nil
-}
-
-func NewNotificationService() NotificationService {
-	return &notificationServiceImpl{}
-}
-
-// ================================
-// AdminService - إدارة المستخدمين والخدمات
-// ================================
-
-type adminServiceImpl struct {
-	db *sql.DB
-}
-
-func (s *adminServiceImpl) DeactivateUser(ctx context.Context, userID string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE users SET status=?, updated_at=? WHERE id=?", "inactive", time.Now(), userID)
-	return err
-}
-
-func (s *adminServiceImpl) DeactivateService(ctx context.Context, serviceID string) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE services SET is_active=?, updated_at=? WHERE id=?", false, time.Now(), serviceID)
-	return err
-}
-
-func NewAdminService(db *sql.DB) AdminService {
-	return &adminServiceImpl{db: db}
-}
-
-// ================================
-// CacheService - مجرد مثال باستخدام map محلي
-// ================================
-
-type cacheServiceImpl struct {
-	store map[string]interface{}
-}
-
-func (c *cacheServiceImpl) Set(key string, value interface{}) {
-	c.store[key] = value
-}
-
-func (c *cacheServiceImpl) Get(key string) (interface{}, bool) {
-	val, ok := c.store[key]
-	return val, ok
+func NewOrderService(db *sql.DB) OrderService {
+	return &orderServiceImpl{db: db}
 }
 
 func NewCacheService() CacheService {
 	return &cacheServiceImpl{store: make(map[string]interface{})}
-}
-
-// Example: AuthService -------------------------------------
-
-type AuthService interface {
-	Register(ctx context.Context, email, password string) (string, error)
-	Login(ctx context.Context, email, password string) (string, error)
-	RefreshToken(ctx context.Context, token string) (string, error)
-}
-
-type authService struct{}
-
-func NewAuthService() AuthService {
-	return &authService{}
-}
-
-func (s *authService) Register(ctx context.Context, email, password string) (string, error) {
-	if email == "" || password == "" {
-		return "", errors.New("invalid email or password")
-	}
-	return "user_created_successfully", nil
-}
-
-func (s *authService) Login(ctx context.Context, email, password string) (string, error) {
-	if email == "" || password == "" {
-		return "", errors.New("invalid credentials")
-	}
-	return "jwt_token_here", nil
-}
-
-func (s *authService) RefreshToken(ctx context.Context, token string) (string, error) {
-	if token == "" {
-		return "", errors.New("invalid token")
-	}
-	return "refreshed_jwt_token", nil
-}
-
-// Example: UserService -------------------------------------
-
-type UserService interface {
-	GetProfile(ctx context.Context, userID string) (*UserProfile, error)
-	UpdateProfile(ctx context.Context, userID string, data UpdateProfileDTO) error
-}
-
-type userService struct{}
-
-func NewUserService() UserService {
-	return &userService{}
-}
-
-type UserProfile struct {
-	ID        string `json:"id"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-type UpdateProfileDTO struct {
-	Name string `json:"name"`
-}
-
-func (s *userService) GetProfile(ctx context.Context, userID string) (*UserProfile, error) {
-	if userID == "" {
-		return nil, errors.New("missing user ID")
-	}
-	return &UserProfile{
-		ID:        userID,
-		Email:     "example@mail.com",
-		Name:      "Test User",
-		CreatedAt: time.Now().Add(-24 * time.Hour),
-	}, nil
-}
-
-func (s *userService) UpdateProfile(ctx context.Context, userID string, data UpdateProfileDTO) error {
-	if userID == "" {
-		return errors.New("missing user ID")
-	}
-	return nil
-}
-
-// Example: ProductService -------------------------------------
-
-type ProductService interface {
-	GetAll(ctx context.Context) ([]Product, error)
-	GetByID(ctx context.Context, id string) (*Product, error)
-	Create(ctx context.Context, p ProductDTO) (string, error)
-	Delete(ctx context.Context, id string) error
-}
-
-type productService struct{}
-
-func NewProductService() ProductService {
-	return &productService{}
-}
-
-type Product struct {
-	ID    string  `json:"id"`
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
-}
-
-type ProductDTO struct {
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
-}
-
-func (s *productService) GetAll(ctx context.Context) ([]Product, error) {
-	return []Product{
-		{ID: "1", Name: "Item A", Price: 20.5},
-		{ID: "2", Name: "Item B", Price: 14.0},
-	}, nil
-}
-
-func (s *productService) GetByID(ctx context.Context, id string) (*Product, error) {
-	if id == "" {
-		return nil, errors.New("missing product ID")
-	}
-	return &Product{
-		ID:    id,
-		Name:  "Example Item",
-		Price: 33.0,
-	}, nil
-}
-
-func (s *productService) Create(ctx context.Context, p ProductDTO) (string, error) {
-	if p.Name == "" || p.Price <= 0 {
-		return "", errors.New("invalid product data")
-	}
-	return "new-product-id", nil
-}
-
-func (s *productService) Delete(ctx context.Context, id string) error {
-	if id == "" {
-		return errors.New("missing product ID")
-	}
-	return nil
-}
-
-// Example: OrderService -------------------------------------
-
-type OrderService interface {
-	CreateOrder(ctx context.Context, userID string, items []OrderItemDTO) (string, error)
-	GetOrdersByUser(ctx context.Context, userID string) ([]Order, error)
-}
-
-type orderService struct{}
-
-func NewOrderService() OrderService {
-	return &orderService{}
-}
-
-type Order struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Items     []OrderItemDTO `json:"items"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-type OrderItemDTO struct {
-	ProductID string  `json:"product_id"`
-	Qty       int     `json:"qty"`
-	UnitPrice float64 `json:"unit_price"`
-}
-
-func (s *orderService) CreateOrder(ctx context.Context, userID string, items []OrderItemDTO) (string, error) {
-	if userID == "" {
-		return "", errors.New("missing user ID")
-	}
-	if len(items) == 0 {
-		return "", errors.New("empty order")
-	}
-	return "order-id-12345", nil
-}
-
-func (s *orderService) GetOrdersByUser(ctx context.Context, userID string) ([]Order, error) {
-	if userID == "" {
-		return nil, errors.New("missing user ID")
-	}
-	return []Order{
-		{ID: "O-1", UserID: userID, Items: []OrderItemDTO{}, CreatedAt: time.Now().Add(-10 * time.Hour)},
-	}, nil
 }
