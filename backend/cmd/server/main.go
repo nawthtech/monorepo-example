@@ -14,8 +14,44 @@ import (
 	"github.com/nawthtech/nawthtech/backend/internal/handlers"
 	"github.com/nawthtech/nawthtech/backend/internal/logger"
 	"github.com/nawthtech/nawthtech/backend/internal/middleware"
-	"github.com/nawthtech/nawthtech/backend/internal/slack" 
+	"github.com/nawthtech/nawthtech/backend/internal/slack"
+	"github.com/nawthtech/nawthtech/backend/internal/config"
+	"github.com/nawthtech/nawthtech/backend/internal/db"
 )
+
+func main() {
+	// تحميل الإعدادات
+	cfg := config.Load()
+	
+	// تهيئة قاعدة البيانات
+	database, err := db.InitializeFromConfig(cfg)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
+	
+	// التحقق من الاتصال
+	if db.IsConnected() {
+		log.Println("Database is connected")
+	}
+	
+	// تشغيل عمليات الترحيل
+	ctx := context.Background()
+	if err := db.RunMigrations(ctx); err != nil {
+		log.Printf("Warning: migrations failed: %v", err)
+	}
+	
+	// استخدام قاعدة البيانات
+	dbInstance := db.GetDB()
+	if dbInstance != nil {
+		// تنفيذ استعلام
+		var version string
+		err := dbInstance.QueryRowContext(ctx, "SELECT version()").Scan(&version)
+		if err == nil {
+			log.Printf("Database version: %s", version)
+		}
+	}
+}
 
 func main() {
 	// تهيئة Slack client من environment variables
