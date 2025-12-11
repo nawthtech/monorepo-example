@@ -21,10 +21,3 @@ export async function runMigrations(env) {
     return { success: false, error: error.message };
   }
 }
-
-// أو في ملف wrangler.toml:
-// [[d1_databases]]
-// binding = "DB"
-// database_name = "nawthtech-db"
-// database_id = "your-database-id"
-// migrations_dir = "migrations"
