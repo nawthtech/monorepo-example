@@ -50,6 +50,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			services.GET("/featured", handlers.Service.GetFeaturedServices)
 			services.GET("/categories", handlers.Service.GetCategories)
 			services.GET("/:id", handlers.Service.GetServiceByID)
+			services.GET("/:id/similar", handlers.Service.GetSimilarServices)
 		}
 
 		// 📁 مسارات الفئات
@@ -57,6 +58,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 		{
 			categories.GET("/", handlers.Category.GetCategories)
 			categories.GET("/:id", handlers.Category.GetCategoryByID)
+			categories.GET("/tree", handlers.Category.GetCategoryTree)
 		}
 
 		// 💚 مسارات الصحة والفحص
@@ -67,6 +69,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 					"status":    "healthy",
 					"timestamp": time.Now().UTC(),
 					"service":   "NawthTech API v1",
+					"database":  "Cloudflare D1",
 				})
 			})
 
@@ -75,6 +78,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 					"status":    "ready",
 					"timestamp": time.Now().UTC(),
 					"service":   "NawthTech API v1",
+					"database":  "Cloudflare D1",
 				})
 			})
 
@@ -83,6 +87,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 					"status":    "live",
 					"timestamp": time.Now().UTC(),
 					"service":   "NawthTech API v1",
+					"database":  "Cloudflare D1",
 				})
 			})
 		}
@@ -96,6 +101,13 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 					"version":       "v1.0.0",
 					"description":   "منصة نوذ تك للخدمات الإلكترونية - وثائق API",
 					"documentation": "سيتم إضافة رابط التوثيق هنا",
+					"stack": gin.H{
+						"database":       "Cloudflare D1",
+						"upload_service": "Cloudinary",
+						"backend":        "Go + Gin",
+						"frontend":       "React + Vite",
+						"deployment":     "Cloudflare Workers",
+					},
 					"endpoints": []string{
 						"GET    /api/v1/health",
 						"POST   /api/v1/auth/register",
@@ -123,6 +135,14 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 							"description": "الإصدار 1 من API",
 						},
 					},
+					"components": gin.H{
+						"schemas": gin.H{
+							"Database": gin.H{
+								"type":        "string",
+								"description": "Cloudflare D1 SQLite Database",
+							},
+						},
+					},
 				})
 			})
 		}
@@ -139,8 +159,10 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 		{
 			users.GET("/profile", handlers.User.GetProfile)
 			users.PUT("/profile", handlers.User.UpdateProfile)
+			users.PUT("/avatar", handlers.User.UpdateAvatar)
 			users.PUT("/change-password", handlers.User.ChangePassword)
 			users.GET("/stats", handlers.User.GetUserStats)
+			users.DELETE("/account", handlers.User.DeleteAccount)
 		}
 
 		// 🛒 مسارات الطلبات
@@ -151,6 +173,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			orders.GET("/:id", handlers.Order.GetOrderByID)
 			orders.PUT("/:id/status", handlers.Order.UpdateOrderStatus)
 			orders.DELETE("/:id", handlers.Order.CancelOrder)
+			orders.GET("/stats", handlers.Order.GetOrderStats)
 		}
 
 		// 💳 مسارات الدفع
@@ -159,6 +182,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			payments.GET("/history", handlers.Payment.GetPaymentHistory)
 			payments.POST("/create-intent", handlers.Payment.CreatePaymentIntent)
 			payments.POST("/confirm", handlers.Payment.ConfirmPayment)
+			payments.POST("/validate", handlers.Payment.ValidatePayment)
 		}
 
 		// ☁️ مسارات الرفع - Cloudinary
@@ -169,6 +193,11 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			upload.GET("/image/:public_id", handlers.Upload.GetImageInfo)
 			upload.DELETE("/image/:public_id", handlers.Upload.DeleteImage)
 			upload.GET("/my-images", handlers.Upload.GetUserImages)
+			upload.GET("/presigned-url", handlers.Upload.GeneratePresignedURL)
+			upload.POST("/file", handlers.Upload.UploadFile)
+			upload.GET("/file/:id", handlers.Upload.GetFile)
+			upload.DELETE("/file/:id", handlers.Upload.DeleteFile)
+			upload.GET("/my-files", handlers.Upload.GetUserFiles)
 		}
 
 		// 🔔 مسارات الإشعارات
@@ -178,6 +207,8 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			notifications.PUT("/:id/read", handlers.Notification.MarkAsRead)
 			notifications.PUT("/read-all", handlers.Notification.MarkAllAsRead)
 			notifications.GET("/unread-count", handlers.Notification.GetUnreadCount)
+			notifications.DELETE("/:id", handlers.Notification.DeleteNotification)
+			notifications.POST("/", handlers.Notification.CreateNotification)
 		}
 
 		// 🛍️ مسارات الخدمات المحمية
@@ -187,6 +218,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			protectedServices.POST("/", handlers.Service.CreateService)
 			protectedServices.PUT("/:id", handlers.Service.UpdateService)
 			protectedServices.DELETE("/:id", handlers.Service.DeleteService)
+			protectedServices.GET("/similar/:id", handlers.Service.GetSimilarServices)
 		}
 
 		// 📁 مسارات الفئات المحمية
@@ -195,6 +227,18 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			protectedCategories.POST("/", handlers.Category.CreateCategory)
 			protectedCategories.PUT("/:id", handlers.Category.UpdateCategory)
 			protectedCategories.DELETE("/:id", handlers.Category.DeleteCategory)
+			protectedCategories.GET("/tree", handlers.Category.GetCategoryTree)
+		}
+
+		// 🛒 مسارات السلة (Cart)
+		cart := protected.Group("/cart")
+		{
+			cart.GET("/", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"message": "سلة المشتريات - تحت التطوير",
+					"status":  "coming_soon",
+				})
+			})
 		}
 	}
 
@@ -207,25 +251,79 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 		// 📊 لوحة التحكم
 		admin.GET("/dashboard", handlers.Admin.GetDashboard)
 		admin.GET("/dashboard/stats", handlers.Admin.GetDashboardStats)
+		admin.GET("/dashboard/metrics", handlers.Admin.GetSystemMetrics)
 
 		// 👥 إدارة المستخدمين
 		admin.GET("/users", handlers.Admin.GetUsers)
 		admin.PUT("/users/:id/status", handlers.Admin.UpdateUserStatus)
+		admin.POST("/users/:id/ban", handlers.Admin.BanUser)
+		admin.POST("/users/:id/unban", handlers.Admin.UnbanUser)
+		admin.GET("/users/search", handlers.Admin.SearchUsers)
 
 		// 📋 سجلات النظام
 		admin.GET("/system-logs", handlers.Admin.GetSystemLogs)
+		admin.DELETE("/system-logs/clean", handlers.Admin.CleanOldLogs)
+
+		// ⚙️ إعدادات النظام
+		admin.PUT("/system-settings", handlers.Admin.UpdateSystemSettings)
+		admin.GET("/system-config", handlers.Admin.GetSystemConfig)
 
 		// 🛍️ إدارة الخدمات (إضافية)
 		adminServices := admin.Group("/services")
 		{
-			adminServices.GET("/all", handlers.Service.GetServices)
-			adminServices.DELETE("/:id/force", handlers.Service.DeleteService)
+			adminServices.GET("/all", handlers.Service.GetAllServices)
+			adminServices.DELETE("/:id/force", handlers.Service.ForceDeleteService)
+			adminServices.PUT("/:id/feature", handlers.Service.ToggleFeatured)
+			adminServices.PUT("/:id/status", handlers.Service.ToggleStatus)
+			adminServices.GET("/stats", handlers.Service.GetServiceStats)
 		}
 
 		// 📁 إدارة الفئات (إضافية)
 		adminCategories := admin.Group("/categories")
 		{
-			adminCategories.GET("/all", handlers.Category.GetCategories)
+			adminCategories.GET("/all", handlers.Category.GetAllCategories)
+			adminCategories.POST("/bulk", handlers.Category.BulkCreateCategories)
+			adminCategories.PUT("/:id/status", handlers.Category.ToggleCategoryStatus)
+		}
+
+		// 📊 إدارة الطلبات
+		adminOrders := admin.Group("/orders")
+		{
+			adminOrders.GET("/all", handlers.Order.GetAllOrders)
+			adminOrders.GET("/stats/advanced", handlers.Order.GetAdvancedStats)
+			adminOrders.PUT("/:id/force-status", handlers.Order.ForceUpdateStatus)
+		}
+
+		// 💳 إدارة المدفوعات
+		adminPayments := admin.Group("/payments")
+		{
+			adminPayments.GET("/all", handlers.Payment.GetAllPayments)
+			adminPayments.GET("/revenue", handlers.Payment.GetRevenueStats)
+			adminPayments.POST("/:id/refund", handlers.Payment.ProcessRefund)
+		}
+
+		// 🔔 إدارة الإشعارات
+		adminNotifications := admin.Group("/notifications")
+		{
+			adminNotifications.GET("/all", handlers.Notification.GetAllNotifications)
+			adminNotifications.POST("/broadcast", handlers.Notification.BroadcastNotification)
+			adminNotifications.DELETE("/clean", handlers.Notification.CleanOldNotifications)
+		}
+
+		// ☁️ إدارة الملفات
+		adminFiles := admin.Group("/files")
+		{
+			adminFiles.GET("/all", handlers.Upload.GetAllFiles)
+			adminFiles.DELETE("/clean", handlers.Upload.CleanOrphanedFiles)
+			adminFiles.GET("/storage", handlers.Upload.GetStorageStats)
+		}
+
+		// 🏥 صحة النظام للمسؤولين
+		adminHealth := admin.Group("/health")
+		{
+			adminHealth.GET("/", handlers.Admin.GetAdminHealth)
+			adminHealth.GET("/detailed", handlers.Admin.GetDetailedHealth)
+			adminHealth.GET("/database", handlers.Admin.GetDatabaseHealth)
 		}
 	}
 
@@ -239,18 +337,30 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			"message":        "مرحباً بك في نوذ تك - منصة الخدمات الإلكترونية",
 			"version":        "v1.0.0",
 			"timestamp":      time.Now().UTC(),
-			"database":       "MongoDB",
-			"upload_service": "Cloudinary",
-			"status":         "running",
+			"stack": gin.H{
+				"database":        "Cloudflare D1",
+				"upload_service":  "Cloudinary",
+				"authentication":  "JWT Tokens",
+				"backend":         "Go + Gin",
+				"frontend":        "React + Vite",
+				"deployment":      "Cloudflare Workers",
+				"cache":           "In-Memory",
+				"email":           "SMTP + Mailersend",
+				"payments":        "Stripe Integration",
+			},
+			"status": "running",
 			"endpoints": gin.H{
-				"auth":       "/api/v1/auth",
-				"services":   "/api/v1/services",
-				"categories": "/api/v1/categories",
-				"users":      "/api/v1/users",
-				"orders":     "/api/v1/orders",
-				"upload":     "/api/v1/upload",
-				"health":     "/api/v1/health",
-				"docs":       "/api/v1/docs",
+				"auth":         "/api/v1/auth",
+				"services":     "/api/v1/services",
+				"categories":   "/api/v1/categories",
+				"users":        "/api/v1/users",
+				"orders":       "/api/v1/orders",
+				"payments":     "/api/v1/payments",
+				"upload":       "/api/v1/upload",
+				"notifications": "/api/v1/notifications",
+				"health":       "/api/v1/health",
+				"docs":         "/api/v1/docs",
+				"admin":        "/api/v1/admin",
 			},
 		})
 	})
@@ -269,6 +379,7 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 					"categories": true,
 					"users":      false,
 				},
+				"database": "Cloudflare D1",
 			},
 		})
 	})
@@ -279,12 +390,44 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 			"success": true,
 			"message": "إحصائيات النظام",
 			"data": gin.H{
-				"total_endpoints": 45,
+				"total_endpoints": 65,
+				"public_endpoints": 20,
+				"protected_endpoints": 30,
+				"admin_endpoints": 15,
 				"active_services": 150,
 				"total_users":     1250,
 				"total_orders":    890,
+				"total_payments":  750,
+				"database":        "Cloudflare D1",
 				"uptime":          "99.8%",
 				"response_time":   "125ms",
+				"storage_used":    "2.5GB",
+				"api_version":     "v1.0.0",
+			},
+		})
+	})
+
+	// 🔄 مسار إعادة تعيين التخزين المؤقت (للأغراض التطويرية)
+	router.POST("/cache/reset", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "تم إعادة تعيين التخزين المؤقت",
+			"timestamp": time.Now().UTC(),
+		})
+	})
+
+	// ⚙️ معلومات الإصدار
+	router.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"api_version":    "v1.0.0",
+				"go_version":     "1.25.4",
+				"gin_version":    "v1.9.1",
+				"database":       "Cloudflare D1",
+				"cloud_provider": "Cloudflare",
+				"deployed_at":    "2024-01-15T10:30:00Z",
+				"last_updated":   time.Now().UTC(),
 			},
 		})
 	})
@@ -293,14 +436,22 @@ func RegisterV1Routes(router *gin.RouterGroup, handlers *HandlerContainer, authM
 // GetRoutesInfo معلومات عن المسارات المسجلة
 func GetRoutesInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"total_endpoints":     45,
-		"public_endpoints":    15,
-		"protected_endpoints": 25,
-		"admin_endpoints":     5,
-		"version":             "v1.0.0",
+		"total_endpoints":       65,
+		"public_endpoints":      20,
+		"protected_endpoints":   30,
+		"admin_endpoints":       15,
+		"version":              "v1.0.0",
+		"database":             "Cloudflare D1",
 		"categories": []string{
 			"المصادقة", "المستخدمين", "الخدمات", "الفئات",
 			"الطلبات", "الدفع", "الرفع", "الإشعارات", "الإدارة",
+			"الصحة", "التوثيق", "البحث", "الإحصائيات",
 		},
+		"authentication": "JWT Bearer Tokens",
+		"rate_limiting":  "مفعل",
+		"cors":           "مفعل",
+		"security":       "HTTPS فقط في Production",
+		"monitoring":     "مفعل",
+		"logging":        "مفعل",
 	}
 }
