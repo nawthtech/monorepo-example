@@ -13,8 +13,9 @@ import (
 func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		allowed := false
-		for _, o := range cfg.Cors.AllowedOrigins {
+allowedOrigins := cfg.CORS.AllowedOrigins
+// و
+for _, origin := range cfg.CORS.AllowedOrigins
 			if o == origin || o == "*" {
 				allowed = true
 				break
@@ -22,9 +23,9 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 		if allowed {
 			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Methods", strings.Join(cfg.Cors.AllowedMethods, ","))
-			c.Header("Access-Control-Allow-Headers", strings.Join(cfg.Cors.AllowedHeaders, ","))
-			if cfg.Cors.AllowCredentials {
+			c.Header("Access-Control-Allow-Methods", strings.Join(cfg.CORS.AllowedMethods, ","))
+			c.Header("Access-Control-Allow-Headers", strings.Join(cfg.CORS.AllowedHeaders, ","))
+			if cfg.CORS.AllowCredentials {
 				c.Header("Access-Control-Allow-Credentials", "true")
 			}
 		}
