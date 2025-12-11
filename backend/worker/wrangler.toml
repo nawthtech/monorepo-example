@@ -30,6 +30,7 @@ database_name = "nawthtech-db1"
 database_id = "bbf15aeb-0718-47c8-9723-d8a83f79e6cb"
 workers_url = "db.nawth.workers.dev"
 preview_url = "*-db.nawth.workers.dev"
+migrations_dir = "migrations"
 # بيئات مختلفة
 [env.production]
 name = "nawthtech-api-production"
