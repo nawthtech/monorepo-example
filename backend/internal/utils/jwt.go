@@ -34,7 +34,7 @@ func GenerateJWT(cfg *config.Config, userID, email, role string) (string, string
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt := now.Add(time.Second * time.Duration(cfg.Auth.JWTExpiration)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Second * time.Duration(cfg.Auth.JWTExpiration))),
 			Issuer:    "nawthtech",
 		},
 	}
@@ -44,20 +44,20 @@ func GenerateJWT(cfg *config.Config, userID, email, role string) (string, string
 		return "", "", err
 	}
 
-	// refresh token (longer expiry)
+	// Generate refresh token
 	refreshClaims := jwt.RegisteredClaims{
 		IssuedAt:  jwt.NewNumericDate(now),
-		refreshExpiresAt:= now.Add(time.Second * time.Duration(cfg.Auth.RefreshExpiration)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(time.Second * time.Duration(cfg.Auth.RefreshExpiration))),
 		Issuer:    "nawthtech",
 		Subject:   userID,
 	}
-	refreshTokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshToken, err := refreshTokenObj.SignedString([]byte(secret))
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenString, err := refreshToken.SignedString([]byte(secret))
 	if err != nil {
 		return "", "", err
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshTokenString, nil
 }
 
 // VerifyJWT verifies token and returns claims
