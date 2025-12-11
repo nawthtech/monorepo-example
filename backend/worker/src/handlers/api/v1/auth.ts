@@ -4,7 +4,13 @@
 
 import type { IRequest } from 'itty-router';
 import type { Env, User, RegisterRequest, LoginRequest, UpdateProfileRequest } from '../../../types/database';
-import { hashPassword, verifyPassword, generateJWT } from '../../../utils/crypto';
+import { 
+  hashPassword, 
+  verifyPassword, 
+  generateJWT, 
+  verifyJWT,
+  generateApiKey 
+} from '../../../utils/crypto';
 import { successResponse, errorResponse, paginatedResponse } from '../../../utils/responses';
 
 export async function registerUser(
