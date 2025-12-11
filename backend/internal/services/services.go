@@ -158,6 +158,259 @@ type (
 		AvgOrderValue float64 `json:"avg_order_value"`
 	}
 )
+// ================================
+// هياكل طلبات الدفع
+// ================================
+
+type PaymentCreateRequest struct {
+	OrderID string  `json:"order_id"`
+	Amount  float64 `json:"amount"`
+}
+
+type PaymentIntentRequest struct {
+	OrderID   string  `json:"order_id"`
+	Amount    float64 `json:"amount"`
+	Currency  string  `json:"currency"`
+	Customer  string  `json:"customer,omitempty"`
+	ReturnURL string  `json:"return_url,omitempty"`
+}
+
+type PaymentIntent struct {
+	ID           string                 `json:"id"`
+	ClientSecret string                 `json:"client_secret"`
+	Status       string                 `json:"status"`
+	Amount       float64                `json:"amount"`
+	Currency     string                 `json:"currency"`
+	CreatedAt    time.Time              `json:"created_at"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type PaymentResult struct {
+	Success    bool        `json:"success"`
+	Message    string      `json:"message"`
+	PaymentID  string      `json:"payment_id,omitempty"`
+	OrderID    string      `json:"order_id,omitempty"`
+	Amount     float64     `json:"amount,omitempty"`
+	Currency   string      `json:"currency,omitempty"`
+	Status     string      `json:"status,omitempty"`
+	Data       interface{} `json:"data,omitempty"`
+	Timestamp  time.Time   `json:"timestamp"`
+}
+
+type PaymentQueryParams struct {
+	Page     int       `json:"page"`
+	Limit    int       `json:"limit"`
+	Status   string    `json:"status"`
+	UserID   string    `json:"user_id"`
+	OrderID  string    `json:"order_id"`
+	FromDate time.Time `json:"from_date,omitempty"`
+	ToDate   time.Time `json:"to_date,omitempty"`
+}
+
+type PaymentValidation struct {
+	Valid    bool                   `json:"valid"`
+	Reason   string                 `json:"reason,omitempty"`
+	Payment  *models.Payment        `json:"payment,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ================================
+// هياكل أخرى متعلقة بالدفع
+// ================================
+
+type PaymentMethod struct {
+	ID         string    `json:"id"`
+	Type       string    `json:"type"` // card, bank_account, etc.
+	LastFour   string    `json:"last_four,omitempty"`
+	ExpMonth   int       `json:"exp_month,omitempty"`
+	ExpYear    int       `json:"exp_year,omitempty"`
+	Brand      string    `json:"brand,omitempty"`
+	IsDefault  bool      `json:"is_default"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type RefundRequest struct {
+	PaymentID string  `json:"payment_id"`
+	Amount    float64 `json:"amount"`
+	Reason    string  `json:"reason,omitempty"`
+}
+
+type RefundResult struct {
+	ID        string    `json:"id"`
+	PaymentID string    `json:"payment_id"`
+	Amount    float64   `json:"amount"`
+	Status    string    `json:"status"`
+	Reason    string    `json:"reason,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ================================
+// تطبيق PaymentService مع D1
+// ================================
+
+type paymentServiceImpl struct {
+	db *sql.DB
+}
+
+func (s *paymentServiceImpl) CreatePaymentIntent(ctx context.Context, req PaymentIntentRequest) (*PaymentIntent, error) {
+	paymentID := fmt.Sprintf("pi_%d", time.Now().UnixNano())
+	
+	paymentIntent := &PaymentIntent{
+		ID:           paymentID,
+		ClientSecret: fmt.Sprintf("secret_%s", paymentID),
+		Status:       "requires_payment_method",
+		Amount:       req.Amount,
+		Currency:     req.Currency,
+		CreatedAt:    time.Now(),
+		Metadata: map[string]interface{}{
+			"order_id": req.OrderID,
+		},
+	}
+
+	// حفظ في قاعدة البيانات
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO payment_intents (id, order_id, amount, currency, status, client_secret, metadata, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		paymentIntent.ID, req.OrderID, req.Amount, req.Currency, paymentIntent.Status,
+		paymentIntent.ClientSecret, "{}", paymentIntent.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create payment intent: %w", err)
+	}
+
+	return paymentIntent, nil
+}
+
+func (s *paymentServiceImpl) ConfirmPayment(ctx context.Context, paymentID string, confirmationData map[string]interface{}) (*PaymentResult, error) {
+	// تحديث حالة الدفع
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE payment_intents SET status = ?, updated_at = ? WHERE id = ?`,
+		"succeeded", time.Now(), paymentID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to confirm payment: %w", err)
+	}
+
+	// الحصول على تفاصيل الدفع
+	row := s.db.QueryRowContext(ctx, `
+		SELECT order_id, amount, currency FROM payment_intents WHERE id = ?`, paymentID)
+	
+	var orderID string
+	var amount float64
+	var currency string
+	err = row.Scan(&orderID, &amount, &currency)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment details: %w", err)
+	}
+
+	return &PaymentResult{
+		Success:   true,
+		Message:   "Payment confirmed successfully",
+		PaymentID: paymentID,
+		OrderID:   orderID,
+		Amount:    amount,
+		Currency:  currency,
+		Status:    "succeeded",
+		Timestamp: time.Now(),
+	}, nil
+}
+
+func (s *paymentServiceImpl) GetPaymentHistory(ctx context.Context, userID string, params PaymentQueryParams) ([]models.Payment, error) {
+	query := `
+		SELECT p.id, p.order_id, p.amount, p.currency, p.status, p.payment_method, 
+		       p.transaction_id, p.created_at, p.updated_at
+		FROM payments p
+		INNER JOIN orders o ON p.order_id = o.id
+		WHERE o.user_id = ?`
+	
+	args := []interface{}{userID}
+	
+	// تطبيق الفلترة
+	if params.Status != "" {
+		query += " AND p.status = ?"
+		args = append(args, params.Status)
+	}
+	
+	if params.OrderID != "" {
+		query += " AND p.order_id = ?"
+		args = append(args, params.OrderID)
+	}
+	
+	if !params.FromDate.IsZero() {
+		query += " AND p.created_at >= ?"
+		args = append(args, params.FromDate)
+	}
+	
+	if !params.ToDate.IsZero() {
+		query += " AND p.created_at <= ?"
+		args = append(args, params.ToDate)
+	}
+	
+	// الترتيب والتصفح
+	query += " ORDER BY p.created_at DESC LIMIT ? OFFSET ?"
+	args = append(args, params.Limit, (params.Page-1)*params.Limit)
+	
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query payment history: %w", err)
+	}
+	defer rows.Close()
+	
+	var payments []models.Payment
+	for rows.Next() {
+		var payment models.Payment
+		err := rows.Scan(
+			&payment.ID, &payment.OrderID, &payment.Amount, &payment.Currency,
+			&payment.Status, &payment.PaymentMethod, &payment.TransactionID,
+			&payment.CreatedAt, &payment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan payment: %w", err)
+		}
+		payments = append(payments, payment)
+	}
+	
+	return payments, nil
+}
+
+func (s *paymentServiceImpl) ValidatePayment(ctx context.Context, paymentData map[string]interface{}) (*PaymentValidation, error) {
+	// التحقق الأساسي
+	amount, ok := paymentData["amount"].(float64)
+	if !ok || amount <= 0 {
+		return &PaymentValidation{
+			Valid:  false,
+			Reason: "Invalid or missing amount",
+		}, nil
+	}
+	
+	currency, ok := paymentData["currency"].(string)
+	if !ok || currency == "" {
+		return &PaymentValidation{
+			Valid:  false,
+			Reason: "Invalid or missing currency",
+		}, nil
+	}
+	
+	// يمكن إضافة المزيد من التحققات هنا
+	// مثل التحقق من رقم البطاقة، تاريخ الانتهاء، إلخ.
+	
+	return &PaymentValidation{
+		Valid: true,
+		Metadata: map[string]interface{}{
+			"validated_at": time.Now(),
+			"amount":       amount,
+			"currency":     currency,
+		},
+	}, nil
+}
+
+// ================================
+// دالة إنشاء PaymentService
+// ================================
+
+func NewPaymentService(db *sql.DB) PaymentService {
+	return &paymentServiceImpl{db: db}
+}
 
 // ================================
 // الواجهات الرئيسية
