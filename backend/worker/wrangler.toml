@@ -67,7 +67,7 @@ url = "https://sentry.io/api/0/projects/nawthtech/nawthtech-worker/releases/"
 token = "${SENTRY_AUTH_TOKEN}"
 
 [otlp]
-endpoint = https://o4510508331892736.ingest.de.sentry.io/api/4510508452413520/integration/otlp/v1/traces
+endpoint = "https://o4510508331892736.ingest.de.sentry.io/api/4510508452413520/integration/otlp/v1/traces"
 
 # Environment-specific settings
 [env.production]
