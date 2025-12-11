@@ -387,4 +387,119 @@ Backend API لمشروع NawthTech مبني بـ Go و Cloudflare D1.
 - **Cloudinary** - تخزين الملفات
 - **JWT** - المصادقة
 
-### الهيكل
+
+## 🚀 البدء السريع
+
+### المتطلبات المسبقة
+- Go 1.25 أو أحدث
+- Git
+
+### التثبيت
+```bash
+# 1. استنساخ المشروع
+git clone https://github.com/nawthtech/nawthtech.git
+cd nawthtech
+
+# 2. إعداد Backend
+cd backend
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+
+# 3. تهيئة ملف البيئة
+cp .env.example .env
+# قم بتعديل .env بإعداداتك
+
+# 4. تشغيل الخادم
+make dev
+
+## أوامر مفيده
+# بناء المشروع
+make build
+
+# تشغيل في وضع التطوير
+make dev
+
+# تشغيل الاختبارات
+make test
+
+# تحديث الاعتمادات
+make deps
+
+# تنظيف الملفات
+make clean
+
+## التكوين
+# قاعدة البيانات
+DB_DRIVER=sqlite3
+DATABASE_URL=database.nawthtech.com
+
+# المصادقة
+JWT_SECRET=""
+REFRESH_SECRET=""
+
+# الخدمات
+CLOUDINARY_URL=""
+SLACK_TOKEN=""
+STRIPE_SECRET_KEY=""
+
+##API Endpoints
+الصحة
+GET /health - فحص صحة الخدمة •
+GET /health/ready - فحص الجاهزية •
+GET /health/live - فحص الحيوية •
+المصادقة
+POST /api/v1/auth/register - تسجيل •
+مستخدم جديد
+POST /api/v1/auth/login - تسجيل •
+الدخول
+POST /api/v1/auth/refresh - تجديد •
+التوكن
+الخدمات
+GET /api/v1/services - الحصول على •
+جميع الخدمات
+جميع الخدمات
+POST /api/v1/services - إنشاء خدمة •
+جديدة
+GET /api/v1/services/: id - الحصول •
+على خدمة محددة
+
+## الاختبارات
+# جميع الاختبارات
+go test ./... -v
+
+# اختبارات سريعة
+go test ./... -short
+
+# اختبارات مع تغطية
+go test ./... -cover
+
+## الرخصه
+هذا المشروع مرخص تحت رخصة MIT
+
+##تعيين الصلاحيات
+chmod +x scripts/setup.sh
+chmod +x Makefile
+echo ""
+تم إعداد مشروع Nawthtech Backend إبنجاح"
+echo ""
+echo "
+":الاعتمادات المثبتة
+echo "=:
+go list -m all | grep -E "(gin|sqlite3) cloudinary|jwt|zap|viper|testify|stripel
+slack)" | head -15
+echo ""
+echo "
+":الخطوات التالية
+":قم بتهيئة ملف البيئة .echo "1
+echo " cp.env.example.env"
+"بإعداداتك env. قم بتعديل ملف .echo "2
+":قم بتشغيل الخادم .echo "3
+echo " make dev"
+echo ""
+echo "
+":تم إنشاء الهيكل التالي
+1.-type d -name ".go" -prune -o - type d
+-print / sort / sed 's|[*/]/I- lg'
+echo ""
+echo "
+الإعداد مكتمل! ابدأ التطوير🚀
