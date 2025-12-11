@@ -44,11 +44,11 @@ func TestNewSlackClient_Validation(t *testing.T) {
 
 // اختبارات بسيطة بدون mock معقد
 func TestSlackClient_Basic(t *testing.T) {
-	client := &SlackClient{
-		channelID: "test-channel",
+	client := *slackClient{
+		channelURL: "test-channel",
 		token:     "test-token",
 	}
 	
-	assert.Equal(t, "test-channel", client.channelID)
+	assert.Equal(t, "test-channel", client.channelURL)
 	assert.Equal(t, "test-token", client.token)
 }
