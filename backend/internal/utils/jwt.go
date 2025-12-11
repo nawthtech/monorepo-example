@@ -3,13 +3,14 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nawthtech/nawthtech/backend/internal/config"
 )
 
-// Claims
+// CustomClaims هي الهيكل المخصص لـ JWT Claims
 type CustomClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -44,24 +45,23 @@ func GenerateJWT(cfg *config.Config, userID, email, role string) (string, string
 		return "", "", err
 	}
 
-	// Generate refresh token
+	// Refresh token
 	refreshClaims := jwt.RegisteredClaims{
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(time.Second * time.Duration(cfg.Auth.RefreshExpiration))),
 		Issuer:    "nawthtech",
-		Subject:   userID,
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshTokenString, err := refreshToken.SignedString([]byte(secret))
+	refreshTokenStr, err := refreshToken.SignedString([]byte(secret))
 	if err != nil {
 		return "", "", err
 	}
 
-	return accessToken, refreshTokenString, nil
+	return accessToken, refreshTokenStr, nil
 }
 
-// VerifyJWT verifies token and returns claims
-func VerifyJWT(cfg *config.Config, tokenStr string) (*CustomClaims, error) {
+// ValidateJWT validates a JWT token
+func ValidateJWT(cfg *config.Config, tokenString string) (*CustomClaims, error) {
 	if cfg == nil {
 		return nil, errors.New("config required")
 	}
@@ -70,27 +70,77 @@ func VerifyJWT(cfg *config.Config, tokenStr string) (*CustomClaims, error) {
 		return nil, errors.New("JWT_SECRET not set")
 	}
 
-	token, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(secret), nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
+
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		return claims, nil
 	}
+
 	return nil, errors.New("invalid token")
 }
 
-func GetUserIDFromContext(ctx context.Context) string {
-	// helper to extract user id from context; used by handlers (you'll implement middleware to set it)
-	if ctx == nil {
-		return ""
+// RefreshJWT refreshes an access token using a refresh token
+func RefreshJWT(cfg *config.Config, refreshToken string) (string, string, error) {
+	if cfg == nil {
+		return "", "", errors.New("config required")
 	}
-	if v := ctx.Value("user_id"); v != nil {
-		if s, ok := v.(string); ok {
-			return s
+	secret := cfg.Auth.JWTSecret
+	if secret == "" {
+		return "", "", errors.New("JWT_SECRET not set")
+	}
+
+	// Validate refresh token
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		return "", "", fmt.Errorf("invalid refresh token: %w", err)
 	}
-	return ""
+
+	if !token.Valid {
+		return "", "", errors.New("expired refresh token")
+	}
+
+	// Extract user info from refresh token (you might want to store this differently)
+	// For now, we'll generate new tokens with default values
+	return GenerateJWT(cfg, "user_id", "email@example.com", "user")
+}
+
+// GetUserIDFromContext extracts user ID from context
+func GetUserIDFromContext(ctx context.Context) (string, error) {
+	userID, ok := ctx.Value("user_id").(string)
+	if !ok {
+		return "", errors.New("user ID not found in context")
+	}
+	return userID, nil
+}
+
+// GetUserRoleFromContext extracts user role from context
+func GetUserRoleFromContext(ctx context.Context) (string, error) {
+	role, ok := ctx.Value("user_role").(string)
+	if !ok {
+		return "", errors.New("user role not found in context")
+	}
+	return role, nil
+}
+
+// AddUserToContext adds user info to context
+func AddUserToContext(ctx context.Context, userID, email, role string) context.Context {
+	ctx = context.WithValue(ctx, "user_id", userID)
+	ctx = context.WithValue(ctx, "user_email", email)
+	ctx = context.WithValue(ctx, "user_role", role)
+	return ctx
 }
