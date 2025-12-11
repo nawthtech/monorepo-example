@@ -1115,3 +1115,538 @@ export class DatabaseService {
   async deleteFile(id: string): Promise<boolean> {
     const result = await this.env.DB.prepare(`
       UPDATE files
+      SET deleted_at = ? 
+      WHERE id = ?
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+
+    return result.success;
+  }
+
+  private mapFile(row: any): File {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      name: row.name,
+      url: row.url,
+      size: row.size,
+      type: row.type,
+      metadata: this.parseJSON(row.metadata),
+      created_at: row.created_at,
+      deleted_at: row.deleted_at
+    };
+  }
+
+  // ============ System Logs ============
+
+  async createSystemLog(log: Omit<SystemLog, 'id' | 'created_at'>): Promise<SystemLog> {
+    const id = this.generateId('log');
+    const now = new Date().toISOString();
+    
+    const result = await this.env.DB.prepare(`
+      INSERT INTO system_logs (
+        id, user_id, level, action, resource, details, ip_address, user_agent, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `)
+      .bind(
+        id,
+        log.user_id || null,
+        log.level,
+        log.action,
+        log.resource || null,
+        log.details || null,
+        log.ip_address || null,
+        log.user_agent || null,
+        now
+      )
+      .first<SystemLog>();
+
+    return this.mapSystemLog(result);
+  }
+
+  async getSystemLogs(filters: QueryOptions & Partial<SystemLog>): Promise<PaginatedResult<SystemLog>> {
+    const { page = 1, limit = 50, sortBy = 'created_at', sortOrder = 'DESC', ...filterFields } = filters;
+    const { offset, limit: safeLimit } = this.buildPagination(page, limit);
+    
+    const where = this.buildWhereClause(filterFields);
+    const whereClause = where.where || '';
+    
+    // Get total count
+    const countResult = await this.env.DB.prepare(`
+      SELECT COUNT(*) as total FROM system_logs ${whereClause}
+    `).bind(...where.values).first<{ total: number }>();
+    
+    const total = countResult?.total || 0;
+    
+    // Get paginated data
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM system_logs 
+      ${whereClause}
+      ORDER BY ${sortBy} ${sortOrder}
+      LIMIT ? OFFSET ?
+    `).bind(...where.values, safeLimit, offset).all();
+    
+    return {
+      data: result.results.map(this.mapSystemLog),
+      total,
+      page,
+      limit: safeLimit,
+      total_pages: Math.ceil(total / safeLimit)
+    };
+  }
+
+  async cleanOldLogs(days: number = 30): Promise<void> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    await this.env.DB.prepare(`
+      DELETE FROM system_logs WHERE created_at < ?
+    `).bind(cutoffDate.toISOString()).run();
+  }
+
+  private mapSystemLog(row: any): SystemLog {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      level: row.level,
+      action: row.action,
+      resource: row.resource,
+      details: row.details,
+      ip_address: row.ip_address,
+      user_agent: row.user_agent,
+      created_at: row.created_at
+    };
+  }
+
+  // ============ API Keys ============
+
+  async createApiKey(apiKey: Omit<ApiKey, 'id' | 'created_at'>): Promise<ApiKey> {
+    const id = this.generateId('api');
+    const now = new Date().toISOString();
+    
+    const result = await this.env.DB.prepare(`
+      INSERT INTO api_keys (
+        id, user_id, name, key_hash, prefix, permissions, last_used_at, expires_at, created_at, revoked_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `)
+      .bind(
+        id,
+        apiKey.user_id,
+        apiKey.name,
+        apiKey.key_hash,
+        apiKey.prefix,
+        this.stringifyJSON(apiKey.permissions) || '[]',
+        apiKey.last_used_at || null,
+        apiKey.expires_at || null,
+        now,
+        apiKey.revoked_at || null
+      )
+      .first<ApiKey>();
+
+    return this.mapApiKey(result);
+  }
+
+  async getApiKeyById(id: string): Promise<ApiKey | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM api_keys WHERE id = ?
+    `).bind(id).first();
+
+    return result ? this.mapApiKey(result) : null;
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL
+    `).bind(keyHash).first();
+
+    return result ? this.mapApiKey(result) : null;
+  }
+
+  async updateApiKeyLastUsed(id: string): Promise<void> {
+    await this.env.DB.prepare(`
+      UPDATE api_keys 
+      SET last_used_at = ? 
+      WHERE id = ?
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+  }
+
+  async revokeApiKey(id: string): Promise<boolean> {
+    const result = await this.env.DB.prepare(`
+      UPDATE api_keys 
+      SET revoked_at = ? 
+      WHERE id = ? AND revoked_at IS NULL
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+
+    return result.success;
+  }
+
+  async getUserApiKeys(userId: string): Promise<ApiKey[]> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM api_keys 
+      WHERE user_id = ? 
+      ORDER BY created_at DESC
+    `).bind(userId).all();
+
+    return result.results.map(this.mapApiKey);
+  }
+
+  async getValidApiKeys(): Promise<ApiKey[]> {
+    const now = new Date().toISOString();
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM api_keys 
+      WHERE revoked_at IS NULL 
+      AND (expires_at IS NULL OR expires_at > ?)
+      ORDER BY created_at DESC
+    `).bind(now).all();
+
+    return result.results.map(this.mapApiKey);
+  }
+
+  private mapApiKey(row: any): ApiKey {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      name: row.name,
+      key_hash: row.key_hash,
+      prefix: row.prefix,
+      permissions: this.parseJSON<string[]>(row.permissions),
+      last_used_at: row.last_used_at,
+      expires_at: row.expires_at,
+      created_at: row.created_at,
+      revoked_at: row.revoked_at
+    };
+  }
+
+  // ============ Sessions ============
+
+  async createSession(session: Omit<Session, 'id' | 'created_at' | 'last_accessed_at'>): Promise<Session> {
+    const id = this.generateId('sess');
+    const now = new Date().toISOString();
+    
+    const result = await this.env.DB.prepare(`
+      INSERT INTO sessions (
+        id, user_id, token, user_agent, ip_address, expires_at, created_at, last_accessed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `)
+      .bind(
+        id,
+        session.user_id,
+        session.token,
+        session.user_agent || null,
+        session.ip_address || null,
+        session.expires_at,
+        now,
+        now
+      )
+      .first<Session>();
+
+    return this.mapSession(result);
+  }
+
+  async getSessionById(id: string): Promise<Session | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM sessions WHERE id = ?
+    `).bind(id).first();
+
+    return result ? this.mapSession(result) : null;
+  }
+
+  async getSessionByToken(token: string): Promise<Session | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM sessions WHERE token = ? AND expires_at > ?
+    `)
+      .bind(token, new Date().toISOString())
+      .first();
+
+    return result ? this.mapSession(result) : null;
+  }
+
+  async updateSessionAccess(id: string): Promise<void> {
+    await this.env.DB.prepare(`
+      UPDATE sessions 
+      SET last_accessed_at = ? 
+      WHERE id = ?
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+  }
+
+  async deleteSession(id: string): Promise<boolean> {
+    const result = await this.env.DB.prepare(`
+      DELETE FROM sessions WHERE id = ?
+    `).bind(id).run();
+
+    return result.success;
+  }
+
+  async deleteExpiredSessions(): Promise<void> {
+    await this.env.DB.prepare(`
+      DELETE FROM sessions WHERE expires_at <= ?
+    `).bind(new Date().toISOString()).run();
+  }
+
+  async deleteUserSessions(userId: string): Promise<void> {
+    await this.env.DB.prepare(`
+      DELETE FROM sessions WHERE user_id = ?
+    `).bind(userId).run();
+  }
+
+  private mapSession(row: any): Session {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      token: row.token,
+      user_agent: row.user_agent,
+      ip_address: row.ip_address,
+      expires_at: row.expires_at,
+      created_at: row.created_at,
+      last_accessed_at: row.last_accessed_at
+    };
+  }
+
+  // ============ Password Reset ============
+
+  async createPasswordReset(reset: Omit<PasswordReset, 'id' | 'created_at'>): Promise<PasswordReset> {
+    const id = this.generateId('pwd_reset');
+    const now = new Date().toISOString();
+    
+    const result = await this.env.DB.prepare(`
+      INSERT INTO password_resets (
+        id, user_id, token_hash, expires_at, used_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `)
+      .bind(
+        id,
+        reset.user_id,
+        reset.token_hash,
+        reset.expires_at,
+        reset.used_at || null,
+        now
+      )
+      .first<PasswordReset>();
+
+    return this.mapPasswordReset(result);
+  }
+
+  async getPasswordResetByTokenHash(tokenHash: string): Promise<PasswordReset | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM password_resets 
+      WHERE token_hash = ? AND expires_at > ? AND used_at IS NULL
+    `)
+      .bind(tokenHash, new Date().toISOString())
+      .first();
+
+    return result ? this.mapPasswordReset(result) : null;
+  }
+
+  async markPasswordResetAsUsed(id: string): Promise<void> {
+    await this.env.DB.prepare(`
+      UPDATE password_resets 
+      SET used_at = ? 
+      WHERE id = ?
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+  }
+
+  async deleteExpiredPasswordResets(): Promise<void> {
+    await this.env.DB.prepare(`
+      DELETE FROM password_resets WHERE expires_at <= ?
+    `).bind(new Date().toISOString()).run();
+  }
+
+  private mapPasswordReset(row: any): PasswordReset {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      token_hash: row.token_hash,
+      expires_at: row.expires_at,
+      used_at: row.used_at,
+      created_at: row.created_at
+    };
+  }
+
+  // ============ Email Verification ============
+
+  async createEmailVerification(verification: Omit<EmailVerification, 'id' | 'created_at'>): Promise<EmailVerification> {
+    const id = this.generateId('email_verify');
+    const now = new Date().toISOString();
+    
+    const result = await this.env.DB.prepare(`
+      INSERT INTO email_verifications (
+        id, user_id, token_hash, expires_at, verified_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `)
+      .bind(
+        id,
+        verification.user_id,
+        verification.token_hash,
+        verification.expires_at,
+        verification.verified_at || null,
+        now
+      )
+      .first<EmailVerification>();
+
+    return this.mapEmailVerification(result);
+  }
+
+  async getEmailVerificationByTokenHash(tokenHash: string): Promise<EmailVerification | null> {
+    const result = await this.env.DB.prepare(`
+      SELECT * FROM email_verifications 
+      WHERE token_hash = ? AND expires_at > ? AND verified_at IS NULL
+    `)
+      .bind(tokenHash, new Date().toISOString())
+      .first();
+
+    return result ? this.mapEmailVerification(result) : null;
+  }
+
+  async markEmailVerificationAsVerified(id: string): Promise<void> {
+    await this.env.DB.prepare(`
+      UPDATE email_verifications 
+      SET verified_at = ? 
+      WHERE id = ?
+    `)
+      .bind(new Date().toISOString(), id)
+      .run();
+  }
+
+  async deleteExpiredEmailVerifications(): Promise<void> {
+    await this.env.DB.prepare(`
+      DELETE FROM email_verifications WHERE expires_at <= ?
+    `).bind(new Date().toISOString()).run();
+  }
+
+  private mapEmailVerification(row: any): EmailVerification {
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      token_hash: row.token_hash,
+      expires_at: row.expires_at,
+      verified_at: row.verified_at,
+      created_at: row.created_at
+    };
+  }
+
+  // ============ Analytics ============
+
+  async getDashboardStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    totalOrders: number;
+    totalRevenue: number;
+    pendingOrders: number;
+    activeServices: number;
+  }> {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      totalUsers,
+      activeUsers,
+      totalOrders,
+      totalRevenue,
+      pendingOrders,
+      activeServices
+    ] = await Promise.all([
+      this.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL
+      `).first<{ count: number }>(),
+      
+      this.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM users 
+        WHERE status = 'active' 
+        AND deleted_at IS NULL 
+        AND last_login > ?
+      `).bind(thirtyDaysAgo.toISOString()).first<{ count: number }>(),
+      
+      this.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM orders 
+        WHERE status IN ('completed', 'confirmed', 'in_progress')
+      `).first<{ count: number }>(),
+      
+      this.env.DB.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total FROM payments 
+        WHERE status = 'completed'
+      `).first<{ total: number }>(),
+      
+      this.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM orders WHERE status = 'pending'
+      `).first<{ count: number }>(),
+      
+      this.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM services 
+        WHERE is_active = 1 AND deleted_at IS NULL
+      `).first<{ count: number }>()
+    ]);
+
+    return {
+      totalUsers: totalUsers?.count || 0,
+      activeUsers: activeUsers?.count || 0,
+      totalOrders: totalOrders?.count || 0,
+      totalRevenue: totalRevenue?.total || 0,
+      pendingOrders: pendingOrders?.count || 0,
+      activeServices: activeServices?.count || 0
+    };
+  }
+
+  async getRevenueByPeriod(startDate: string, endDate: string): Promise<
+    Array<{ date: string; revenue: number }>
+  > {
+    const result = await this.env.DB.prepare(`
+      SELECT 
+        DATE(completed_at) as date,
+        SUM(amount) as revenue
+      FROM payments 
+      WHERE status = 'completed' 
+        AND completed_at BETWEEN ? AND ?
+      GROUP BY DATE(completed_at)
+      ORDER BY date ASC
+    `)
+      .bind(startDate, endDate)
+      .all<{ date: string; revenue: number }>();
+
+    return result.results;
+  }
+
+  // ============ Database Maintenance ============
+
+  async backupDatabase(): Promise<string> {
+    const tables = ['users', 'categories', 'services', 'orders', 'payments', 'payment_intents', 'notifications', 'files', 'system_logs', 'api_keys', 'sessions', 'password_resets', 'email_verifications'];
+    
+    const backup: Record<string, any[]> = {};
+    
+    for (const table of tables) {
+      const result = await this.env.DB.prepare(`SELECT * FROM ${table}`).all();
+      backup[table] = result.results;
+    }
+    
+    return JSON.stringify(backup, null, 2);
+  }
+
+  async executeQuery<T = any>(query: string, params: any[] = []): Promise<T[]> {
+    const result = await this.env.DB.prepare(query).bind(...params).all();
+    return result.results as T[];
+  }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.env.DB.prepare('SELECT 1').first();
+      return true;
+    } catch (error) {
+      console.error('Database health check failed:', error);
+      return false;
+    }
+  }
+}
