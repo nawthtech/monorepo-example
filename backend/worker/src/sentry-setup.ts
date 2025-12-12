@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/cloudflare';
 import sentryConfig from '../sentry.config.js';
-
+export { initSentry, withSentryErrorBoundary, captureMessage } from './sentry-setup.js';
+export { AIMonitoring } from './monitoring/ai-agents';
+export { setupSentryAI } from './monitoring/sentry-config';
 // Initialize Sentry
 export function initSentry(env: any) {
   Sentry.init({
