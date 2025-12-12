@@ -17,6 +17,9 @@ require (
 	golang.org/x/crypto v0.46.0
 	google.golang.org/api v0.257.0
 	google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217
+ github.com/sashabaranov/go-openai v1.0.0
+ github.com/getsentry/sentry-go v0.0.0
+ github.com/sirupsen/logrus v1.0.0
 )
 
 require (
