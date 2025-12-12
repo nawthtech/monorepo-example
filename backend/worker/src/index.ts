@@ -58,6 +58,7 @@ import type { Env, User } from './types/database';
 import type { APIResponse } from './utils/responses';
 import * as Sentry from '@sentry/cloudflare';
 import { initSentry, withSentryErrorBoundary, captureMessage } from './sentry-setup.js';
+import { LLMVerifier } from './lib/llm-verifier';
 
 // Import AI monitoring
 import { AIMonitoring } from './monitoring/ai-agents';
@@ -359,7 +360,12 @@ router.get('/favicon.ico', handleStaticFile);
 
 // API v1 Routes
 const apiV1 = router.basePath('/api/v1');
-
+router.post('/api/v1/verify', async (request, env) => {
+    const verifier = new LLMVerifier(env);
+    const body = await request.json();
+    const result = await verifier.verify(body.content, body.options);
+    return new Response(JSON.stringify(result));
+});
 // Auth routes
 apiV1.post('/auth/register', validateRequest('register'), registerUser);
 apiV1.post('/auth/login', validateRequest('login'), loginUser);
