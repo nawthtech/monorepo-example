@@ -558,6 +558,7 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
 		Length      string  `json:"length"`
 		MaxTokens   int     `json:"max_tokens" default:"1000"`
 		Temperature float64 `json:"temperature" default:"0.7"`
+  Provider    string  `json:"provider" default:"auto"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -582,7 +583,7 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
 	prompt := h.buildEnhancedPrompt(req.Prompt, req.ContentType, req.Tone, req.Length)
 
 	// توليد المحتوى باستخدام الواجهة الصحيحة
-	content, err := h.aiClient.GenerateText(prompt, h.getUserID(c))
+	content, err := h.aiClient.GenerateText(prompt, req.Provider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -599,8 +600,8 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
 			"language":     req.Language,
 			"content_type": req.ContentType,
 			"tone":         req.Tone,
-			"provider":     "ai_provider",
-			"model_used":   "default_model",
+			"provider":     "req.provider",
+			"model_used":   "default",
 			"cost":         0.0,
 			"tokens_used":  len(content),
 			"created_at":   time.Now().UTC().Format(time.RFC3339),
@@ -663,6 +664,11 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
 		prompt = "Describe this image in detail"
 	}
 
+	provider := c.PostForm("provider")
+	if provider == "" {
+		provider = "auto"
+	}
+
 	// قراءة ملف الصورة
 	uploadedFile, err := file.Open()
 	if err != nil {
@@ -685,8 +691,9 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
 		return
 	}
 
-	// تحليل الصورة باستخدام الواجهة الصحيحة
-	analysis, err := h.aiClient.AnalyzeImage(imageData, prompt, h.getUserID(c))
+
+	‎// تحليل الصورة باستخدام العميل الحالي
+	analysis, err := h.aiClient.AnalyzeImage(imageData, prompt, provider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -699,19 +706,18 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"analysis":      analysis,
+			"analysis":      analysis.Text,
 			"confidence":    0.85,
 			"filename":      file.Filename,
 			"size":          file.Size,
-			"content_type":  contentType,
-			"analysis_type": "general",
-			"provider":      "ai_provider",
-			"model_used":    "vision_model",
+			"provider":      provider,
+			"model_used":    "vision",
 			"cost":          0.0,
 			"created_at":    time.Now().UTC().Format(time.RFC3339),
 		},
 	})
 }
+
 
 // TranslateTextHandler معالج ترجمة النص
 func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
@@ -720,6 +726,7 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
 		SourceLang string `json:"source_lang" default:"auto"`
 		TargetLang string `json:"target_lang" binding:"required"`
 		Formal     bool   `json:"formal" default:"false"`
+  Provider   string `json:"provider" default:"auto"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -749,8 +756,8 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
 		return
 	}
 
-	// ترجمة النص باستخدام الواجهة الصحيحة
-	translatedText, err := h.aiClient.TranslateText(req.Text, req.SourceLang, req.TargetLang, h.getUserID(c))
+	‎// ترجمة النص باستخدام العميل الحالي
+	translatedText, err := h.aiClient.TranslateText(req.Text, req.SourceLang, req.TargetLang, req.Provider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -769,8 +776,8 @@ func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
 			"target_lang":     req.TargetLang,
 			"detected_lang":   "auto",
 			"confidence":      0.9,
-			"provider":        "translation_provider",
-			"model_used":      "translation_model",
+			"provider":        "req.Provider",
+			"model_used":      "translation",
 			"cost":            0.0,
 			"created_at":      time.Now().UTC().Format(time.RFC3339),
 		},
@@ -784,6 +791,7 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
 		Language    string `json:"language" default:"en"`
 		SummaryType string `json:"summary_type" default:"paragraph"`
 		MaxLength   int    `json:"max_length" default:"200"`
+		Provider    string `json:"provider" default:"auto"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -795,7 +803,7 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
 		return
 	}
 
-	// التحقق من طول النص
+‎	// التحقق من طول النص
 	if len(req.Text) > 10000 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -804,11 +812,11 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
 		return
 	}
 
-	// بناء prompt للتلخيص
+‎	// بناء prompt للتلخيص
 	prompt := h.buildSummaryPrompt(req.Text, req.SummaryType, req.MaxLength)
 
-	// توليد التلخيص باستخدام الواجهة الصحيحة
-	summary, err := h.aiClient.GenerateText(prompt, h.getUserID(c))
+‎	// توليد التلخيص باستخدام العميل الحالي
+	summary, err := h.aiClient.GenerateText(prompt, req.Provider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -825,8 +833,8 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
 			"summary":         summary,
 			"summary_type":    req.SummaryType,
 			"language":        req.Language,
-			"provider":        "ai_provider",
-			"model_used":      "summarization_model",
+			"provider":        req.Provider,
+			"model_used":      "summarization",
 			"cost":            0.0,
 			"created_at":      time.Now().UTC().Format(time.RFC3339),
 		},
@@ -835,6 +843,14 @@ func (h *AIHandler) SummarizeTextHandler(c *gin.Context) {
 
 // GetAICapabilitiesHandler معالج قدرات الذكاء الاصطناعي
 func (h *AIHandler) GetAICapabilitiesHandler(c *gin.Context) {
+	var providers map[string][]string
+	var usageStats map[string]interface{}
+	
+	if h.aiClient != nil {
+		providers = h.aiClient.GetAvailableProviders()
+		usageStats = h.aiClient.GetUsageStatistics()
+	}
+
 	capabilities := gin.H{
 		"features": []gin.H{
 			{
@@ -861,8 +877,16 @@ func (h *AIHandler) GetAICapabilitiesHandler(c *gin.Context) {
 				"max_input_length": 10000,
 				"summary_types":    []string{"paragraph", "bullet_points", "keywords"},
 			},
+			{
+				"name":        "video_generation",
+				"description": "Generate videos from text",
+				"max_duration": 60,
+			},
 		},
 
+		"providers": providers,
+		"usage_stats": usageStats,
+		
 		"content_types": []string{
 			"blog_post", "article", "social_media", "email",
 			"product_description", "ad_copy", "story", "poem",
