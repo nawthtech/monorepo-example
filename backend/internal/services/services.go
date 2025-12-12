@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -537,6 +538,346 @@ type ServiceContainer struct {
 	logger *zap.Logger
 }
 
+// أضف هذه الدوال لـ ServiceContainer:
+func (sc *ServiceContainer) InitializeHealthTables(ctx context.Context) error {
+	// إنشاء جداول الصحة فقط
+	healthTables := []string{
+		// جدول سجلات الصحة
+		`CREATE TABLE IF NOT EXISTS health_logs (
+			id TEXT PRIMARY KEY,
+			service_name TEXT NOT NULL,
+			status TEXT NOT NULL,
+			check_type TEXT NOT NULL,
+			duration_ms INTEGER NOT NULL,
+			message TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول مقاييس الأداء
+		`CREATE TABLE IF NOT EXISTS performance_metrics (
+			id TEXT PRIMARY KEY,
+			metric_name TEXT NOT NULL,
+			metric_value REAL NOT NULL,
+			metric_unit TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول أحداث النظام
+		`CREATE TABLE IF NOT EXISTS system_events (
+			id TEXT PRIMARY KEY,
+			event_type TEXT NOT NULL,
+			event_source TEXT NOT NULL,
+			severity TEXT NOT NULL,
+			description TEXT NOT NULL,
+			details TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول إحصائيات الـ API
+		`CREATE TABLE IF NOT EXISTS api_statistics (
+			id TEXT PRIMARY KEY,
+			endpoint TEXT NOT NULL,
+			method TEXT NOT NULL,
+			status_code INTEGER NOT NULL,
+			response_time_ms INTEGER NOT NULL,
+			user_id TEXT,
+			ip_address TEXT,
+			user_agent TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول توفر الخدمة
+		`CREATE TABLE IF NOT EXISTS service_availability (
+			id TEXT PRIMARY KEY,
+			service_name TEXT NOT NULL,
+			status TEXT NOT NULL,
+			uptime_percentage REAL,
+			response_time_avg REAL,
+			error_rate REAL,
+			last_check TIMESTAMP,
+			next_check TIMESTAMP,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(service_name)
+		)`,
+
+		// جدول تنبيهات النظام
+		`CREATE TABLE IF NOT EXISTS system_alerts (
+			id TEXT PRIMARY KEY,
+			alert_type TEXT NOT NULL,
+			alert_level TEXT NOT NULL,
+			alert_message TEXT NOT NULL,
+			is_resolved BOOLEAN DEFAULT FALSE,
+			resolved_at TIMESTAMP,
+			resolved_by TEXT,
+			resolution_note TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول المراقبة في الوقت الحقيقي
+		`CREATE TABLE IF NOT EXISTS realtime_metrics (
+			id TEXT PRIMARY KEY,
+			metric_type TEXT NOT NULL,
+			metric_value REAL NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول فحوصات الصحة المجدولة
+		`CREATE TABLE IF NOT EXISTS scheduled_checks (
+			id TEXT PRIMARY KEY,
+			check_name TEXT NOT NULL,
+			check_type TEXT NOT NULL,
+			schedule TEXT NOT NULL,
+			last_run TIMESTAMP,
+			last_status TEXT,
+			next_run TIMESTAMP,
+			is_active BOOLEAN DEFAULT TRUE,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(check_name)
+		)`,
+
+		// جدول اعتمادية الخدمات
+		`CREATE TABLE IF NOT EXISTS service_dependencies (
+			id TEXT PRIMARY KEY,
+			service_name TEXT NOT NULL,
+			dependency_name TEXT NOT NULL,
+			dependency_type TEXT NOT NULL,
+			dependency_url TEXT,
+			is_required BOOLEAN DEFAULT TRUE,
+			last_check TIMESTAMP,
+			last_status TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(service_name, dependency_name)
+		)`,
+
+		// جدول تقارير الأداء
+		`CREATE TABLE IF NOT EXISTS performance_reports (
+			id TEXT PRIMARY KEY,
+			report_type TEXT NOT NULL,
+			report_period TEXT NOT NULL,
+			metrics_data TEXT NOT NULL,
+			generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول استخدام الموارد
+		`CREATE TABLE IF NOT EXISTS resource_usage (
+			id TEXT PRIMARY KEY,
+			resource_type TEXT NOT NULL,
+			usage_percentage REAL NOT NULL,
+			total_amount REAL,
+			used_amount REAL,
+			unit TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول فحوصات الأمان
+		`CREATE TABLE IF NOT EXISTS security_checks (
+			id TEXT PRIMARY KEY,
+			check_name TEXT NOT NULL,
+			check_category TEXT NOT NULL,
+			status TEXT NOT NULL,
+			details TEXT,
+			last_run TIMESTAMP,
+			next_run TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول تحديثات الإصدارات
+		`CREATE TABLE IF NOT EXISTS version_updates (
+			id TEXT PRIMARY KEY,
+			component_name TEXT NOT NULL,
+			current_version TEXT NOT NULL,
+			latest_version TEXT,
+			update_available BOOLEAN DEFAULT FALSE,
+			release_notes TEXT,
+			last_checked TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(component_name)
+		)`,
+
+		// جدول وقت التشغيل
+		`CREATE TABLE IF NOT EXISTS uptime_records (
+			id TEXT PRIMARY KEY,
+			service_name TEXT NOT NULL,
+			start_time TIMESTAMP NOT NULL,
+			end_time TIMESTAMP,
+			duration_seconds INTEGER,
+			status TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول فحوصات قاعدة البيانات
+		`CREATE TABLE IF NOT EXISTS database_health (
+			id TEXT PRIMARY KEY,
+			database_name TEXT NOT NULL,
+			connection_status TEXT NOT NULL,
+			connection_time_ms INTEGER,
+			query_count INTEGER,
+			active_connections INTEGER,
+			max_connections INTEGER,
+			disk_usage_mb REAL,
+			last_vacuum TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول أخطاء التطبيق
+		`CREATE TABLE IF NOT EXISTS application_errors (
+			id TEXT PRIMARY KEY,
+			error_type TEXT NOT NULL,
+			error_message TEXT NOT NULL,
+			stack_trace TEXT,
+			endpoint TEXT,
+			user_id TEXT,
+			ip_address TEXT,
+			resolved BOOLEAN DEFAULT FALSE,
+			resolved_at TIMESTAMP,
+			resolved_by TEXT,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// جدول مقاييس الأعمال
+		`CREATE TABLE IF NOT EXISTS business_metrics (
+			id TEXT PRIMARY KEY,
+			metric_name TEXT NOT NULL,
+			metric_value REAL NOT NULL,
+			metric_date DATE NOT NULL,
+			metadata TEXT DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(metric_name, metric_date)
+		)`,
+	}
+
+	// إنشاء الجداول
+	for _, query := range healthTables {
+		_, err := sc.db.ExecContext(ctx, query)
+		if err != nil {
+			return fmt.Errorf("failed to create health table: %s, error: %w", query, err)
+		}
+	}
+
+	// إنشاء الفهارس
+	indexes := []string{
+		// فهارس لـ health_logs
+		`CREATE INDEX IF NOT EXISTS idx_health_logs_service ON health_logs(service_name)`,
+		`CREATE INDEX IF NOT EXISTS idx_health_logs_status ON health_logs(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_health_logs_created ON health_logs(created_at)`,
+
+		// فهارس لـ performance_metrics
+		`CREATE INDEX IF NOT EXISTS idx_perf_metrics_name_date ON performance_metrics(metric_name, created_at)`,
+
+		// فهارس لـ system_events
+		`CREATE INDEX IF NOT EXISTS idx_system_events_date_severity ON system_events(created_at, severity)`,
+
+		// فهارس لـ api_statistics
+		`CREATE INDEX IF NOT EXISTS idx_api_stats_endpoint_date ON api_statistics(endpoint, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_api_stats_user_date ON api_statistics(user_id, created_at)`,
+
+		// فهارس لـ system_alerts
+		`CREATE INDEX IF NOT EXISTS idx_alerts_type_date ON system_alerts(alert_type, created_at)`,
+
+		// فهارس لـ realtime_metrics
+		`CREATE INDEX IF NOT EXISTS idx_realtime_type_date ON realtime_metrics(metric_type, created_at)`,
+
+		// فهارس لـ application_errors
+		`CREATE INDEX IF NOT EXISTS idx_errors_type_date ON application_errors(error_type, created_at)`,
+
+		// فهارس لـ business_metrics
+		`CREATE INDEX IF NOT EXISTS idx_business_name_date ON business_metrics(metric_name, metric_date)`,
+	}
+
+	for _, index := range indexes {
+		_, err := sc.db.ExecContext(ctx, index)
+		if err != nil {
+			sc.logger.Warn("Failed to create health index", zap.String("index", index), zap.Error(err))
+		}
+	}
+
+	// إدراج بيانات افتراضية
+	defaultData := []string{
+		// فحوصات مجدولة افتراضية
+		`INSERT OR IGNORE INTO scheduled_checks (id, check_name, check_type, schedule, is_active) VALUES
+			('check_db_001', 'Database Health Check', 'database', '*/5 * * * *', TRUE),
+			('check_api_001', 'API Endpoint Check', 'api', '*/10 * * * *', TRUE),
+			('check_cache_001', 'Cache Service Check', 'external_service', '*/15 * * * *', TRUE),
+			('check_storage_001', 'Storage Service Check', 'external_service', '*/30 * * * *', TRUE)`,
+
+		// اعتمادية الخدمات
+		`INSERT OR IGNORE INTO service_dependencies (id, service_name, dependency_name, dependency_type, is_required) VALUES
+			('dep_001', 'nawthtech-api', 'SQLite Database', 'database', TRUE),
+			('dep_002', 'nawthtech-api', 'In-memory Cache', 'cache', FALSE),
+			('dep_003', 'nawthtech-api', 'Cloudinary Storage', 'storage', FALSE),
+			('dep_004', 'nawthtech-api', 'Payment Gateway', 'api', TRUE)`,
+
+		// فحوصات الأمان الافتراضية
+		`INSERT OR IGNORE INTO security_checks (id, check_name, check_category, status) VALUES
+			('sec_001', 'JWT Token Validation', 'authentication', 'passed'),
+			('sec_002', 'Password Hashing', 'encryption', 'passed'),
+			('sec_003', 'CORS Configuration', 'network', 'passed'),
+			('sec_004', 'SQL Injection Protection', 'database', 'passed')`,
+
+		// معلومات الإصدارات
+		`INSERT OR IGNORE INTO version_updates (id, component_name, current_version) VALUES
+			('ver_001', 'backend', '1.0.0'),
+			('ver_002', 'api', '1.0.0'),
+			('ver_003', 'database', 'sqlite-3.0')`,
+
+		// سجلات وقت التشغيل الأولية
+		`INSERT OR IGNORE INTO uptime_records (id, service_name, start_time, status) VALUES
+			('uptime_001', 'nawthtech-api', CURRENT_TIMESTAMP, 'up')`,
+	}
+
+	for _, query := range defaultData {
+		_, err := sc.db.ExecContext(ctx, query)
+		if err != nil {
+			sc.logger.Warn("Failed to insert default health data", zap.String("query", query), zap.Error(err))
+		}
+	}
+
+	if sc.logger != nil {
+		sc.logger.Info("Health tables initialized successfully")
+	}
+	
+	return nil
+}
+
+func (sc *ServiceContainer) LogHealthCheck(ctx context.Context, serviceName, status, checkType string, durationMs int64, message string, metadata map[string]interface{}) error {
+	query := `INSERT INTO health_logs 
+		(id, service_name, status, check_type, duration_ms, message, metadata, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	
+	metadataJSON := "{}"
+	if metadata != nil {
+		metadataBytes, _ := json.Marshal(metadata)
+		metadataJSON = string(metadataBytes)
+	}
+	
+	_, err := sc.db.ExecContext(ctx, query,
+		generateID("hl"),
+		serviceName,
+		status,
+		checkType,
+		durationMs,
+		message,
+		metadataJSON,
+		time.Now(),
+	)
+	
+	return err
+}
+
 // ================================
 // دوال الإنشاء (Factory Functions)
 // ================================
@@ -606,7 +947,7 @@ func NewServiceContainer(db *sql.DB, cfg *config.Config) *ServiceContainer {
 		Notification: NewNotificationService(db),
 		Admin:        NewAdminService(db),
 		Cache:        NewCacheService(),
-		Health:       NewHealthService(),
+		Health:       NewHealthService(db, cfg, &zap.Logger{}),
 		db:           db,
 	}
 }
@@ -2629,14 +2970,21 @@ func (s *healthServiceImpl) GetDashboardStats(ctx context.Context) (*DashboardSt
 // ================================
 
 func (sc *ServiceContainer) InitializeDatabase(ctx context.Context) error {
+	// إنشاء جميع الجداول الأساسية
 	for _, query := range CreateTablesSQL() {
 		_, err := sc.db.ExecContext(ctx, query)
 		if err != nil {
 			return fmt.Errorf("failed to execute query: %s, error: %w", query, err)
 		}
 	}
-	    if err := sc.InitializeHealthTables(ctx); err != nil {
-		sc.logger.Warn("Failed to initialize health tables", zap.Error(err))
+	
+	// تهيئة جداول الصحة (اختياري، يمكن تجاهل الأخطاء)
+	if err := sc.InitializeHealthTables(ctx); err != nil {
+		if sc.logger != nil {
+			sc.logger.Warn("Failed to initialize health tables", zap.Error(err))
+		} else {
+			sc.logger.Info("⚠️ Failed to initialize health tables: %v", zap.Error(err))
+		}
 	}
 	
 	return nil
@@ -2683,15 +3031,35 @@ var (
 	ErrDuplicateEntry    = errors.New("duplicate entry")
 	ErrDatabase          = errors.New("database error")
 	ErrValidation        = errors.New("validation error")
-	ErrNotImplemented    = errors.New("not implemented")
+	ErrNotImplemented    = errors.New("not implemented") 
+	
+	// Health Errors
+	ErrHealthCheckFailed  = errors.New("health check failed")
+	ErrDatabaseUnhealthy  = errors.New("database is unhealthy")
+	ErrCacheUnhealthy     = errors.New("cache service is unhealthy")
+	ErrStorageUnhealthy   = errors.New("storage service is unhealthy")
+	ErrServiceUnavailable = errors.New("service is unavailable")
+	ErrHealthTimeout      = errors.New("health check timeout")
+	ErrMetricsUnavailable = errors.New("metrics unavailable")
+	ErrInvalidHealthConfig = errors.New("invalid health configuration")
+	
+	// Monitoring Errors
+	ErrMonitoringDisabled = errors.New("monitoring is disabled")
+	ErrAlertSystemFailed  = errors.New("alert system failed")
+	ErrMetricCollectionFailed = errors.New("metric collection failed")
+	
+	// System Errors  
+	ErrSystemOverloaded   = errors.New("system is overloaded")
+	ErrResourceExhausted  = errors.New("resource exhausted")
+	ErrUptimeCalculationFailed = errors.New("uptime calculation failed")
 )
 
 // ================================
 // دوال Init و Initialization
 // ================================
 
-func InitServiceContainer(db *sql.DB) *ServiceContainer {
-	container := NewServiceContainer(db)
+func InitServiceContainer(db *sql.DB, cfg *config.Config, logger *zap.Logger) *ServiceContainer {
+	container := NewServiceContainerWithConfig(db,cfg, logger)
 	
 	// تهيئة قاعدة البيانات
 	ctx := context.Background()

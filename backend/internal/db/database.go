@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -375,19 +376,23 @@ func (d *DB) CheckDatabaseHealth(ctx context.Context) (map[string]interface{}, e
 	
 	// 1. التحقق من الاتصال
 	startTime := time.Now()
-	connected, err := IsConnected()
+	connected := IsConnected()
 	pingTime := time.Since(startTime)
 	
 	health["connected"] = connected
 	health["ping_time_ms"] = pingTime.Milliseconds()
 	health["connection_error"] = nil
 	
-	if err != nil {
-		health["connection_error"] = err.Error()
-		health["overall_status"] = "unhealthy"
-		return health, err
-	}
-	
+	if !connected != nil {
+		health[ "overall_status"] =
+    "unhealthy"
+        health[ "connection_error"] =
+    "database connection failed"
+    return health, fmt.Errorf("database connection failed")
+    }
+        health[ "overall_status"] = "healthy"
+    return health, nil
+}
 	// 2. اختبار استعلام
 	queryTime, queryErr := d.TestQuery(ctx)
 	health["query_time_ms"] = queryTime.Milliseconds()
@@ -410,7 +415,6 @@ func (d *DB) CheckDatabaseHealth(ctx context.Context) (map[string]interface{}, e
 	health["timestamp"] = time.Now().UTC().Format(time.RFC3339)
 	
 	return health, nil
-}
 
 // GetConnectionInfo معلومات الاتصال بقاعدة البيانات
 func (d *DB) GetConnectionInfo() map[string]interface{} {
