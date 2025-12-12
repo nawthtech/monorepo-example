@@ -558,7 +558,8 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
 		Length      string  `json:"length"`
 		MaxTokens   int     `json:"max_tokens" default:"1000"`
 		Temperature float64 `json:"temperature" default:"0.7"`
-  Provider    string  `json:"provider" default:"auto"`
+  Duration int    `json:"duration" default:"30"`
+		Provider string `json:"provider" default:"auto"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -566,6 +567,14 @@ func (h *AIHandler) GenerateContentHandler(c *gin.Context) {
 			"success": false,
 			"error":   "Invalid request format",
 			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(req.Prompt) > 1000 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Prompt is too long (max 1000 characters)",
 		})
 		return
 	}
@@ -718,6 +727,105 @@ func (h *AIHandler) AnalyzeImageHandler(c *gin.Context) {
 	})
 }
 
+‎// توليد الفيديو
+	videoURL, err := h.aiClient.GenerateVideo(req.Prompt, req.Provider)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to generate video",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"message": "Video generation started",
+		"data": gin.H{
+			"prompt":   req.Prompt,
+			"duration": req.Duration,
+			"provider": req.Provider,
+			"status":   "processing",
+			"note":     "Use the check_video endpoint to check status",
+		},
+	})
+}
+
+// CheckVideoStatusHandler معالب التحقق من حالة الفيديو
+func (h *AIHandler) CheckVideoStatusHandler(c *gin.Context) {
+	operationID := c.Param("id")
+	if operationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Operation ID is required",
+		})
+		return
+	}
+
+‎	// الحصول على حالة الفيديو
+	status, err := h.aiClient.GetVideoStatus(operationID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get video status",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    status,
+	})
+}
+
+// AnalyzeTextHandler معالج تحليل النص
+func (h *AIHandler) AnalyzeTextHandler(c *gin.Context) {
+	var req struct {
+		Text     string `json:"text" binding:"required"`
+		Provider string `json:"provider" default:"auto"`
+		Type     string `json:"type" default:"general"` // sentiment, entities, keywords, etc.
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request format",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(req.Text) > 5000 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Text is too long (max 5000 characters)",
+		})
+		return
+	}
+
+‎	// تحليل النص
+	analysis, err := h.aiClient.AnalyzeText(req.Text, req.Provider)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to analyze text",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"text":        req.Text,
+			"analysis":    analysis,
+			"provider":    req.Provider,
+			"analysis_type": req.Type,
+			"created_at":  time.Now().UTC().Format(time.RFC3339),
+		},
+	})
+}
 
 // TranslateTextHandler معالج ترجمة النص
 func (h *AIHandler) TranslateTextHandler(c *gin.Context) {
