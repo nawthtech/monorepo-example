@@ -92,6 +92,7 @@ type HandlerContainer struct {
 	Admin        *AdminHandler
 	Health       *HealthHandler
 	AI           *AIHandler
+	Email        *EmailHandler
 }
 
 // NewHandlerContainer إنشاء حاوية handlers جديدة
@@ -129,10 +130,22 @@ func NewHandlerContainer(serviceContainer *services.ServiceContainer) *HandlerCo
 		if serviceContainer.Health != nil {
 			container.Health = &HealthHandler{service: serviceContainer.Health}
 		}
-		// يمكن إضافة AI handler إذا كان هناك خدمة AI في serviceContainer
-		// if serviceContainer.AI != nil {
-		//     container.AI = &AIHandler{service: serviceContainer.AI}
-		// }
+		if serviceContainer.Email != nil {
+‎			// محاولة إنشاء email worker
+			emailWorker, err := email.NewCloudflareEmailWorker()
+			if err == nil {
+				container.Email = &EmailHandler{
+					service:     serviceContainer.Email,
+					emailWorker: emailWorker,
+				}
+			} else {
+				// Log error but continue without email worker
+				fmt.Printf("Warning: Failed to initialize email worker: %v\n", err)
+				container.Email = &EmailHandler{
+					service: serviceContainer.Email,
+				}
+			}
+		}
 	}
 
 	return container
